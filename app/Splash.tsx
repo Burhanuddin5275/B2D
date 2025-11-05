@@ -1,0 +1,88 @@
+import { router } from 'expo-router';
+import React, { useEffect } from 'react';
+import { Image, ImageBackground, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
+const Splash = () => {
+  useEffect(() => {
+    // You can add any initialization logic here
+  }, []);
+
+  return (
+    <ImageBackground
+      source={require('@/assets/images/background.png')}
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    >
+      <View style={styles.container}>
+        <View style={styles.logoContainer}>
+          <Image
+            source={require('@/assets/images/logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
+        <View style={styles.bottomContent}>
+          <TouchableOpacity
+            style={styles.getStartedButton}
+            onPress={() => router.replace('/Slider')}
+          >
+            <Text style={styles.buttonText}>Get Started</Text>
+          </TouchableOpacity>
+          <Text style={styles.subText}>
+            Get fresh groceries delivered to your
+            door with just a few taps!
+          </Text>
+        </View>
+      </View>
+    </ImageBackground>
+  );
+};
+
+const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+  },
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoContainer: {
+    width: scale(200),
+    height: verticalScale(200),  
+  },
+  logo: {
+    width: scale(200),
+    height: verticalScale(200)
+  },
+  bottomContent: {
+    position: 'absolute',
+    bottom: verticalScale(100),
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  getStartedButton: { 
+    paddingHorizontal: 24,
+    paddingVertical: 12, 
+    borderRadius: 25,
+    width: '80%',
+  },
+  buttonText: {
+    fontSize: moderateScale(18),
+    fontFamily:' Montserrat',
+    textAlign: 'center', 
+  },
+  subText: {
+    width: scale(240),
+    fontSize: moderateScale(14),
+    fontFamily:' MontserratMedium',
+    color: '#1A1A1A',
+    textAlign: 'center',
+  },
+  loginText: {
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+});
+
+export default Splash;

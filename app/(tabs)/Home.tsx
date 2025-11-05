@@ -1,0 +1,525 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
+import { ImageBackground } from 'expo-image';
+import React, { useState } from 'react';
+import { Dimensions, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { scale, verticalScale } from 'react-native-size-matters';
+
+const { width } = Dimensions.get('window');
+
+const categories = [
+  { id: 1, name: 'Spices &\nSeasoning', icon: '🌶️', color: '#FFD4C4' },
+  { id: 2, name: 'Cooking\nOil & Ghee', icon: '🧴', color: '#C41E3A' },
+  { id: 3, name: 'Grains', icon: '🍚', color: '#FFE4A3' },
+  { id: 4, name: 'Lentils &\nBeans', icon: '🥜', color: '#8B6F47' },
+  { id: 5, name: 'Pulses', icon: '🫘', color: '#4A90E2' },
+];
+
+const stores = [
+  {
+    id: 1,
+    image: require('../../assets/images/store1.png'),
+  },
+  {
+    id: 2,
+    image: require('../../assets/images/store2.png'),
+  },
+  {
+    id: 3,
+    image: require('../../assets/images/store3.png'),
+  },
+
+];
+
+const products = [
+  {
+    id: 1,
+    name: 'RITZ Fresh Stacks\nOriginal Crackers',
+    subtitle: 'Family Size, 17.8 oz',
+    price: 4.98,
+    img: require('../../assets/images/Ritz.png'),
+  },
+  {
+    id: 2,
+    name: 'Great Value Mini\nPretzel Twists',
+    subtitle: '16 oz',
+    price: 2.24,
+    img: require('../../assets/images/Mini.png'),
+  },
+  {
+    id: 3,
+    name: 'Loacker Classic Wafers Mix, Variety...',
+    subtitle: '45g/1.59oz, Pack of 6',
+    price: 10.19,
+    img: require('../../assets/images/loacker.png'),
+  },
+  {
+    id: 4,
+    name: 'LOVE CORN Variety Pack | Sea Salt, BBQ...',
+    subtitle: '0.7oz, 18 Bags',
+    price: 15.19,
+    img: require('../../assets/images/snack.png'),
+  },
+
+];
+
+export default function HomeScreen() {
+  const navigation = useNavigation();
+  const [quantities, setQuantities] = useState<Record<number, number>>({});
+  const [wishlist, setWishlist] = useState<number[]>([]);
+  const insets = useSafeAreaInsets();
+  const toggleWishlist = (productId: number) => {
+    setWishlist(prev =>
+      prev.includes(productId)
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
+  };
+
+  const isInWishlist = (productId: number) => wishlist.includes(productId);
+
+  const increment = (id: number) => {
+    setQuantities(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+  };
+
+  const decrement = (id: number) => {
+    setQuantities(prev => {
+      const current = prev[id] || 0;
+      const next = Math.max(0, current - 1);
+      const updated = { ...prev, [id]: next };
+      if (next === 0) delete updated[id];
+      return updated;
+    });
+  };
+
+  return (
+    <SafeAreaView style={{flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(4))}}>
+      <ImageBackground
+        source={require('../../assets/images/background2.png')}
+        style={styles.backgroundImage}
+      >
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          <View style={styles.headerShadowWrapper}>
+            <ImageBackground
+              source={require('../../assets/images/background1.png')}
+              style={styles.contentContainer}
+            >
+              <View style={styles.header}>
+                <View style={styles.deliveryInfo}>
+                  <Text style={styles.deliveryLabel}>Delivery in</Text>
+                  <Text style={styles.deliveryTime}>10 minutes</Text>
+                  <Text style={styles.deliveryAddress}>Raleigh St, Houston, TX 77021</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.searchContainer}
+                onPress={() => navigation.navigate('Search' as never)}
+              >
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search for category, store & products"
+                  placeholderTextColor="#E9B10F"
+                  editable={false}
+                  pointerEvents="none"
+                />
+                <Ionicons name="search" size={24} color="#E9B10F" />
+              </TouchableOpacity>
+            </ImageBackground>
+          </View>
+
+          {/* Categories Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Categories</Text>
+              <TouchableOpacity>
+                <Text style={styles.viewAll}>View all</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.categoriesScroll}
+            >
+              {categories.map((category) => (
+                <TouchableOpacity key={category.id} style={styles.categoryCard}>
+                  <View style={[styles.categoryIcon, { backgroundColor: category.color }]}>
+                    <Text style={styles.categoryEmoji}>{category.icon}</Text>
+                  </View>
+                  <Text style={styles.categoryName}>{category.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          {/* Stores Near You Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Stores near you</Text>
+              <TouchableOpacity>
+                <Text style={styles.viewAll}>View all</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.storesScroll}
+            >
+              {stores.map((store) => (
+                <TouchableOpacity
+                  key={store.id}
+                  style={styles.storeCard}
+                  activeOpacity={0.8}
+                >
+                  <Image source={store.image} style={styles.storeImage} />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <View style={styles.pagination}>
+              <View style={[styles.paginationDot, styles.paginationDotActive]} />
+              <View style={styles.paginationDot} />
+              <View style={styles.paginationDot} />
+            </View>
+          </View>
+
+          {/* Products Section */}
+          <View style={styles.productsSection}>
+            <View style={styles.productsGrid}>
+              {products.map((product) => {
+                const qty = quantities[product.id] || 0;
+                return (
+                  <View key={product.id} style={styles.productCard}>
+                    <View style={styles.productImage}>
+                      <Image source={product.img} style={styles.productPic} resizeMode="contain" />
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.favoriteButton, isInWishlist(product.id) && styles.favoriteButtonActive]}
+                      onPress={() => toggleWishlist(product.id)}
+                    >
+                      <Ionicons
+                        name={isInWishlist(product.id) ? "heart" : "heart-outline"}
+                        size={20}
+                        color={isInWishlist(product.id) ? "#cfcdcdff" : "#888"}
+                      />
+                    </TouchableOpacity>
+
+                    <View style={styles.productInfo}>
+                      <Text style={styles.productName}>{product.name}</Text>
+                      <Text style={styles.productSubtitle}>{product.subtitle}</Text>
+
+                      <Text style={styles.priceText}>${product.price.toFixed(2)}</Text>
+                      <View style={styles.buttonContainer}>
+                        {qty === 0 ? (
+                          <TouchableOpacity
+                            style={styles.addButton}
+                            onPress={() => increment(product.id)}
+                          >
+                            <Text style={styles.addButtonText}>+ Add</Text>
+                          </TouchableOpacity>
+                        ) : (
+                          <View style={styles.qtyControl}>
+                            <TouchableOpacity
+                              style={styles.qtySideButton}
+                              onPress={() => decrement(product.id)}
+                            >
+                              <Text style={styles.qtySideButtonText}>−</Text>
+                            </TouchableOpacity>
+                            <View style={styles.qtyPill}>
+                              <Text style={styles.qtyText}>{String(qty).padStart(2, '0')}</Text>
+                            </View>
+                            <TouchableOpacity
+                              style={styles.qtySideButtonFilled}
+                              onPress={() => increment(product.id)}
+                            >
+                              <Text style={styles.qtySideButtonFilledText}>+</Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        </ScrollView>
+      </ImageBackground>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  backgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: width,
+  },
+  scrollView: {
+    flex: 1,
+  },
+headerShadowWrapper: {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.15,
+  shadowRadius: 6,
+  elevation: 8,
+  overflow: 'hidden', 
+},
+contentContainer: {
+  height: verticalScale(200),
+  justifyContent: 'flex-end',
+},
+
+  header: {
+    paddingHorizontal: scale(20),
+    paddingTop: verticalScale(40),
+    paddingBottom: verticalScale(20),
+  },
+  deliveryInfo: {
+    marginTop: verticalScale(10),
+  },
+  deliveryLabel: {
+    fontSize: 14,
+    color: '#000',
+    fontWeight: '500',
+  },
+  deliveryTime: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#000',
+    marginTop: 2,
+  },
+  deliveryAddress: {
+    fontSize: 14,
+    color: '#000',
+    marginTop: 4,
+  },
+  searchContainer: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#F4A300',
+  },
+  section: {
+    marginTop: verticalScale(20),
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: verticalScale(16),
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  viewAll: {
+    fontSize: 14,
+    color: '#F4A300',
+    fontWeight: '600',
+  },
+  categoriesScroll: {
+    paddingLeft: 20,
+  },
+  categoryCard: {
+    alignItems: 'center',
+    marginRight: 16,
+    width: 80,
+  },
+  categoryIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  categoryEmoji: {
+    fontSize: 36,
+  },
+  categoryName: {
+    fontSize: 12,
+    textAlign: 'center',
+    color: '#000',
+    lineHeight: 16,
+  },
+  storesScroll: {
+    
+  },
+  storeCard: {
+    width: scale(300),
+    height: verticalScale(160),
+    justifyContent: 'space-around',
+  },
+  storeTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000',
+    lineHeight: 24,
+    width: scale(200)
+  },
+
+  storeImage: {
+    resizeMode: 'contain',
+  },
+  pagination: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  paginationDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#D0D0D0',
+  },
+  paginationDotActive: {
+    backgroundColor: '#000',
+  },
+  productsSection: {
+    marginTop: verticalScale(20),
+    flexDirection: 'row'
+  },
+  productsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: verticalScale(80)
+  },
+  productCard: {
+    width: scale(175),
+    borderRightWidth: 1,
+    borderColor: '#E0E0E0',
+    position: 'relative',
+    padding: 10,
+    borderRadius: 0,
+    borderTopWidth: 1,
+  },
+  productImage: {
+    width: scale(150),
+    height: verticalScale(140),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  productEmoji: {
+    fontSize: 60,
+  },
+  productPic: {
+    width: 120,
+    height: 120,
+  },
+  favoriteButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  favoriteButtonActive: {
+    backgroundColor: 'rgba(163, 161, 161, 0.1)',
+  },
+
+  productInfo: {
+    paddingHorizontal: 4,
+  },
+  productName: {
+    color: '#1E1E1E',
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+  productSubtitle: {
+    color: '#666',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  buttonContainer: {
+    marginTop: 8,
+    width: '100%',
+  },
+  priceText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000',
+  },
+  addButton: {
+    borderColor: '#f5a607ff',
+    borderWidth: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  addButtonText: {
+    color: '#F4A300',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  qtyControl: {
+    backgroundColor: '#F4A300',
+    borderRadius: 12,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 0,
+    height: 36,
+  },
+  qtySideButton: {
+    paddingHorizontal: 12,
+    height: '100%',
+    justifyContent: 'center',
+  },
+  qtySideButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '800',
+    lineHeight: 22,
+  },
+  qtyPill: {
+    minWidth: 36,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  qtyText: {
+    color: '#fff',
+    fontWeight: '800',
+    textAlign: 'center'
+  },
+  qtySideButtonFilled: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F4A300',
+  },
+  qtySideButtonFilledText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+});
