@@ -1,11 +1,20 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { ImageBackground, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
+import { useAppSelector, useAppDispatch } from '../../store/useAuth';
+import { logout } from '../../store/authSlice';
 
 
 export default function Profile() {
+  const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
+  const dispatch = useAppDispatch();
+
+  const handleLogout = () => {
+    dispatch(logout());
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
@@ -21,37 +30,41 @@ export default function Profile() {
               <TouchableOpacity style={styles.backBtn} onPress={router.back}>
                 <Ionicons name="arrow-back" size={moderateScale(24)} />
               </TouchableOpacity>
-              <Text style={styles.headerTitle}>Profile</Text>
+              <Text style={styles.headerTitle}>{isAuthenticated ? 'My profile' : 'Profile'}</Text>
             </View>
           </ImageBackground>
         </View>
         <View style={styles.content}>
-          <TouchableOpacity activeOpacity={0.9} style={styles.loginButton} onPress={() => router.push('/Login')}>
-            <Text style={styles.loginButtonText}>Login to place an order!</Text>
-          </TouchableOpacity>
+          {!isAuthenticated && (
+            <TouchableOpacity activeOpacity={0.9} style={styles.loginButton} onPress={() => router.push('/Login')}>
+              <Text style={styles.loginButtonText}>Login to place an order!</Text>
+            </TouchableOpacity>
+          )}
 
           <View style={styles.list}>
-            <RowItem
-              iconName="send"
-              label="Contact us"
-              onPress={() => {}}
-            />
-            <RowItem
-              iconName="information-circle"
-              label="About us"
-              onPress={() => {}}
-            />
-            <RowItem
-              iconName="document-text"
-              label="Terms & conditions"
-              onPress={() => {}}
-            />
-            <RowItem
-              iconName="shield-checkmark"
-              label="Privacy policy"
-              onPress={() => {}}
-              isLast
-            />
+            {isAuthenticated ? (
+              <>
+                <RowItem iconName="cart" label="My orders" onPress={() => {}} />
+                <RowItem iconName="heart" label="Wishlist" onPress={() => {}} />
+                <RowItem iconName="location" label="Manage addresses" onPress={() => {}} />
+                <RowItem iconName="settings" label="Manage profile" onPress={() => {}} />
+                <RowItem iconName="play" label="Contact us" onPress={() => {}} />
+                <RowItem iconName="information-circle" label="About us" onPress={() => {}} />
+                <RowItem iconName="document-text" label="Terms & conditions" onPress={() => {}} />
+                <RowItem iconName="shield-checkmark" label="Privacy policy" onPress={() => {}} />
+                <RowItem iconName="log-out-outline" label="Logout" onPress={handleLogout} isLast />
+                <TouchableOpacity style={styles.deleteAccountWrap} onPress={() => {}}>
+                  <Text style={styles.deleteAccountText}>Delete this account</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <RowItem iconName="send" label="Contact us" onPress={() => {}} />
+                <RowItem iconName="information-circle" label="About us" onPress={() => {}} />
+                <RowItem iconName="document-text" label="Terms & conditions" onPress={() => {}} />
+                <RowItem iconName="shield-checkmark" label="Privacy policy" onPress={() => {}} isLast />
+              </>
+            )}
           </View>
         </View>
       </ImageBackground>
@@ -60,11 +73,7 @@ export default function Profile() {
 }
 
 type RowItemProps = {
-  iconName:
-    | 'send'
-    | 'information-circle'
-    | 'document-text'
-    | 'shield-checkmark';
+  iconName: any; // Ionicons glyph name
   label: string;
   onPress: () => void;
   isLast?: boolean;
@@ -72,6 +81,7 @@ type RowItemProps = {
 
 function RowItem({ iconName, label, onPress, isLast }: RowItemProps) {
   return (
+<ScrollView>
     <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
       <View style={[styles.row, !isLast && styles.rowDivider]}> 
         <View style={styles.leftIconWrap}>
@@ -83,6 +93,7 @@ function RowItem({ iconName, label, onPress, isLast }: RowItemProps) {
         <Ionicons name="chevron-forward" size={moderateScale(20)} color="#D9B54A" />
       </View>
     </TouchableOpacity>
+</ScrollView>
   );
 }
 
@@ -146,13 +157,13 @@ innerBg: {
     backgroundColor: '#F1B90B',
     paddingVertical: verticalScale(14),
     borderRadius: moderateScale(8),
-    alignItems: 'center',
     marginTop: verticalScale(6),
     marginBottom: verticalScale(18),
   },
   loginButtonText: {
     color: '#fff',
     fontSize: moderateScale(14),
+    textAlign: 'center',
     fontFamily: 'Montserrat',
   },
   list: {
@@ -163,7 +174,6 @@ innerBg: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: scale(14),
     height: verticalScale(58),
     backgroundColor: 'transparent',
   },
@@ -191,6 +201,16 @@ innerBg: {
   },
   rowLabel: {
     flex: 1,
+    color: '#F1B90B',
+    fontSize: moderateScale(14),
+    fontFamily: 'Montserrat',
+  },
+  deleteAccountWrap: {
+    paddingVertical: verticalScale(16),
+    alignItems: 'center',
+  },
+  deleteAccountText: {
+    color: '#E44C4C',
     fontSize: moderateScale(14),
     fontFamily: 'Montserrat',
   },

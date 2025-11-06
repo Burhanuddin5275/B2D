@@ -3,14 +3,19 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { View } from 'react-native';
+import { Dimensions, View } from 'react-native';
 import { scale, verticalScale } from 'react-native-size-matters';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+   const { width: screenWidth } = Dimensions.get('window');
   const insets = useSafeAreaInsets();
+    const getTabBarHeight = () => {
+    return screenWidth < 350 ? verticalScale(75) : screenWidth < 400 ? verticalScale(70) : verticalScale(65);
+  };
+
   return (
     <Tabs
       screenOptions={{
@@ -18,7 +23,7 @@ export default function TabLayout() {
         tabBarInactiveTintColor: '#8E8E93',
         headerShown: false,
         tabBarStyle: {
-          height: 80,
+          height: verticalScale(65),
           paddingTop: 10,
           backgroundColor: '#FFF6E2',
           borderRadius:25,
@@ -29,7 +34,7 @@ export default function TabLayout() {
           paddingBottom: Math.max(insets.bottom, verticalScale(4)),
           paddingHorizontal: scale(8),
           justifyContent: 'center',
-          alignItems: 'center',
+          alignItems: 'center', 
         },
         tabBarLabelStyle: {
           fontSize: 10,
@@ -89,6 +94,18 @@ export default function TabLayout() {
     title: "Search",
     href: null, 
     tabBarIcon: ({ color }) => (
+      <View>
+        <IconSymbol size={24} name="magnifyingglass" color={color} />
+      </View>
+    ),
+  }}
+/>
+     <Tabs.Screen
+  name="Categories"
+  options={{
+    title: "Categories",
+    href: null, 
+    tabBarIcon: ({ color }) => ( 
       <View>
         <IconSymbol size={24} name="magnifyingglass" color={color} />
       </View>

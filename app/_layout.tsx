@@ -1,9 +1,11 @@
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
-import { useFonts } from 'expo-font';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Provider } from 'react-redux';
+import { store } from '../store/useAuth';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -28,14 +30,18 @@ export default function RootLayout() {
     return null; 
   }
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
+    <Provider store={store}>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
          <Stack.Screen name="index" options={{headerShown: false }} />
          <Stack.Screen name='Slider' options={{headerShown:false}}/>
          <Stack.Screen name='Login' options={{headerShown:false}}/>
-      </Stack>
-      <StatusBar style="light" />
-    </ThemeProvider>
+         <Stack.Screen name='VerifyNumber' options={{headerShown:false}}/>
+         <Stack.Screen name='CompleteProfile' options={{headerShown:false}}/>
+        </Stack>
+        <StatusBar style="light" />
+      </ThemeProvider>
+    </Provider>
   );
 }

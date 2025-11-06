@@ -1,10 +1,32 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { Alert, Image, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 
 
+
 export default function Login() {
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [isValid, setIsValid] = useState(false);
+  // const dispatch = useAppDispatch();
+
+  const handlePhoneChange = (text: string) => {
+    // Remove any non-digit characters and add +1 prefix
+    const cleaned = text.replace(/\D/g, '');
+    setPhoneNumber(cleaned);
+    // Enable continue button if number is 10 digits
+    setIsValid(cleaned.length === 10);
+  };
+
+  const handleContinue = () => {
+    const fullNumber = `+1${phoneNumber}`;
+  router.replace({
+  pathname: '/VerifyNumber',
+  params: { phone: fullNumber }
+});
+
+  }; 
 
   return (
     <SafeAreaView style={styles.container}>
@@ -46,10 +68,18 @@ export default function Login() {
             placeholder="Phone number"
             keyboardType="phone-pad"
             placeholderTextColor="#A1A1A1"
+            value={phoneNumber}
+            onChangeText={handlePhoneChange}
+            maxLength={10}
           />
         </View>
 
-        <TouchableOpacity activeOpacity={1} style={styles.continueBtn} disabled>
+        <TouchableOpacity 
+          activeOpacity={1} 
+          style={[styles.continueBtn, !isValid && styles.disabledBtn]} 
+          onPress={handleContinue}
+          disabled={!isValid}
+        >
           <Text style={styles.continueText}>Continue</Text>
         </TouchableOpacity>
 
@@ -149,13 +179,16 @@ innerBg: {
   },
   continueBtn: {
     width: '88%',
-    backgroundColor: '#C9C9C9',
+    backgroundColor: '#E9B10F',
     paddingVertical: verticalScale(14),
     borderRadius: moderateScale(8),
     alignItems: 'center',
     marginTop: verticalScale(16),
     marginBottom: verticalScale(18),
     alignSelf: 'center',
+  },
+  disabledBtn: {
+    backgroundColor: '#C9C9C9',
   },
   continueText: {
     color: '#fff',

@@ -94,7 +94,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={{flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(4))}}>
+    <SafeAreaView style={{flex: 1}}>
       <ImageBackground
         source={require('../../assets/images/background2.png')}
         style={styles.backgroundImage}
@@ -133,7 +133,7 @@ export default function HomeScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Categories</Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={() => navigation.navigate('Categories' as never)}>
                 <Text style={styles.viewAll}>View all</Text>
               </TouchableOpacity>
             </View>
@@ -364,12 +364,11 @@ contentContainer: {
     lineHeight: 16,
   },
   storesScroll: {
-    
   },
   storeCard: {
     width: scale(300),
-    height: verticalScale(160),
-    justifyContent: 'space-around',
+    height: verticalScale(160), 
+    alignItems: 'center',
   },
   storeTitle: {
     fontSize: 18,
@@ -471,11 +470,12 @@ contentContainer: {
     borderWidth: 1,
     paddingVertical: 8,
     borderRadius: 8,
-    alignItems: 'center',
+  
   },
   addButtonText: {
     color: '#F4A300',
     fontWeight: '700',
+    textAlign: 'center',
     fontSize: 14,
   },
   qtyControl: {
