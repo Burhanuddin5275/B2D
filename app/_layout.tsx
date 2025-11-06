@@ -33,8 +33,9 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
          <Stack.Screen name="index" options={{headerShown: false }} />
          <Stack.Screen name='Slider' options={{headerShown:false}}/>
+         <Stack.Screen name='Login' options={{headerShown:false}}/>
       </Stack>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
     </ThemeProvider>
   );
 }
