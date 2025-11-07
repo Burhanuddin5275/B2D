@@ -1,11 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { ImageBackground } from 'expo-image';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Dimensions, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scale, verticalScale } from 'react-native-size-matters';
-
+import { useDispatch, useSelector } from 'react-redux';
+import { addToWishlist, removeFromWishlist, selectWishlistItems } from '../../store/wishlistSlice';
 const { width } = Dimensions.get('window');
 
 const categories = [
@@ -68,20 +69,33 @@ export default function HomeScreen() {
   const navigation = useNavigation();
   const [quantities, setQuantities] = useState<Record<number, number>>({});
   const [wishlist, setWishlist] = useState<number[]>([]);
+  const wishlistItems = useSelector(selectWishlistItems);
+  const [activeStoreIndex, setActiveStoreIndex] = useState(0);
   const insets = useSafeAreaInsets();
-  const toggleWishlist = (productId: number) => {
-    setWishlist(prev =>
-      prev.includes(productId)
-        ? prev.filter(id => id !== productId)
-        : [...prev, productId]
-    );
+  const scrollViewRef = useRef<ScrollView>(null);
+  const storeCardWidth = scale(260);
+  const dispatch = useDispatch();
+    const checkIsInWishlist = (productId: number) => wishlist.includes(productId);
+  const handleScroll = (event: any) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(offsetX / storeCardWidth);
+    if (index >= 0 && index < stores.length) {
+      setActiveStoreIndex(index);
+    }
   };
-
-  const isInWishlist = (productId: number) => wishlist.includes(productId);
+const toggleWishlist = (product: any) => {
+  if (checkIsInWishlist(product.id)) {
+    dispatch(removeFromWishlist(product.id));
+    setWishlist(prev => prev.filter(id => id !== product.id));
+  } else {
+    dispatch(addToWishlist(product));
+    setWishlist(prev => [...prev, product.id]);
+  }
+};
 
   const increment = (id: number) => {
     setQuantities(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
-  };
+  }; 
 
   const decrement = (id: number) => {
     setQuantities(prev => {
@@ -93,8 +107,11 @@ export default function HomeScreen() {
     });
   };
 
+useEffect(() => {
+  setWishlist(wishlistItems.map(item => item.id));
+}, [wishlistItems]);
   return (
-    <SafeAreaView style={{flex: 1}}>
+    <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
       <ImageBackground
         source={require('../../assets/images/background2.png')}
         style={styles.backgroundImage}
@@ -162,24 +179,45 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
             <ScrollView
+              ref={scrollViewRef}
               horizontal
               showsHorizontalScrollIndicator={false}
               style={styles.storesScroll}
+              pagingEnabled
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+              snapToInterval={storeCardWidth + 16} // Add spacing to snap interval
+              snapToAlignment="center"
+              decelerationRate="fast"
+              contentContainerStyle={{ paddingRight: scale(10) }} // Add right padding to last item
             >
-              {stores.map((store) => (
+              {stores.map((store, index) => (
                 <TouchableOpacity
                   key={store.id}
-                  style={styles.storeCard}
+                  style={[styles.storeCard, { width: storeCardWidth }]}
                   activeOpacity={0.8}
+                  onPress={() => {
+                    setActiveStoreIndex(index);
+                    scrollViewRef.current?.scrollTo({
+                      x: index * storeCardWidth,
+                      animated: true
+                    });
+                  }}
                 >
                   <Image source={store.image} style={styles.storeImage} />
                 </TouchableOpacity>
               ))}
             </ScrollView>
             <View style={styles.pagination}>
-              <View style={[styles.paginationDot, styles.paginationDotActive]} />
-              <View style={styles.paginationDot} />
-              <View style={styles.paginationDot} />
+              {stores.map((_, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.paginationDot,
+                    index === activeStoreIndex && styles.paginationDotActive
+                  ]}
+                />
+              ))}
             </View>
           </View>
 
@@ -194,16 +232,15 @@ export default function HomeScreen() {
                       <Image source={product.img} style={styles.productPic} resizeMode="contain" />
                     </View>
                     <TouchableOpacity
-                      style={[styles.favoriteButton, isInWishlist(product.id) && styles.favoriteButtonActive]}
-                      onPress={() => toggleWishlist(product.id)}
+                      style={[styles.favoriteButton, checkIsInWishlist(product.id) && styles.favoriteButtonActive]}
+                      onPress={() => toggleWishlist(product)}
                     >
                       <Ionicons
-                        name={isInWishlist(product.id) ? "heart" : "heart-outline"}
+                        name={checkIsInWishlist(product.id) ? "heart" : "heart-outline"}
                         size={20}
-                        color={isInWishlist(product.id) ? "#cfcdcdff" : "#888"}
+                        color={checkIsInWishlist(product.id) ? "#b9b7b7ff" : "#888"}
                       />
                     </TouchableOpacity>
-
                     <View style={styles.productInfo}>
                       <Text style={styles.productName}>{product.name}</Text>
                       <Text style={styles.productSubtitle}>{product.subtitle}</Text>
@@ -251,7 +288,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   backgroundImage: {
-    position: 'absolute',
+    flex: 1,
     top: 0,
     left: 0,
     right: 0,
@@ -261,23 +298,23 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-headerShadowWrapper: {
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.15,
-  shadowRadius: 6,
-  elevation: 8,
-  overflow: 'hidden', 
-},
-contentContainer: {
-  height: verticalScale(200),
-  justifyContent: 'flex-end',
-},
+  headerShadowWrapper: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 8,
+    overflow: 'hidden',
+    backgroundColor: '#FFF',
+  },
+  contentContainer: {
+    height: verticalScale(200),
+    justifyContent: 'center',
+  },
 
   header: {
     paddingHorizontal: scale(20),
-    paddingTop: verticalScale(40),
-    paddingBottom: verticalScale(20),
+    paddingBottom: verticalScale(15),
   },
   deliveryInfo: {
     marginTop: verticalScale(10),
@@ -364,24 +401,22 @@ contentContainer: {
     lineHeight: 16,
   },
   storesScroll: {
+    height: verticalScale(150),
+    paddingHorizontal: scale(5),
   },
   storeCard: {
     width: scale(300),
-    height: verticalScale(160), 
-    alignItems: 'center',
+    marginHorizontal: scale(8),
+    borderRadius: 16,
+    overflow: 'hidden',
   },
-  storeTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
-    lineHeight: 24,
-    width: scale(200)
-  },
-
   storeImage: {
+    width: '100%',
+    height: '100%',
     resizeMode: 'contain',
   },
   pagination: {
+    marginTop: verticalScale(5),
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 6,
@@ -470,7 +505,7 @@ contentContainer: {
     borderWidth: 1,
     paddingVertical: 8,
     borderRadius: 8,
-  
+
   },
   addButtonText: {
     color: '#F4A300',

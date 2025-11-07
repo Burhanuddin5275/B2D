@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import { Dimensions, Image, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 
 const { width, height } = Dimensions.get('window');
@@ -53,8 +54,8 @@ const Slider = () => {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Fixed background image */}
+    <SafeAreaView style={{ flex: 1}}>
+      <View style={styles.container}>
       <ImageBackground
         source={require('../assets/images/background.png')}
         style={styles.backgroundImage}
@@ -141,6 +142,7 @@ const Slider = () => {
         </ScrollView>
       </ImageBackground>
     </View>
+    </SafeAreaView>
   );
 };
 
@@ -149,16 +151,14 @@ export default Slider;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7DDA4',
   },
   backgroundImage: {
-    position: 'absolute',
+    flex: 1,
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
     width: width,
-    height: height,
   },
   scrollView: {
     flex: 1,
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logo: {
-    width: scale(150),
+    width: scale(180),
     height: verticalScale(150),
   },
   imageWrapper: {
@@ -203,13 +203,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: verticalScale(250),
-    paddingTop: 30,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingTop: verticalScale(30),
+    paddingHorizontal: scale(20),
+    paddingBottom: verticalScale(40),
   },
   textContainer: {
-    flex: 1,
     alignItems: 'center',
   },
   title: {

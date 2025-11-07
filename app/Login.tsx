@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Image, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 
 
@@ -9,8 +9,7 @@ import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 export default function Login() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isValid, setIsValid] = useState(false);
-  // const dispatch = useAppDispatch();
-
+  const insets = useSafeAreaInsets();
   const handlePhoneChange = (text: string) => {
     // Remove any non-digit characters and add +1 prefix
     const cleaned = text.replace(/\D/g, '');
@@ -21,15 +20,15 @@ export default function Login() {
 
   const handleContinue = () => {
     const fullNumber = `+1${phoneNumber}`;
-  router.replace({
-  pathname: '/VerifyNumber',
-  params: { phone: fullNumber }
-});
+    router.replace({
+      pathname: '/VerifyNumber',
+      params: { phone: fullNumber }
+    });
 
-  }; 
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={{ flex: 1 }}>
       <ImageBackground
         source={require('../assets/images/background2.png')}
         style={styles.backgroundImage}
@@ -42,10 +41,10 @@ export default function Login() {
           </ImageBackground>
         </View>
 
-    <View style={styles.logoWrap}>
+        <View style={styles.logoWrap}>
           <Image
-          source={require('../assets/images/logo.png')}
-          style={styles.logo}
+            source={require('../assets/images/logo.png')}
+            style={styles.logo}
           />
         </View>
 
@@ -56,11 +55,11 @@ export default function Login() {
 
         <View style={styles.phoneInputWrap}>
           <View style={styles.flagBox}>
-          <Image
-          source={require('../assets/images/flag.png')}
-          style={{width: scale(24)}}
-          resizeMode="contain"
-          />
+            <Image
+              source={require('../assets/images/flag.png')}
+              style={{ width: scale(24) }}
+              resizeMode="contain"
+            />
           </View>
           <Text style={styles.prefix}>+1</Text>
           <TextInput
@@ -74,9 +73,9 @@ export default function Login() {
           />
         </View>
 
-        <TouchableOpacity 
-          activeOpacity={1} 
-          style={[styles.continueBtn, !isValid && styles.disabledBtn]} 
+        <TouchableOpacity
+          activeOpacity={1}
+          style={[styles.continueBtn, !isValid && styles.disabledBtn]}
           onPress={handleContinue}
           disabled={!isValid}
         >
@@ -103,38 +102,30 @@ export default function Login() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   backgroundImage: {
     alignItems: 'center',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
   },
   shadowWrapper: {
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.15,
-  shadowRadius: 6,
-  elevation: 8,
-  width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 8,
+    width: '100%',
+    backgroundColor: '#fff',
   },
 
-innerBg: {
-  height: verticalScale(100),
-  justifyContent: 'center',
-},
- logoWrap: {
+  innerBg: {
+    height: verticalScale(100),
+    justifyContent: 'center',
+  },
+  logoWrap: {
     marginTop: verticalScale(10),
     marginBottom: verticalScale(24),
   },
   logo: {
-    width: scale(100),
+    width: scale(150),
     height: scale(100),
   },
   titleWrap: {

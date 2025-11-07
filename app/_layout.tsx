@@ -6,7 +6,8 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { Provider } from 'react-redux';
 import { store } from '../store/useAuth';
-
+import { persistor } from '../store/useAuth';
+import { PersistGate } from 'redux-persist/integration/react';
 export const unstable_settings = {
   anchor: '(tabs)',
 };
@@ -26,22 +27,25 @@ export default function RootLayout() {
     MontserratMedium: require('../assets/fonts/Montserrat-Medium.ttf'),
 
   });
-   if (!fontsLoaded) {
-    return null; 
+  if (!fontsLoaded) {
+    return null;
   }
   return (
     <Provider store={store}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-         <Stack.Screen name="index" options={{headerShown: false }} />
-         <Stack.Screen name='Slider' options={{headerShown:false}}/>
-         <Stack.Screen name='Login' options={{headerShown:false}}/>
-         <Stack.Screen name='VerifyNumber' options={{headerShown:false}}/>
-         <Stack.Screen name='CompleteProfile' options={{headerShown:false}}/>
-        </Stack>
-        <StatusBar style="light" />
-      </ThemeProvider>
+      <PersistGate loading={null} persistor={persistor}>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name='Slider' options={{ headerShown: false }} />
+            <Stack.Screen name='Login' options={{ headerShown: false }} />
+            <Stack.Screen name='VerifyNumber' options={{ headerShown: false }} />
+            <Stack.Screen name='Wishlist' options={{ headerShown: false }} />
+            <Stack.Screen name='CompleteProfile' options={{ headerShown: false }} />
+          </Stack>
+          <StatusBar style="light" />
+        </ThemeProvider>
+      </PersistGate>
     </Provider>
   );
 }

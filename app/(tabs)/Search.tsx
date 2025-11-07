@@ -126,7 +126,7 @@ const Search = () => {
   }, [query])
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
       <ImageBackground
         source={require('../../assets/images/background2.png')}
         style={styles.backgroundImage}
@@ -265,11 +265,8 @@ const Search = () => {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   backgroundImage: {
-    position: 'absolute',
+    flex: 1,
     top: 0,
     left: 0,
     right: 0,
@@ -398,8 +395,8 @@ const styles = StyleSheet.create({
   },
   productsGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: verticalScale(150)
+    flexWrap: 'wrap', 
+    marginBottom: verticalScale(120)
   },
   productCard: {
     width: scale(175),

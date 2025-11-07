@@ -4,17 +4,30 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Dimensions, View } from 'react-native';
-import { scale, verticalScale } from 'react-native-size-matters';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-   const { width: screenWidth } = Dimensions.get('window');
+  const { width: screenWidth } = Dimensions.get('window');
   const insets = useSafeAreaInsets();
-    const getTabBarHeight = () => {
-    return screenWidth < 350 ? verticalScale(75) : screenWidth < 400 ? verticalScale(70) : verticalScale(65);
-  };
+
+const hasSystemNavigation = insets.bottom > 0; // If bottom inset is greater than 0, system navigation is present
+const tabBarHeight = hasSystemNavigation 
+  ? verticalScale(40)  // Smaller height when system navigation is present
+  : verticalScale(50); // Slightly larger height when no system navigation
+
+const getTabBarHeight = () => {
+  return screenWidth < 350
+    ? tabBarHeight - verticalScale(5)  // Slightly smaller for very small screens
+    : screenWidth < 400
+    ? tabBarHeight
+    : tabBarHeight + verticalScale(5); // Slightly larger for larger screens
+};
+
+  // 👇 Dynamically calculate bottom spacing
+  const bottomInset = insets.bottom > 0 ? insets.bottom : verticalScale(16);
 
   return (
     <Tabs
@@ -23,31 +36,32 @@ export default function TabLayout() {
         tabBarInactiveTintColor: '#8E8E93',
         headerShown: false,
         tabBarStyle: {
-          height: verticalScale(65),
-          paddingTop: 10,
+          height: getTabBarHeight() + bottomInset, 
+          paddingTop: 6,
           backgroundColor: '#FFF6E2',
-          borderRadius:25,
+          borderRadius: 25,
           borderTopWidth: 1,
           borderTopColor: '#F0F0F0',
           position: 'absolute',
-          bottom: 0,      
-          paddingBottom: Math.max(insets.bottom, verticalScale(4)),
+          bottom: bottomInset > 20 ? bottomInset - 1 : 0,
+          paddingBottom: bottomInset,
           paddingHorizontal: scale(8),
           justifyContent: 'center',
-          alignItems: 'center', 
+          alignItems: 'center',
         },
         tabBarLabelStyle: {
-          fontSize: 10,
+          fontSize: moderateScale(12),
           fontWeight: '500',
-          marginBottom: 5,
+          marginBottom: 2,
         },
-      }}>
+      }}
+    >
       <Tabs.Screen
         name="Home"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, focused }) => (
-            <View >
+          tabBarIcon: ({ color }) => (
+            <View>
               <IconSymbol size={24} name="house.fill" color={color} />
             </View>
           ),
@@ -57,20 +71,18 @@ export default function TabLayout() {
         name="Order"
         options={{
           title: 'Orders',
-          tabBarIcon: ({ color, focused }) => (
+          tabBarIcon: ({ color }) => (
             <View>
               <IconSymbol size={24} name="bag.fill" color={color} />
             </View>
           ),
         }}
       />
-
-   
       <Tabs.Screen
         name="Cart"
         options={{
           title: 'Cart',
-          tabBarIcon: ({ color, focused }) => (
+          tabBarIcon: ({ color }) => (
             <View>
               <IconSymbol size={24} name="cart.fill" color={color} />
             </View>
@@ -81,37 +93,37 @@ export default function TabLayout() {
         name="Profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, focused }) => (
+          tabBarIcon: ({ color }) => (
             <View>
               <IconSymbol size={24} name="person.fill" color={color} />
             </View>
           ),
         }}
       />
-     <Tabs.Screen
-  name="Search"
-  options={{
-    title: "Search",
-    href: null, 
-    tabBarIcon: ({ color }) => (
-      <View>
-        <IconSymbol size={24} name="magnifyingglass" color={color} />
-      </View>
-    ),
-  }}
-/>
-     <Tabs.Screen
-  name="Categories"
-  options={{
-    title: "Categories",
-    href: null, 
-    tabBarIcon: ({ color }) => ( 
-      <View>
-        <IconSymbol size={24} name="magnifyingglass" color={color} />
-      </View>
-    ),
-  }}
-/>
+      <Tabs.Screen
+        name="Search"
+        options={{
+          title: 'Search',
+          href: null,
+          tabBarIcon: ({ color }) => (
+            <View>
+              <IconSymbol size={24} name="magnifyingglass" color={color} />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="Categories"
+        options={{
+          title: 'Categories',
+          href: null,
+          tabBarIcon: ({ color }) => (
+            <View>
+              <IconSymbol size={24} name="magnifyingglass" color={color} />
+            </View>
+          ),
+        }}
+      />
     </Tabs>
   );
 }

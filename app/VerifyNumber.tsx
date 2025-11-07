@@ -14,15 +14,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 import { loginSuccess } from '../store/authSlice';
 import { useAppDispatch } from '../store/useAuth';
+
 const VerifyNumber = () => {
   const { phone } = useLocalSearchParams();
   const [code, setCode] = useState(['', '', '', '']);
   const [verificationCode, setVerificationCode] = useState('');
-const validPhoneNumbers = [
-  '+11234567890',
-  '+19876543210',
-  '+15551234567',
-];
+  const [countdown, setCountdown] = useState(15);
+  const [isCountdownActive, setIsCountdownActive] = useState(true);
+
+  const validPhoneNumbers = [
+    '+11234567890',
+    '+19876543210',
+    '+15551234567',
+  ];
+
   const handleCodeChange = (text: string, index: number) => {
     const newCode = [...code];
     newCode[index] = text;
@@ -86,14 +91,32 @@ const validPhoneNumbers = [
     }, 2000); // 2000 milliseconds = 2 seconds
   };
 
+  // Countdown effect
+  useEffect(() => {
+   let timer: ReturnType<typeof setTimeout>;
+    
+    if (isCountdownActive && countdown > 0) {
+    timer = window.setTimeout(() => setCountdown(countdown - 1), 1000);
+    } else if (countdown === 0) {
+      setIsCountdownActive(false);
+    } 
+    
+    return () => clearTimeout(timer);
+  }, [countdown, isCountdownActive]);
+
   // Send verification code when component mounts
   useEffect(() => {
     const code = generateNewCode();
     sendOtpEmail(code);
+    
+    // Reset countdown when component mounts
+    setCountdown(15);
+    setIsCountdownActive(true);
   }, []);
 
   return (
-    <ImageBackground
+  <SafeAreaView style={{ flex: 1 }}>
+      <ImageBackground
       source={require('../assets/images/background2.png')}
       style={styles.backgroundImage}
       resizeMode="cover"
@@ -151,13 +174,21 @@ const validPhoneNumbers = [
           </View>
 
           <View style={styles.resendContainer}>
-            <Text style={styles.resendText}>Didn't receive the code?</Text>
-            <TouchableOpacity onPress={() => {
-              const newCode = generateNewCode();
-              sendOtpEmail(newCode);
-            }}>
-              <Text style={styles.resendButton}>Resend Code</Text>
-            </TouchableOpacity>
+            <Text style={styles.resendText}>
+              {isCountdownActive 
+                ? `Resend code in ${countdown}s` 
+                : "Didn't receive the code?"}
+            </Text>
+            {!isCountdownActive && (
+              <TouchableOpacity onPress={() => {
+                const newCode = generateNewCode();
+                sendOtpEmail(newCode);
+                setCountdown(15);
+                setIsCountdownActive(true);
+              }}>
+                <Text style={styles.resendButton}>Resend Code</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           <TouchableOpacity
@@ -170,6 +201,7 @@ const validPhoneNumbers = [
         </SafeAreaView>
       </KeyboardAvoidingView>
     </ImageBackground>
+  </SafeAreaView>
   );
 };
 
@@ -188,6 +220,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 8,
     width: '100%',
+    backgroundColor: '#FFF',
   },
 
   innerBg: {
@@ -201,10 +234,10 @@ const styles = StyleSheet.create({
   },
    logoWrap: {
     marginTop: verticalScale(10),
-    marginBottom: verticalScale(24),
+    marginBottom: verticalScale(24), 
   },
   logo: {
-    width: scale(100),
+    width: scale(150),
     height: scale(100),
   },
   header: {

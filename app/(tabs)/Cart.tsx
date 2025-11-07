@@ -13,7 +13,7 @@ export default function Cart() {
   const insets = useSafeAreaInsets();
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
       <ImageBackground
         source={require('../../assets/images/background2.png')}
         style={styles.backgroundImage}
@@ -47,16 +47,12 @@ export default function Cart() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   backgroundImage: {
-    position: 'absolute',
+    flex: 1,
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-
   },
   shadowWrapper: {
   shadowColor: '#000',
@@ -66,6 +62,7 @@ const styles = StyleSheet.create({
   elevation: 8,
   marginBottom: 8,
   overflow: 'hidden', 
+  backgroundColor: '#FFF',
 },
 
 innerBg: {

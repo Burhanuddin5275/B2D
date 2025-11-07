@@ -1,14 +1,18 @@
 import { router } from 'expo-router';
 import React, { useEffect } from 'react';
 import { Image, ImageBackground, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const Splash = () => {
+  const insets = useSafeAreaInsets();
   useEffect(() => {
     // You can add any initialization logic here
   }, []);
 
   return (
-    <ImageBackground
+   <SafeAreaView style={{ flex: 1}}>
+     <ImageBackground
       source={require('@/assets/images/background.png')}
       style={styles.backgroundImage}
       resizeMode="cover"
@@ -35,6 +39,7 @@ const Splash = () => {
         </View>
       </View>
     </ImageBackground>
+   </SafeAreaView>
   );
 };
 

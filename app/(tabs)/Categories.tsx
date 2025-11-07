@@ -36,7 +36,7 @@ export default function Categories() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
       <ImageBackground
         source={require('../../assets/images/background2.png')}
         style={styles.backgroundImage}
@@ -82,9 +82,6 @@ export default function Categories() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   backgroundImage: {
     flex: 1,
     width: '100%',
@@ -97,6 +94,7 @@ const styles = StyleSheet.create({
     elevation: 8,
     marginBottom: 8,
     overflow: 'hidden', 
+    backgroundColor: '#fff',
   },
   innerBg: {
     height: verticalScale(100),

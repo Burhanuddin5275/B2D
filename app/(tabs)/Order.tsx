@@ -1,19 +1,34 @@
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Fonts } from '@/constants/theme';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { Link, router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { ImageBackground, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React from 'react';
+import { ImageBackground, StyleSheet, Text, TouchableOpacity, View, FlatList } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
+import { router } from 'expo-router';
 
+const orders = [
+  { id: '#123456', amount: '$65.00', date: '10/08/04/20/2024, 3:45 PM', status: 'Order placed', color: '#E9B10F' },
+  { id: '#789101', amount: '$82.50', date: '09/08/04/20/2024, 10:30 AM', status: 'Preparing for dispatch', color: '#E9B10F' },
+  { id: '#991122', amount: '$27.50', date: '12/07/04/20/2024, 09:20 PM', status: 'Out for delivery', color: '#E9B10F' },
+  { id: '#112233', amount: '$23.75', date: '15/06/04/20/2024, 7:15 PM', status: 'Delivered', color: 'green' },
+  { id: '#654321', amount: '$120.25', date: '12/05/04/20/2024, 11:00 AM', status: 'Cancelled by you / store', color: 'red' },
+];
 
 export default function Orders() {
   const insets = useSafeAreaInsets();
 
+  const renderItem = ({ item }: any) => (
+    <TouchableOpacity style={styles.card}>
+      <View>
+        <Text style={styles.orderId}>{item.id}</Text>
+        <Text style={styles.amount}>{item.amount}    {item.date}</Text>
+        <Text style={[styles.status, { color: item.color }]}>{item.status}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={moderateScale(18)} color="#E9B10F" />
+    </TouchableOpacity>
+  );
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
       <ImageBackground
         source={require('../../assets/images/background2.png')}
         style={styles.backgroundImage}
@@ -27,52 +42,41 @@ export default function Orders() {
               <TouchableOpacity style={styles.backBtn} onPress={router.back}>
                 <Ionicons name="arrow-back" size={moderateScale(24)} />
               </TouchableOpacity>
-              <Text style={styles.headerTitle}>Orders</Text>
+              <Text style={styles.headerTitle}>My orders</Text>
             </View>
           </ImageBackground>
         </View>
 
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>No Orders Placed</Text>
-          <Text style={styles.emptyText}>
-            You haven’t placed any orders yet.
-            Explore our products and make
-            your first purchase today!</Text>
-
-        </View>
-
+        <FlatList
+          data={orders}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+        />
       </ImageBackground>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  backgroundImage: {
     flex: 1,
   },
-  backgroundImage: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-
-  },
   shadowWrapper: {
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.15,
-  shadowRadius: 6,
-  elevation: 8,
-  marginBottom: 8,
-  overflow: 'hidden', 
-},
-
-innerBg: {
-  height: verticalScale(100),
-  justifyContent: 'center',
-},
-
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 8,
+    marginBottom: 8,
+    overflow: 'hidden',
+    backgroundColor: '#FFF',
+  },
+  innerBg: {
+    height: verticalScale(100),
+    justifyContent: 'center',
+  },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -86,37 +90,52 @@ innerBg: {
     width: scale(40),
     height: scale(40),
     justifyContent: 'center',
-    zIndex: 1,
   },
   headerTitle: {
     position: 'absolute',
     left: 0,
     right: 0,
     textAlign: 'center',
-    textAlignVertical: 'center',
-    fontSize: moderateScale(24),
+    fontSize: moderateScale(22),
     fontFamily: 'Montserrat',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
+  listContainer: {
+    padding: scale(16),
+    paddingBottom: verticalScale(75),
+  },
+  card: {
+    backgroundColor: '#FFF7E8', 
+    borderRadius: 12,
+    padding: scale(14),
+    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    borderWidth: 1, 
+    borderColor: '#E9B10F',
+    borderLeftWidth: 1
   },
-  emptyTitle: {
-    color: '#E9B10F',
-    fontSize: moderateScale(24),
-    textAlign: 'center',
-    marginBottom: 2,
-    fontFamily: 'PoppinsBold'
+  orderId: {
+    fontSize: moderateScale(20),
+    fontFamily: 'PoppinsSemiBold', 
+    color: '#000',
   },
-  emptyText: {
-    width: scale(250),
-    color: '#1E1E1E',
+  amount: {
     fontSize: moderateScale(14),
-    textAlign: 'center',
-    marginBottom: 2,
-    fontFamily: 'PoppinsMedium'
+    fontFamily: 'PoppinsMedium',
+    color: '#1E1E1E',
+    marginTop: 2,
+  },
+  date: {
+    fontSize: moderateScale(12),
+    fontFamily: 'PoppinsRegular',
+    color: '#6E6E6E',
+    marginVertical: 2,
+  },
+  status: {
+    fontSize: moderateScale(13),
+    fontFamily: 'PoppinsMedium',
+    marginTop: 4,
   },
 });
