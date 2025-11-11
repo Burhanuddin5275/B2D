@@ -6,6 +6,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 import { useDispatch, useSelector } from 'react-redux';
 import { removeFromWishlist, selectWishlistItems } from '../store/wishlistSlice';
+import Header from '@/components/Header';
 
 export default function Wishlist() {
   const insets = useSafeAreaInsets();
@@ -33,20 +34,7 @@ export default function Wishlist() {
         source={require('../assets/images/background2.png')}
         style={styles.backgroundImage}
       >
-        <View style={styles.shadowWrapper}>
-          <ImageBackground
-            source={require('../assets/images/background1.png')}
-            style={styles.innerBg}
-          >
-            <View style={styles.headerRow}>
-              <TouchableOpacity style={styles.backBtn} onPress={router.back}>
-                <Ionicons name="arrow-back" size={moderateScale(24)} />
-              </TouchableOpacity>
-              <Text style={styles.headerTitle}>Wishlist</Text>
-            </View>
-          </ImageBackground>
-        </View>
-
+      <Header title="Wishlist" />
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           {wishlistItems.map((item) => (
             <View key={item.id} style={styles.productCard}>
@@ -111,38 +99,7 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
   },
-  shadowWrapper: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-    backgroundColor: '#fff',
-  },
-  innerBg: {
-    paddingTop: verticalScale(10),
-    paddingBottom: verticalScale(15),
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: scale(20),
-    paddingVertical: verticalScale(10),
-  },
-  backBtn: {
-    width: scale(40),
-    height: scale(40),
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    position: 'absolute',
-    left: 0,
-    right: 0, 
-    textAlign: 'center',
-    fontSize: moderateScale(22),
-    fontFamily: 'Montserrat',
-    letterSpacing: 0.5,
-  },
+ 
   scrollContainer: {
     padding: scale(15),
   },
@@ -166,7 +123,7 @@ const styles = StyleSheet.create({
   productImage: {
     width: scale(60),
     height: scale(60),
-  }, 
+  },
   productInfo: {
     flex: 1,
     justifyContent: 'space-between',

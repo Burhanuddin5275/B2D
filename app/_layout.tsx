@@ -42,6 +42,10 @@ export default function RootLayout() {
             <Stack.Screen name='VerifyNumber' options={{ headerShown: false }} />
             <Stack.Screen name='Wishlist' options={{ headerShown: false }} />
             <Stack.Screen name='CompleteProfile' options={{ headerShown: false }} />
+            <Stack.Screen name='ContactUs' options={{ headerShown: false }} />
+            <Stack.Screen name='AboutUs' options={{ headerShown: false }} />
+            <Stack.Screen name='ManageAddress' options={{ headerShown: false }} />
+            <Stack.Screen name='AddAddress' options={{ headerShown: false }} />
           </Stack>
           <StatusBar style="light" />
         </ThemeProvider>

@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 import { loginSuccess } from '../store/authSlice';
 import { useAppDispatch } from '../store/useAuth';
+import Header from '@/components/Header';
 
 const VerifyNumber = () => {
   const { phone } = useLocalSearchParams();
@@ -48,12 +49,12 @@ const VerifyNumber = () => {
 
   const handleVerify = () => {
     const enteredCode = code.join('');
-    
+
     if (enteredCode === verificationCode) {
       // Check if phone number is in validPhoneNumbers array
       if (validPhoneNumbers.includes(phone as string)) {
         // If valid phone number, login and navigate to profile
-        dispatch(loginSuccess({ 
+        dispatch(loginSuccess({
           phone: phone as string,
           // Add other user data as needed
         }));
@@ -93,14 +94,14 @@ const VerifyNumber = () => {
 
   // Countdown effect
   useEffect(() => {
-   let timer: ReturnType<typeof setTimeout>;
-    
+    let timer: ReturnType<typeof setTimeout>;
+
     if (isCountdownActive && countdown > 0) {
-    timer = window.setTimeout(() => setCountdown(countdown - 1), 1000);
+      timer = window.setTimeout(() => setCountdown(countdown - 1), 1000);
     } else if (countdown === 0) {
       setIsCountdownActive(false);
-    } 
-    
+    }
+
     return () => clearTimeout(timer);
   }, [countdown, isCountdownActive]);
 
@@ -108,100 +109,94 @@ const VerifyNumber = () => {
   useEffect(() => {
     const code = generateNewCode();
     sendOtpEmail(code);
-    
+
     // Reset countdown when component mounts
     setCountdown(15);
     setIsCountdownActive(true);
   }, []);
 
   return (
-  <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1 }}>
       <ImageBackground
-      source={require('../assets/images/background2.png')}
-      style={styles.backgroundImage}
-      resizeMode="cover"
-    >
-      <View style={styles.shadowWrapper}>
-        <ImageBackground
-          source={require('../assets/images/background1.png')}
-          style={styles.innerBg}
-        >
-        </ImageBackground>
-      </View>
-      <View style={styles.logoWrap}>
-        <Image
-          source={require('../assets/images/logo.png')}
-          style={styles.logo}
-        />
-      </View>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
+        source={require('../assets/images/background2.png')}
+        style={styles.backgroundImage}
+        resizeMode="cover"
       >
-        <SafeAreaView style={styles.safeArea}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Verify your number</Text>
-            <Text style={styles.subtitle}>
-              We have sent you an SMS with the code to {phone || '+1 234 567 890'}
-            </Text>
-          </View>
+        <Header title="" showBackButton={false} />
+        <View style={styles.logoWrap}>
+          <Image
+            source={require('../assets/images/logo.png')}
+            style={styles.logo}
+          />
+        </View>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.container}
+        >
+          <SafeAreaView style={styles.safeArea}>
+            <View style={styles.header}>
+              <Text style={styles.title}>Verify your number</Text>
+              <Text style={styles.subtitle}>
+                We have sent you an SMS with the code to {phone || '+1 234 567 890'}
+              </Text>
+            </View>
 
-          <View style={styles.codeContainer}>
-            {[0, 1, 2, 3].map((index) => (
-              <TextInput
-                key={index}
-                ref={(ref) => {
-                  if (ref) {
-                    inputs.current[index] = ref;
-                  }
-                }}
-                style={styles.codeInput}
-                keyboardType="number-pad"
-                maxLength={1}
-                value={code[index]}
-                onChangeText={(text) => handleCodeChange(text, index)}
-                onKeyPress={({ nativeEvent }) => {
-                  if (nativeEvent.key === 'Backspace' && !code[index] && index > 0) {
-                    // @ts-ignore - refs are handled by React Native
-                    const prevInput = inputs.current[index - 1];
-                    prevInput?.focus();
-                  }
-                }}
-                textContentType="oneTimeCode"
-                autoComplete="one-time-code"
-              />
-            ))}
-          </View>
+            <View style={styles.codeContainer}>
+              {[0, 1, 2, 3].map((index) => (
+                <TextInput
+                  key={index}
+                  ref={(ref) => {
+                    if (ref) {
+                      inputs.current[index] = ref;
+                    }
+                  }}
+                  style={styles.codeInput}
+                  keyboardType="number-pad"
+                  maxLength={1}
+                  value={code[index]}
+                  onChangeText={(text) => handleCodeChange(text, index)}
+                  onKeyPress={({ nativeEvent }) => {
+                    if (nativeEvent.key === 'Backspace' && !code[index] && index > 0) {
+                      // @ts-ignore - refs are handled by React Native
+                      const prevInput = inputs.current[index - 1];
+                      prevInput?.focus();
+                    }
+                  }}
+                  textContentType="oneTimeCode"
+                  autoComplete="one-time-code"
+                />
+              ))}
+            </View>
 
-          <View style={styles.resendContainer}>
-            <Text style={styles.resendText}>
-              {isCountdownActive 
-                ? `Resend code in ${countdown}s` 
-                : "Didn't receive the code?"}
-            </Text>
-            {!isCountdownActive && (
-              <TouchableOpacity onPress={() => {
-                const newCode = generateNewCode();
-                sendOtpEmail(newCode);
-                setCountdown(15);
-                setIsCountdownActive(true);
-              }}>
-                <Text style={styles.resendButton}>Resend Code</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+            <View style={styles.resendContainer}>
+              <Text style={styles.resendText}>
+                {isCountdownActive
+                  ? `Resend code in ${countdown}s`
+                  : "Didn't receive the code?"}
+              </Text>
+              {!isCountdownActive && (
+                <TouchableOpacity onPress={() => {
+                  const newCode = generateNewCode();
+                  sendOtpEmail(newCode);
+                  setCountdown(15);
+                  setIsCountdownActive(true);
+                }}>
+                  <Text style={styles.resendButton}>Resend Code</Text>
+                </TouchableOpacity>
+              )}
+            </View>
 
-          <TouchableOpacity
-            style={[styles.verifyButton, { opacity: code.every(c => c) ? 1 : 0.5 }]}
-            onPress={handleVerify}
-            disabled={!code.every(c => c)}
-          >
-            <Text style={styles.verifyButtonText}>Verify</Text>
-          </TouchableOpacity>
-        </SafeAreaView>
-      </KeyboardAvoidingView>
-    </ImageBackground>
-  </SafeAreaView>
+            <TouchableOpacity
+              style={[styles.verifyButton, { opacity: code.every(c => c) ? 1 : 0.5 }]}
+              onPress={handleVerify}
+              disabled={!code.every(c => c)}
+            >
+              <Text style={styles.verifyButtonText}>Verify</Text>
+            </TouchableOpacity>
+          </SafeAreaView>
+        </KeyboardAvoidingView>
+      </ImageBackground>
+    </SafeAreaView>
   );
 };
 
@@ -213,28 +208,14 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: scale(25),
   },
-  shadowWrapper: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 8,
-    width: '100%',
-    backgroundColor: '#FFF',
-  },
-
-  innerBg: {
-    height: verticalScale(100),
-    justifyContent: 'center',
-  },
   backgroundImage: {
     flex: 1,
     width: '100%',
-    alignItems: 'center',
   },
-   logoWrap: {
+  logoWrap: {
     marginTop: verticalScale(10),
-    marginBottom: verticalScale(24), 
+    marginBottom: verticalScale(24),
+    alignItems: 'center',
   },
   logo: {
     width: scale(150),

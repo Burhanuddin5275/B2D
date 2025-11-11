@@ -1,3 +1,4 @@
+import Header from '@/components/Header';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Image, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -33,14 +34,7 @@ export default function Login() {
         source={require('../assets/images/background2.png')}
         style={styles.backgroundImage}
       >
-        <View style={styles.shadowWrapper}>
-          <ImageBackground
-            source={require('../assets/images/background1.png')}
-            style={styles.innerBg}
-          >
-          </ImageBackground>
-        </View>
-
+     <Header showBackButton={false} title=''/>
         <View style={styles.logoWrap}>
           <Image
             source={require('../assets/images/logo.png')}
@@ -103,26 +97,13 @@ export default function Login() {
 
 const styles = StyleSheet.create({
   backgroundImage: {
-    alignItems: 'center',
     flex: 1,
   },
-  shadowWrapper: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 8,
-    width: '100%',
-    backgroundColor: '#fff',
-  },
-
-  innerBg: {
-    height: verticalScale(100),
-    justifyContent: 'center',
-  },
+ 
   logoWrap: {
     marginTop: verticalScale(10),
     marginBottom: verticalScale(24),
+    alignItems: 'center',
   },
   logo: {
     width: scale(150),

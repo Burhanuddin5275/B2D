@@ -20,10 +20,6 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.hamza527522.B2D"
     },
-    "androidStatusBar": {
-      "backgroundColor": "#000000",
-      "barStyle": "light-content"
-    },
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png"

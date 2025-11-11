@@ -1,3 +1,4 @@
+import Header from '@/components/Header';
 import { Entypo, FontAwesome5, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
@@ -41,25 +42,12 @@ export default function Categories() {
         source={require('../../assets/images/background2.png')}
         style={styles.backgroundImage}
       >
-        <View style={styles.shadowWrapper}>
-          <ImageBackground
-            source={require('../../assets/images/background1.png')}
-            style={styles.innerBg}
-          >
-            <View style={styles.headerRow}>
-              <TouchableOpacity style={styles.backBtn} onPress={router.back}>
-                <Ionicons name="arrow-back" size={moderateScale(24)} />
-              </TouchableOpacity>
-              <Text style={styles.headerTitle}>Categories</Text>
-            </View>
-          </ImageBackground>
-        </View>
-
+        <Header title="Categories" />
         <ScrollView style={styles.content}>
           <View style={styles.gridContainer}>
             {categories.map((category) => (
-              <TouchableOpacity 
-                key={category.id} 
+              <TouchableOpacity
+                key={category.id}
                 style={styles.categoryCard}
                 onPress={() => {
                   console.log(`Selected category: ${category.name}`);
@@ -85,45 +73,6 @@ const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
     width: '100%',
-  },
-  shadowWrapper: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 8,
-    marginBottom: 8,
-    overflow: 'hidden', 
-    backgroundColor: '#fff',
-  },
-  innerBg: {
-    height: verticalScale(100),
-    justifyContent: 'center',
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    height: verticalScale(80),
-    position: 'relative',
-    paddingHorizontal: scale(18),
-    marginTop: verticalScale(20),
-  },
-  backBtn: {
-    width: scale(40),
-    height: scale(40),
-    justifyContent: 'center',
-    zIndex: 1,
-  },
-  headerTitle: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    textAlign: 'center',
-    textAlignVertical: 'center',
-    fontSize: moderateScale(24),
-    fontFamily: 'Montserrat',
-    letterSpacing: 1,
   },
   content: {
     flex: 1,

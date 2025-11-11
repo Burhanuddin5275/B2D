@@ -4,6 +4,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 import { router } from 'expo-router';
+import Header from '@/components/Header';
 
 const orders = [
   { id: '#123456', amount: '$65.00', date: '10/08/04/20/2024, 3:45 PM', status: 'Order placed', color: '#E9B10F' },
@@ -33,20 +34,7 @@ export default function Orders() {
         source={require('../../assets/images/background2.png')}
         style={styles.backgroundImage}
       >
-        <View style={styles.shadowWrapper}>
-          <ImageBackground
-            source={require('../../assets/images/background1.png')}
-            style={styles.innerBg}
-          >
-            <View style={styles.headerRow}>
-              <TouchableOpacity style={styles.backBtn} onPress={router.back}>
-                <Ionicons name="arrow-back" size={moderateScale(24)} />
-              </TouchableOpacity>
-              <Text style={styles.headerTitle}>My orders</Text>
-            </View>
-          </ImageBackground>
-        </View>
-
+        <Header title="My orders" />
         <FlatList
           data={orders}
           renderItem={renderItem}
@@ -63,62 +51,25 @@ const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
   },
-  shadowWrapper: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 8,
-    marginBottom: 8,
-    overflow: 'hidden',
-    backgroundColor: '#FFF',
-  },
-  innerBg: {
-    height: verticalScale(100),
-    justifyContent: 'center',
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    height: verticalScale(80),
-    position: 'relative',
-    paddingHorizontal: scale(18),
-    marginTop: verticalScale(20),
-  },
-  backBtn: {
-    width: scale(40),
-    height: scale(40),
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    textAlign: 'center',
-    fontSize: moderateScale(22),
-    fontFamily: 'Montserrat',
-    letterSpacing: 0.5,
-  },
   listContainer: {
     padding: scale(16),
     paddingBottom: verticalScale(75),
   },
   card: {
-    backgroundColor: '#FFF7E8', 
+    backgroundColor: '#FFF7E8',
     borderRadius: 12,
     padding: scale(14),
     marginBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderWidth: 1, 
+    borderWidth: 1,
     borderColor: '#E9B10F',
     borderLeftWidth: 1
   },
   orderId: {
     fontSize: moderateScale(20),
-    fontFamily: 'PoppinsSemiBold', 
+    fontFamily: 'PoppinsSemiBold',
     color: '#000',
   },
   amount: {

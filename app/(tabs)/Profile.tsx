@@ -5,6 +5,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 import { logout } from '../../store/authSlice';
 import { useAppDispatch, useAppSelector } from '../../store/useAuth';
+import Header from '@/components/Header';
 
 
 export default function Profile() {
@@ -22,19 +23,7 @@ export default function Profile() {
         source={require('../../assets/images/background2.png')}
         style={styles.backgroundImage}
       >
-        <View style={styles.shadowWrapper}>
-          <ImageBackground
-            source={require('../../assets/images/background1.png')}
-            style={styles.innerBg}
-          >
-            <View style={styles.headerRow}>
-              <TouchableOpacity style={styles.backBtn} onPress={router.back}>
-                <Ionicons name="arrow-back" size={moderateScale(24)} />
-              </TouchableOpacity>
-              <Text style={styles.headerTitle}>{isAuthenticated ? 'My profile' : 'Profile'}</Text>
-            </View>
-          </ImageBackground>
-        </View>
+      <Header title="Profile" />
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollViewContent}
@@ -63,22 +52,22 @@ export default function Profile() {
                   <RowItem 
                     iconName="location"
                     label="Manage addresses"
-                    onPress={() => { }}
+                    onPress={() => { router.push('/ManageAddress')}}
                   />
                   <RowItem
                     iconName="person"
                     label="Manage Profile"
-                    onPress={() => { }}
+                    onPress={() => {router.push('/CompleteProfile')}}
                   />
                   <RowItem
                     iconName="call"
                     label="Contact us"
-                    onPress={() => { }}
-                  />
+                    onPress={() => {router.push('/ContactUs')}}
+                  /> 
                   <RowItem
                     iconName="information-circle"
-                    label="About us"
-                    onPress={() => { }}
+                    label="About us" 
+                    onPress={() => {router.push('/AboutUs')}}
                   />
                   <RowItem
                     iconName="document-text"
@@ -102,8 +91,8 @@ export default function Profile() {
                 </>
               ) : (
                 <>
-                  <RowItem iconName="call" label="Contact us" onPress={() => { }} />
-                  <RowItem iconName="information-circle" label="About us" onPress={() => { }} />
+                  <RowItem iconName="call" label="Contact us" onPress={() => { router.push('/ContactUs')}} />
+                  <RowItem iconName="information-circle" label="About us" onPress={() => {router.push('/AboutUs')}} />
                   <RowItem iconName="document-text" label="Terms & conditions" onPress={() => { }} />
                   <RowItem iconName="shield-checkmark" label="Privacy policy" onPress={() => { }} isLast />
                 </>
@@ -153,45 +142,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-  shadowWrapper: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 8,
-    marginBottom: 8,
-    overflow: 'hidden',
-    backgroundColor: '#FFF',
-  },
-  innerBg: {
-    height: verticalScale(100),
-    justifyContent: 'center',
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    height: verticalScale(80),
-    position: 'relative',
-    paddingHorizontal: scale(18),
-    marginTop: verticalScale(20),
-  },
-  backBtn: {
-    width: scale(40),
-    height: scale(40),
-    justifyContent: 'center',
-    zIndex: 1,
-  },
-  headerTitle: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    textAlign: 'center',
-    textAlignVertical: 'center',
-    fontSize: moderateScale(24),
-    fontFamily: 'Montserrat',
-    letterSpacing: 1,
-  },
+ 
   content: {
     padding: scale(16),
     paddingBottom: verticalScale(40),

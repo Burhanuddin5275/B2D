@@ -1,10 +1,12 @@
-import Ionicons from '@expo/vector-icons/Ionicons'
-import { router, useLocalSearchParams } from 'expo-router'
-import React, { useState } from 'react'
-import { Image, ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import { moderateScale, scale, verticalScale } from 'react-native-size-matters'
-import { useAppSelector } from '../store/useAuth'
+import Header from '@/components/Header';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import * as ImagePicker from 'expo-image-picker';
+import { useLocalSearchParams } from 'expo-router';
+import React, { useState } from 'react';
+import { Image, ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
+import { useAppSelector } from '../store/useAuth';
 
 export default function CompleteProfile() {
   const { phone: urlPhone } = useLocalSearchParams();
@@ -13,6 +15,31 @@ export default function CompleteProfile() {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
+  const [image, setImage] = useState<string | null>(null)
+
+  const pickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        alert('Sorry, we need camera roll permissions to select an image!');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking an image:', error);
+      alert('Failed to pick an image. Please try again.');
+    }
+  };
 
   const isValid = firstName.trim() && lastName.trim() && email.trim()
 
@@ -22,82 +49,83 @@ export default function CompleteProfile() {
         source={require('../assets/images/background2.png')}
         style={styles.backgroundImage}
       >
-        <View style={styles.shadowWrapper}>
-          <ImageBackground
-            source={require('../assets/images/background1.png')}
-            style={styles.innerBg}
-          >
-            <View style={styles.headerRow}>
-              <TouchableOpacity style={styles.backBtn} onPress={router.back}>
-                <Ionicons name="arrow-back" size={moderateScale(24)} />
-              </TouchableOpacity>
-              <Text style={styles.headerTitle}>Complete profile</Text>
-            </View>
-          </ImageBackground>
-        </View>
-       <ScrollView>
-         <View style={styles.content}>
-          <View style={styles.photoWrap}>
-            <View style={styles.photoCircle}>
-              <Ionicons name="add" size={moderateScale(36)} color="#E9B10F" />
-            </View>
-            <Text style={styles.uploadHint}>Upload profile photo</Text>
-          </View>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>First name*</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Type here"
-              placeholderTextColor="#A1A1A1"
-              value={firstName}
-              onChangeText={setFirstName}
-            />
-          </View>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Last name*</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Type here"
-              placeholderTextColor="#A1A1A1"
-              value={lastName}
-              onChangeText={setLastName}
-            />
-          </View>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Email address*</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Type here"
-              placeholderTextColor="#A1A1A1"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
-
-          <View style={styles.formGroup}>
-            <View style={styles.phoneRowHeader}>
-              <Text style={styles.label}>Phone number*</Text>
-              <Text style={styles.notEditable}>Not editable</Text>
-            </View>
-            <View style={styles.phoneInputWrap}>
-              <View style={styles.flagBox}>
-                <Image source={require('../assets/images/flag.png')} style={{ width: scale(24) }} resizeMode="contain" />
+        <Header title="Complete profile" />
+        <ScrollView>
+          <View style={styles.content}>
+            <TouchableOpacity 
+              style={styles.photoWrap} 
+              activeOpacity={0.8}
+              onPress={pickImage}
+            >
+              <View style={styles.photoCircle}>
+                {image ? (
+                  <Image 
+                    source={{ uri: image }} 
+                    style={styles.profileImage} 
+                  />
+                ) : (
+                  <Ionicons name="add" size={moderateScale(36)} color="#E9B10F" />
+                )}
               </View>
-              <Text style={styles.prefix}>+1</Text>
-              <TextInput style={styles.phoneInput} value={(phone.startsWith('+1') ? phone.slice(2) : phone)} editable={false} />
-            </View>
-          </View>
+              <Text style={styles.uploadHint}>
+                {image ? 'Change profile photo' : 'Upload profile photo'}
+              </Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity activeOpacity={1} style={[styles.submitBtn, !isValid && styles.disabledBtn]} disabled={!isValid}>
-            <Text style={styles.submitText}>Submit</Text>
-          </TouchableOpacity>
-        </View>
-       </ScrollView>
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>First name*</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Type here"
+                placeholderTextColor="#A1A1A1"
+                value={firstName}
+                onChangeText={setFirstName}
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Last name*</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Type here"
+                placeholderTextColor="#A1A1A1"
+                value={lastName}
+                onChangeText={setLastName}
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Email address*</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Type here"
+                placeholderTextColor="#A1A1A1"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <View style={styles.phoneRowHeader}>
+                <Text style={styles.label}>Phone number*</Text>
+                <Text style={styles.notEditable}>Not editable</Text>
+              </View>
+              <View style={styles.phoneInputWrap}>
+                <View style={styles.flagBox}>
+                  <Image source={require('../assets/images/flag.png')} style={{ width: scale(24) }} resizeMode="contain" />
+                </View>
+                <Text style={styles.prefix}>+1</Text>
+                <TextInput style={styles.phoneInput} value={(phone.startsWith('+1') ? phone.slice(2) : phone)} editable={false} />
+              </View>
+            </View>
+
+            <TouchableOpacity activeOpacity={1} style={[styles.submitBtn, !isValid && styles.disabledBtn]} disabled={!isValid}>
+              <Text style={styles.submitText}>Submit</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </ImageBackground>
     </SafeAreaView>
   )
@@ -114,45 +142,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-  shadowWrapper: {
-    shadowColor: '#000',
-    backgroundColor: '#fff',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 8,
-    marginBottom: 8,
-    overflow: 'hidden',
-  },
-  innerBg: {
-    height: verticalScale(100),
-    justifyContent: 'center',
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    height: verticalScale(80),
-    position: 'relative',
-    paddingHorizontal: scale(18),
-    marginTop: verticalScale(20),
-  },
-  backBtn: {
-    width: scale(40),
-    height: scale(40),
-    justifyContent: 'center',
-    zIndex: 1,
-  },
-  headerTitle: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    textAlign: 'center',
-    textAlignVertical: 'center',
-    fontSize: moderateScale(24),
-    fontFamily: 'Montserrat',
-    letterSpacing: 1,
-  },
+
   content: {
     paddingHorizontal: scale(20),
     paddingTop: verticalScale(12),
@@ -166,9 +156,18 @@ const styles = StyleSheet.create({
     width: scale(120),
     height: scale(120),
     borderRadius: scale(60),
-    backgroundColor: '#F5E6B9',
-    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
     justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: verticalScale(10),
+    borderWidth: 1,
+    borderColor: '#E9B10F',
+    overflow: 'hidden',
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   uploadHint: {
     marginTop: verticalScale(10),
