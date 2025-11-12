@@ -34,7 +34,7 @@ export default function Orders() {
         source={require('../../assets/images/background2.png')}
         style={styles.backgroundImage}
       >
-        <Header title="My orders" />
+        <Header title="My orders" showDefaultIcons={false} />
         <FlatList
           data={orders}
           renderItem={renderItem}

@@ -7,14 +7,16 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { scale, verticalScale } from 'react-native-size-matters';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToWishlist, removeFromWishlist, selectWishlistItems } from '../../store/wishlistSlice';
+import { router } from 'expo-router';
 const { width } = Dimensions.get('window');
 
 const categories = [
-  { id: 1, name: 'Spices &\nSeasoning', icon: '🌶️', color: '#FFD4C4' },
-  { id: 2, name: 'Cooking\nOil & Ghee', icon: '🧴', color: '#C41E3A' },
-  { id: 3, name: 'Grains', icon: '🍚', color: '#FFE4A3' },
-  { id: 4, name: 'Lentils &\nBeans', icon: '🥜', color: '#8B6F47' },
-  { id: 5, name: 'Pulses', icon: '🫘', color: '#4A90E2' },
+{ id: 1, name: 'Snacks', icon: '🍿', color: '#a3b984ff' },
+  { id: 2, name: 'Spices &\nSeasoning', icon: '🌶️', color: '#FFD4C4' },
+  { id: 3, name: 'Cooking\nOil & Ghee', icon: '🧴', color: '#C41E3A' },
+  { id: 4, name: 'Grains', icon: '🍚', color: '#FFE4A3' },
+  { id: 5, name: 'Lentils &\nBeans', icon: '🥜', color: '#8B6F47' },
+  { id: 6, name: 'Pulses', icon: '🫘', color: '#4A90E2' },
 ];
 
 const stores = [
@@ -38,6 +40,8 @@ const products = [
     id: 1,
     name: 'RITZ Fresh Stacks\nOriginal Crackers',
     subtitle: 'Family Size, 17.8 oz',
+    category: 'Snacks',
+    seller: 'Fresh Mart',
     price: 4.98,
     img: require('../../assets/images/Ritz.png'),
   },
@@ -45,6 +49,8 @@ const products = [
     id: 2,
     name: 'Great Value Mini\nPretzel Twists',
     subtitle: '16 oz',
+    category: 'Snacks',
+    seller: 'Fresh Mart',
     price: 2.24,
     img: require('../../assets/images/Mini.png'),
   },
@@ -52,6 +58,8 @@ const products = [
     id: 3,
     name: 'Loacker Classic Wafers Mix, Variety...',
     subtitle: '45g/1.59oz, Pack of 6',
+    category: 'Snacks',
+    seller: 'Fresh Mart',
     price: 10.19,
     img: require('../../assets/images/loacker.png'),
   },
@@ -59,8 +67,46 @@ const products = [
     id: 4,
     name: 'LOVE CORN Variety Pack | Sea Salt, BBQ...',
     subtitle: '0.7oz, 18 Bags',
+    category: 'Snacks',
+    seller: 'Fresh Mart',
     price: 15.19,
     img: require('../../assets/images/snack.png'),
+  },
+  {
+    id: 5,
+    name: 'Fresh Sweet\nCorn on the Cob',
+    subtitle: '1 each',
+    category: 'Fresh produce',
+    seller: 'Fresh Mart',
+    price: 4.98,
+    img: require('../../assets/images/corn.png'),
+  },
+  {
+    id: 6,
+    name: 'Fresh Strawberry',
+    subtitle: '12 pieces',
+    category: 'Fresh produce',
+    seller: 'Fresh Mart',
+    price: 2.24,
+    img: require('../../assets/images/strawberry.png'),
+  },
+  {
+    id: 7,
+    name: 'Fresh Roma Tomato',
+    subtitle: '1 pieces',
+    category: 'Fresh produce',
+    seller: 'Fresh Mart',
+    price: 10.19,
+    img: require('../../assets/images/tomatao.png'),
+  },
+  {
+    id: 8,
+    name: 'Fresh Hass Avocado',
+    subtitle: '1 pieces',
+    category: 'Fresh produce',
+    seller: 'Fresh Mart',
+    price: 15.19,
+    img: require('../../assets/images/avocados.png'),
   },
 
 ];
@@ -75,7 +121,7 @@ export default function HomeScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const storeCardWidth = scale(260);
   const dispatch = useDispatch();
-    const checkIsInWishlist = (productId: number) => wishlist.includes(productId);
+  const checkIsInWishlist = (productId: number) => wishlist.includes(productId);
   const handleScroll = (event: any) => {
     const offsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(offsetX / storeCardWidth);
@@ -83,19 +129,19 @@ export default function HomeScreen() {
       setActiveStoreIndex(index);
     }
   };
-const toggleWishlist = (product: any) => {
-  if (checkIsInWishlist(product.id)) {
-    dispatch(removeFromWishlist(product.id));
-    setWishlist(prev => prev.filter(id => id !== product.id));
-  } else {
-    dispatch(addToWishlist(product));
-    setWishlist(prev => [...prev, product.id]);
-  }
-};
+  const toggleWishlist = (product: any) => {
+    if (checkIsInWishlist(product.id)) {
+      dispatch(removeFromWishlist(product.id));
+      setWishlist(prev => prev.filter(id => id !== product.id));
+    } else {
+      dispatch(addToWishlist(product));
+      setWishlist(prev => [...prev, product.id]);
+    }
+  };
 
   const increment = (id: number) => {
     setQuantities(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
-  }; 
+  };
 
   const decrement = (id: number) => {
     setQuantities(prev => {
@@ -107,9 +153,9 @@ const toggleWishlist = (product: any) => {
     });
   };
 
-useEffect(() => {
-  setWishlist(wishlistItems.map(item => item.id));
-}, [wishlistItems]);
+  useEffect(() => {
+    setWishlist(wishlistItems.map(item => item.id));
+  }, [wishlistItems]);
   return (
     <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
       <ImageBackground
@@ -160,7 +206,20 @@ useEffect(() => {
               style={styles.categoriesScroll}
             >
               {categories.map((category) => (
-                <TouchableOpacity key={category.id} style={styles.categoryCard}>
+                <TouchableOpacity key={category.id} style={styles.categoryCard} onPress={() => {
+                  // Filter products by category and pass to the category page
+                  const categoryProducts = products.filter(
+                    product => product.category.toLowerCase() === category.name.split('\n')[0].toLowerCase()
+                  );
+
+                  router.push({
+                    pathname: '/Category',
+                    params: {
+                      categoryName: category.name,
+                      products: JSON.stringify(categoryProducts)
+                    }
+                  })
+                }}>
                   <View style={[styles.categoryIcon, { backgroundColor: category.color }]}>
                     <Text style={styles.categoryEmoji}>{category.icon}</Text>
                   </View>
@@ -227,7 +286,7 @@ useEffect(() => {
               {products.map((product) => {
                 const qty = quantities[product.id] || 0;
                 return (
-                  <View key={product.id} style={styles.productCard}>
+                  <TouchableOpacity key={product.id} style={styles.productCard}>
                     <View style={styles.productImage}>
                       <Image source={product.img} style={styles.productPic} resizeMode="contain" />
                     </View>
@@ -275,7 +334,7 @@ useEffect(() => {
                         )}
                       </View>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 );
               })}
             </View>

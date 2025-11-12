@@ -34,7 +34,7 @@ export default function Login() {
         source={require('../assets/images/background2.png')}
         style={styles.backgroundImage}
       >
-     <Header showBackButton={false} title=''/>
+     <Header showBackButton={false} title='' showDefaultIcons={false}/>
         <View style={styles.logoWrap}>
           <Image
             source={require('../assets/images/logo.png')}

@@ -23,7 +23,7 @@ export default function Profile() {
         source={require('../../assets/images/background2.png')}
         style={styles.backgroundImage}
       >
-      <Header title="Profile" />
+      <Header title="Profile" showDefaultIcons={false} />
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollViewContent}

@@ -122,7 +122,7 @@ const VerifyNumber = () => {
         style={styles.backgroundImage}
         resizeMode="cover"
       >
-        <Header title="" showBackButton={false} />
+        <Header title="" showBackButton={false} showDefaultIcons={false} />
         <View style={styles.logoWrap}>
           <Image
             source={require('../assets/images/logo.png')}

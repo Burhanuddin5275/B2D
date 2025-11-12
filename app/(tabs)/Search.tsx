@@ -38,46 +38,73 @@ const CATEGORIES: Suggestion[] = [
     type: 'category'
   },
 ]
-
 const PRODUCTS: Suggestion[] = [
   {
     id: 'prod-1',
-    title: 'Fresh Orange',
-    subtitle: '1kg',
-    price: '1.99',
-    unit: 'kg',
-    type: 'product',
-    image: require('../../assets/images/loacker.png')
+    title: 'RITZ Fresh Stacks\nOriginal Crackers',
+    subtitle: 'Family Size, 17.8 oz',
+    price: '4.98',
+    image: require('../../assets/images/Ritz.png'),
+    type: 'product'
   },
   {
     id: 'prod-2',
-    title: 'Fresh Apple',
-    subtitle: '1kg',
-    price: '2.49',
-    unit: 'kg',
-    type: 'product',
-    image: require('../../assets/images/Ritz.png')
+    title: 'Great Value Mini\nPretzel Twists',
+    subtitle: '16 oz',
+    price: '2.24',
+    image: require('../../assets/images/Mini.png'),
+    type: 'product'
+  },
+  {
+    id: 'prod-3',
+    title: 'Loacker Classic Wafers Mix, Variety...',
+    subtitle: '45g/1.59oz, Pack of 6',
+    price: '10.19',
+    image: require('../../assets/images/loacker.png'),
+    type: 'product'
   },
   {
     id: 'prod-4',
-    title: 'Grapes',
-    subtitle: '500g',
-    price: '3.99',
-    unit: 'pack',
-    type: 'product',
-    image: require('../../assets/images/snack.png')
+    title: 'LOVE CORN Variety Pack | Sea Salt, BBQ...',
+    subtitle: '0.7oz, 18 Bags',
+    price: '15.19',
+    image: require('../../assets/images/snack.png'),
+    type: 'product'
+  },
+    {
+    id: 'prod-5',
+    title: 'Fresh Sweet\nCorn on the Cob',
+    subtitle: '1 each',
+    price: '4.98',
+    image: require('../../assets/images/corn.png'),
+    type: 'product'
   },
   {
-    id: 'prod-5',
-    title: 'Strawberry',
-    subtitle: '250g',
-    price: '4.29',
-    unit: 'pack',
-    type: 'product',
-    image: require('../../assets/images/Mini.png')
+    id: 'prod-6',
+    title: 'Fresh Strawberry',
+    subtitle: '12 pieces',
+    price: '2.24',
+    image: require('../../assets/images/strawberry.png'),
+    type: 'product'
   },
-]
+  {
+    id: 'prod-7',
+    title: 'Fresh Roma Tomato',
+    subtitle: '1 pieces',
+    price: '10.19',
+    image: require('../../assets/images/tomatao.png'),
+    type: 'product'
+  },
+  {
+    id: 'prod-8',
+    title: 'Fresh Hass Avocado',
+    subtitle: '1 pieces',
+    price: '15.19',
+    image: require('../../assets/images/avocados.png'),
+    type: 'product'
+  }, 
 
+];
 const Search = () => {
   const navigation = useNavigation()
   const [query, setQuery] = useState('')
@@ -202,7 +229,7 @@ const Search = () => {
                     {products.map((item) => {
                       const qty = quantities[item.id] || 0;
                       return (
-                        <View key={item.id} style={styles.productCard}>
+                        <TouchableOpacity key={item.id} style={styles.productCard}>
                           <View style={styles.productImage}>
                             <Image source={item.image} style={styles.productPic} resizeMode="contain" />
                           </View>
@@ -249,7 +276,7 @@ const Search = () => {
                               )}
                             </View>
                           </View>
-                        </View>
+                        </TouchableOpacity>
                       );
                     })}
                   </View>

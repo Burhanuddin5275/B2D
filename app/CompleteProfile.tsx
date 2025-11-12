@@ -49,7 +49,7 @@ export default function CompleteProfile() {
         source={require('../assets/images/background2.png')}
         style={styles.backgroundImage}
       >
-        <Header title="Complete profile" />
+        <Header title="Complete profile" showDefaultIcons={false} />
         <ScrollView>
           <View style={styles.content}>
             <TouchableOpacity 

@@ -7,12 +7,12 @@ import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 const AboutUs = () => {
   const insets = useSafeAreaInsets();
   return (
-    <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
-      <ImageBackground
+    <SafeAreaView style={{ flex: 1}}>
+      <ImageBackground 
         source={require('../assets/images/background2.png')}
         style={styles.backgroundImage}
       >
-        <Header title="About Us" />
+        <Header title="About Us" showDefaultIcons={false} />
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.logoWrap}>
             <Image

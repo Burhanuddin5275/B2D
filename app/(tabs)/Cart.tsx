@@ -19,7 +19,7 @@ export default function Cart() {
         source={require('../../assets/images/background2.png')}
         style={styles.backgroundImage}
       >
-        <Header title="Cart" />
+        <Header title="Cart" showDefaultIcons={false} />
         <View style={styles.emptyState}>
           <Text style={styles.emptyTitle}>No Cart Placed</Text>
           <Text style={styles.emptyText}>

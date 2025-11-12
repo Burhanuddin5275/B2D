@@ -34,7 +34,7 @@ export default function Wishlist() {
         source={require('../assets/images/background2.png')}
         style={styles.backgroundImage}
       >
-      <Header title="Wishlist" />
+      <Header title="Wishlist" showDefaultIcons={false}/>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           {wishlistItems.map((item) => (
             <View key={item.id} style={styles.productCard}>

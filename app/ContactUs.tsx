@@ -29,7 +29,7 @@ const ContactUs = () => {
                 source={require('../assets/images/background2.png')}
                 style={styles.background}
             >
-                <Header title="Contact Us" />
+                <Header title="Contact Us" showDefaultIcons={false} />
                 <Text style={styles.subtitle}>
                     Hello! If you're facing any difficulties using the app or have any
                     suggestions, please send us a message.

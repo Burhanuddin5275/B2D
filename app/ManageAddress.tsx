@@ -33,7 +33,7 @@ const ManageAddress = () => {
                 source={require('../assets/images/background2.png')}
                 style={styles.background}
             >
-                <Header title="Manage Address" />
+                <Header title="Manage Address" showDefaultIcons={false} />
                 <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollViewContent}>
                     {addresses.map((address) => (
                         <View key={address.id} style={styles.addressCard}>

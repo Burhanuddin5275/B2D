@@ -11,6 +11,19 @@ import {
 } from 'react-native';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 
+export const handleFilterPress = () => {
+  // Add your filter logic here
+  console.log('Filter pressed');};
+
+export const handleSearchPress = () => {
+  // Add your search logic here
+  console.log('Search pressed');};
+
+interface HeaderIcon {
+  name: keyof typeof Ionicons.glyphMap;
+  onPress: () => void;
+}
+
 interface HeaderProps {
   title: string;
   showBackButton?: boolean;
@@ -18,6 +31,8 @@ interface HeaderProps {
   backgroundImage?: ImageSourcePropType;
   headerStyle?: object;
   titleStyle?: object;
+  rightIcons?: HeaderIcon[];
+  showDefaultIcons?: boolean;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -27,6 +42,8 @@ const Header: React.FC<HeaderProps> = ({
   backgroundImage = require('../assets/images/background1.png'),
   headerStyle,
   titleStyle,
+  rightIcons,
+  showDefaultIcons = true,
 }) => {
   const router = useRouter();
 
@@ -50,15 +67,44 @@ const Header: React.FC<HeaderProps> = ({
     );
   };
 
+  const renderRightIcons = () => {
+    const defaultIcons: HeaderIcon[] = [
+      { name: 'filter', onPress: handleFilterPress },
+      { name: 'search-outline', onPress: handleSearchPress },
+    ];
+    
+    const icons = rightIcons || (showDefaultIcons ? defaultIcons : []);
+
+    if (icons.length === 0) return null;
+
+    return (
+      <View style={styles.rightIconsContainer}>
+        {icons.map((icon, index) => (
+          <TouchableOpacity
+            key={`header-icon-${index}`}
+            style={styles.iconButton}
+            onPress={icon.onPress}
+            testID={`header-icon-${icon.name}`}
+          >
+            <Ionicons name={icon.name} size={moderateScale(24)} color="#000" />
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  };
+
   const renderContent = () => (
     <View style={[styles.headerRow, headerStyle]}>
       {renderBackButton()}
-      <Text style={[styles.headerTitle, titleStyle]}>{title}</Text>
+      <View style={styles.titleContainer}>
+        <Text style={[styles.headerTitle, titleStyle]}>{title}</Text>
+      </View>
+      {renderRightIcons()}
     </View>
   );
 
   return (
-    <View style={styles.shadowWrapper}>
+    <View style={[styles.shadowWrapper, headerStyle]}>
       {backgroundImage ? (
         <ImageBackground
           source={backgroundImage}
@@ -97,10 +143,10 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
+    paddingHorizontal: scale(16),
     height: verticalScale(80),
     position: 'relative',
-    paddingHorizontal: scale(18),
     marginTop: verticalScale(20),
   },
   backBtn: {
@@ -108,17 +154,24 @@ const styles = StyleSheet.create({
     height: scale(40),
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10,
     backgroundColor: 'transparent',
   },
-  headerTitle: {
+  titleContainer: {
     position: 'absolute',
     left: 0,
     right: 0,
-    textAlign: 'center',
-    fontSize: moderateScale(22),
-    fontFamily: 'Montserrat',
-    letterSpacing: 0.5,
-    color: '#000',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: moderateScale(18),
+    fontWeight: '600',
+    textAlign:'center'
+  },
+  rightIconsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  iconButton: {
+    padding: scale(4),
   },
 });

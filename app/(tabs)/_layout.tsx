@@ -124,6 +124,18 @@ const getTabBarHeight = () => {
           ),
         }}
       />
+          <Tabs.Screen
+        name="Category"
+        options={{
+          title: 'Category',
+          href: null,
+          tabBarIcon: ({ color }) => (
+            <View>
+              <IconSymbol size={24} name="magnifyingglass" color={color} />
+            </View>
+          ),
+        }}
+      />
     </Tabs>
   );
 }
