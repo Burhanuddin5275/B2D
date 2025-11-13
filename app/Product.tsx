@@ -1,8 +1,10 @@
 import Header from '@/components/Header';
+import { addToCart, removeFromCart, selectCartItems, updateQuantity } from '@/store/cartSlice';
+import { useAppDispatch, useAppSelector } from '@/store/useAuth';
 import { colors } from '@/theme/colors';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Image,
   ImageBackground,
@@ -74,16 +76,20 @@ const DEFAULT_PRODUCT: Product = {
 
 const Product = () => {
   const { product: productParam } = useLocalSearchParams();
+  const dispatch = useAppDispatch();
+  const cartItems = useAppSelector(selectCartItems);
   const productString = Array.isArray(productParam) ? productParam[0] : productParam;
 
   const product: Product = useMemo(() => {
     if (!productString) {
       return DEFAULT_PRODUCT;
     }
+
     try {
+      const parsed = JSON.parse(productString as string);
       return {
         ...DEFAULT_PRODUCT,
-        ...(JSON.parse(productString as string) ?? {}),
+        ...parsed,
       };
     } catch (error) {
       console.warn('Failed to parse product param', error);
@@ -95,30 +101,54 @@ const Product = () => {
   const [quantity, setQuantity] = useState(1);
   const [showQuantitySelector, setShowQuantitySelector] = useState(false);
 
-  const incrementQuantity = () => setQuantity(prev => prev + 1);
-  const decrementQuantity = () => {
-    if (quantity > 1) {
-      setQuantity(prev => prev - 1);
-    } else {
-      setShowQuantitySelector(false);
-      setQuantity(1);
-    }
-  };
-
-  const handleAddToCart = () => {
-    if (!showQuantitySelector) {
-      setShowQuantitySelector(true);
-    } else {
-      // Handle add to cart with quantity
-      console.log(`Added ${quantity} ${product.name} to cart`);
-    }
-  };
-
-  const maxReviewCount = useMemo(
-    () => Math.max(...RATING_BREAKDOWN.map((item) => item.count)),
-    []
+  const existingCartItem = useMemo(
+    () => cartItems.find((item) => item.id === product.id),
+    [cartItems, product.id]
   );
 
+  useEffect(() => {
+    if (existingCartItem) {
+      setQuantity(existingCartItem.quantity);
+      setShowQuantitySelector(true);
+    } else {
+      setQuantity(1);
+      setShowQuantitySelector(false);
+    }
+  }, [existingCartItem]);
+
+  const handleAddToCart = () => {
+    dispatch(
+      addToCart({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        img: product.img,
+        seller: product.seller,
+        quantity: 1, 
+      })
+    );
+    setQuantity(1);
+    setShowQuantitySelector(true);
+  };
+
+  const incrementQuantity = () => {
+    const newQuantity = quantity + 1;
+    setQuantity(newQuantity);
+    dispatch(updateQuantity({ id: product.id, quantity: newQuantity }));
+  };
+
+  const decrementQuantity = () => {
+    const newQuantity = quantity - 1;
+    if (newQuantity <= 0) {
+      dispatch(removeFromCart(product.id));
+      setQuantity(1);
+      setShowQuantitySelector(false);
+      return;
+    }
+
+    setQuantity(newQuantity);
+    dispatch(updateQuantity({ id: product.id, quantity: newQuantity }));
+  };
   return (
     <SafeAreaView style={styles.safeArea}>
       <ImageBackground
@@ -242,6 +272,7 @@ const Product = () => {
 
               <View style={styles.ratingBreakdown}>
                 {RATING_BREAKDOWN.map((item) => {
+                  const maxReviewCount = Math.max(...RATING_BREAKDOWN.map(r => r.count));
                   const widthPercent = (item.count / maxReviewCount) * 100;
                   return (
                     <View key={item.id} style={styles.breakdownRow}>
@@ -276,7 +307,7 @@ const Product = () => {
                 </View>
                 <Text style={styles.reviewTitle}>Amazing taste and quality!</Text>
                 <Text style={styles.reviewText}>
-                  These crackers are absolutely delicious! Perfectly crispy and buttery. 
+                  These crackers are absolutely delicious! Perfectly crispy and buttery.
                   Will definitely buy again. The family size is perfect for sharing.
                 </Text>
               </View>
@@ -292,8 +323,8 @@ const Product = () => {
                 </View>
                 <Text style={styles.reviewTitle}>Great value for money</Text>
                 <Text style={styles.reviewText}>
-                  Good quality crackers at a reasonable price. The pack arrived 
-                  in perfect condition. The taste is great, though I wish they 
+                  Good quality crackers at a reasonable price. The pack arrived
+                  in perfect condition. The taste is great, though I wish they
                   were a bit less salty.
                 </Text>
               </View>
@@ -305,14 +336,14 @@ const Product = () => {
             </View>
           </View>
         </ScrollView>
-        
+
         {/* Add to Cart Button with Quantity Selector */}
         <View style={styles.addToCartContainer}>
           <View style={styles.addToCartContent}>
-            <TouchableOpacity 
-              style={styles.addToCartButton}
-              activeOpacity={0.9}
+            <TouchableOpacity
+              style={[styles.addToCartButton, showQuantitySelector && styles.addedButton]}
               onPress={handleAddToCart}
+              activeOpacity={0.9}
             >
               <Text style={styles.addToCartText}>
                 Add to Cart
@@ -321,20 +352,20 @@ const Product = () => {
             
             {showQuantitySelector && (
               <View style={styles.quantitySelector}>
-                <TouchableOpacity 
-                  style={styles.quantityButton}
+                <TouchableOpacity
                   onPress={decrementQuantity}
+                  style={styles.quantityButton}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="remove" size={20} color={colors.white} />
+                  <Ionicons name="remove" size={18} color={colors.white} />
                 </TouchableOpacity>
                 <Text style={styles.quantityText}>{quantity}</Text>
-                <TouchableOpacity 
-                  style={styles.quantityButton}
+                <TouchableOpacity
                   onPress={incrementQuantity}
+                  style={styles.quantityButton}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="add" size={20} color={colors.white} />
+                  <Ionicons name="add" size={18} color={colors.white} />
                 </TouchableOpacity>
               </View>
             )}
@@ -400,51 +431,59 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     left: 0,
-    right: 0,
-    padding: 16,
+    right: 0, 
+    paddingHorizontal: scale(20),
+    paddingVertical: verticalScale(16),
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    alignItems: 'flex-end',
   },
   addToCartContent: {
-    alignItems: 'flex-end',
+    width: '100%',
   },
   quantitySelector: {
     position: 'absolute',
-    bottom: '100%',
-    right: 0,
+    bottom: verticalScale(70),
+    right: scale(10),
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.primaryDark,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    borderRadius: scale(10),
+    paddingHorizontal: scale(8),
+    height: scale(36),
+    minWidth: scale(80),
+    justifyContent: 'space-between',
+    zIndex: 1,
   },
   quantityButton: {
-    padding: 8,
+    width: scale(20),
+    height: scale(20),
+    borderRadius: scale(10),
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   quantityText: {
-    fontFamily: 'InterSemiBold',
-    fontSize: 16,
+    fontFamily: 'InterBold',
+    fontSize: moderateScale(12),
     color: colors.white,
-    minWidth: 24,
     textAlign: 'center',
   },
   addToCartButton: {
     width: '100%',
     backgroundColor: colors.primaryDark,
-    borderRadius: scale(8),
-    paddingVertical: verticalScale(16),
+    borderRadius: scale(12),
+    paddingVertical: verticalScale(14),
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: verticalScale(10), // Add some space for the quantity selector
+  },
+  addedButton: {
+    backgroundColor: colors.primaryDark,
   },
   addToCartText: {
     color: colors.white,
     fontSize: moderateScale(16),
-    fontWeight: '600',
+    fontFamily: 'PoppinsSemi',
   },
   infoCard: {
     borderRadius: 18,
@@ -658,57 +697,57 @@ const styles = StyleSheet.create({
     color: '#2F2D1E',
   },
   reviewsSection: {
-  marginTop: verticalScale(24),
-  paddingHorizontal: scale(10),
-},
-reviewsHeading: {
-  fontFamily: 'Montserrat',
-  fontSize: moderateScale(14),
-  color: '#2F2D1E',
-},
-reviewItem: {
-  marginTop: verticalScale(12),
-  paddingBottom: verticalScale(12),
-  borderBottomWidth: 1,
-  borderBottomColor: 'rgba(0,0,0,0.08)',
-},
-reviewHeader: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  marginBottom: verticalScale(8),
-},
-reviewRating: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  marginRight: scale(8),
-},
-reviewRatingText: {
-  marginLeft: scale(4),
-  fontFamily: 'InterSemiBold',
-  fontSize: moderateScale(12),
-  color: '#2F2D1E',
-},
-reviewerName: {
-  fontFamily: 'InterSemiBold',
-  fontSize: moderateScale(12),
-  color: '#2F2D1E',
-  marginRight: scale(8),
-},
-reviewDate: {
-  fontFamily: 'InterRegular',
-  fontSize: moderateScale(11),
-  color: '#7C7754',
-},
-reviewTitle: {
-  fontFamily: 'InterSemiBold',
-  fontSize: moderateScale(14),
-  color: '#2F2D1E',
-  marginBottom: verticalScale(4),
-},
-reviewText: {
-  fontFamily: 'InterRegular',
-  fontSize: moderateScale(12),
-  color: '#2F2D1E',
-  lineHeight: moderateScale(16),
-},
+    marginTop: verticalScale(24),
+    paddingHorizontal: scale(10),
+  },
+  reviewsHeading: {
+    fontFamily: 'Montserrat',
+    fontSize: moderateScale(14),
+    color: '#2F2D1E',
+  },
+  reviewItem: {
+    marginTop: verticalScale(12),
+    paddingBottom: verticalScale(12),
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.08)',
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: verticalScale(8),
+  },
+  reviewRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: scale(8),
+  },
+  reviewRatingText: {
+    marginLeft: scale(4),
+    fontFamily: 'InterSemiBold',
+    fontSize: moderateScale(12),
+    color: '#2F2D1E',
+  },
+  reviewerName: {
+    fontFamily: 'InterSemiBold',
+    fontSize: moderateScale(12),
+    color: '#2F2D1E',
+    marginRight: scale(8),
+  },
+  reviewDate: {
+    fontFamily: 'InterRegular',
+    fontSize: moderateScale(11),
+    color: '#7C7754',
+  },
+  reviewTitle: {
+    fontFamily: 'InterSemiBold',
+    fontSize: moderateScale(14),
+    color: '#2F2D1E',
+    marginBottom: verticalScale(4),
+  },
+  reviewText: {
+    fontFamily: 'InterRegular',
+    fontSize: moderateScale(12),
+    color: '#2F2D1E',
+    lineHeight: moderateScale(16),
+  },
 });

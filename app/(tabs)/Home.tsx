@@ -1,17 +1,19 @@
+import { addToCart, removeFromCart, selectCartItems, updateQuantity } from '@/store/cartSlice';
+import { useAppDispatch, useAppSelector } from '@/store/useAuth';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { ImageBackground } from 'expo-image';
+import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Dimensions, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scale, verticalScale } from 'react-native-size-matters';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { addToWishlist, removeFromWishlist, selectWishlistItems } from '../../store/wishlistSlice';
-import { router } from 'expo-router';
 const { width } = Dimensions.get('window');
 
 const categories = [
-{ id: 1, name: 'Snacks', icon: '🍿', color: '#a3b984ff' },
+  { id: 1, name: 'Snacks', icon: '🍿', color: '#a3b984ff' },
   { id: 2, name: 'Spices &\nSeasoning', icon: '🌶️', color: '#FFD4C4' },
   { id: 3, name: 'Cooking\nOil & Ghee', icon: '🧴', color: '#C41E3A' },
   { id: 4, name: 'Grains', icon: '🍚', color: '#FFE4A3' },
@@ -77,7 +79,7 @@ const products = [
     name: 'Fresh Sweet\nCorn on the Cob',
     subtitle: '1 each',
     category: 'Fresh produce',
-    seller: 'Fresh Mart',
+    seller: 'Lisa Mart',
     price: 4.98,
     img: require('../../assets/images/corn.png'),
   },
@@ -86,7 +88,7 @@ const products = [
     name: 'Fresh Strawberry',
     subtitle: '12 pieces',
     category: 'Fresh produce',
-    seller: 'Fresh Mart',
+    seller: 'Lisa Mart',
     price: 2.24,
     img: require('../../assets/images/strawberry.png'),
   },
@@ -95,7 +97,7 @@ const products = [
     name: 'Fresh Roma Tomato',
     subtitle: '1 pieces',
     category: 'Fresh produce',
-    seller: 'Fresh Mart',
+    seller: 'Lisa Mart',
     price: 10.19,
     img: require('../../assets/images/tomatao.png'),
   },
@@ -104,7 +106,7 @@ const products = [
     name: 'Fresh Hass Avocado',
     subtitle: '1 pieces',
     category: 'Fresh produce',
-    seller: 'Fresh Mart',
+    seller: 'Lisa Mart',
     price: 15.19,
     img: require('../../assets/images/avocados.png'),
   },
@@ -120,7 +122,8 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
   const storeCardWidth = scale(260);
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
+  const cartItems = useAppSelector(selectCartItems);
   const checkIsInWishlist = (productId: number) => wishlist.includes(productId);
   const handleScroll = (event: any) => {
     const offsetX = event.nativeEvent.contentOffset.x;
@@ -138,24 +141,49 @@ export default function HomeScreen() {
       setWishlist(prev => [...prev, product.id]);
     }
   };
-
-  const increment = (id: number) => {
-    setQuantities(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
-  };
-
-  const decrement = (id: number) => {
-    setQuantities(prev => {
-      const current = prev[id] || 0;
-      const next = Math.max(0, current - 1);
-      const updated = { ...prev, [id]: next };
-      if (next === 0) delete updated[id];
-      return updated;
-    });
-  };
-
   useEffect(() => {
     setWishlist(wishlistItems.map(item => item.id));
   }, [wishlistItems]);
+  const [quantity, setQuantity] = useState(1);
+  const existingCartItem = (productId: number) => 
+    cartItems.find((item) => item.id === productId);
+  const handleAddToCart = (product: any) => {
+    const currentQty = existingCartItem(product.id)?.quantity || 0;
+    const newQuantity = currentQty + 1;
+    
+    if (currentQty > 0) {
+      dispatch(updateQuantity({ id: product.id, quantity: newQuantity }));
+    } else {
+      dispatch(
+        addToCart({
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          img: product.img,
+          seller: product.seller || 'Unknown Seller',
+          quantity: 1,
+        })
+      );
+    }
+    setQuantity(newQuantity);
+  };
+
+  const incrementQuantity = (productId: number) => {
+    const currentQty = existingCartItem(productId)?.quantity || 0;
+    const newQuantity = currentQty + 1;
+    dispatch(updateQuantity({ id: productId, quantity: newQuantity }));
+  };
+
+  const decrementQuantity = (productId: number) => {
+    const currentQty = existingCartItem(productId)?.quantity || 0;
+    const newQuantity = currentQty - 1;
+    
+    if (newQuantity <= 0) {
+      dispatch(removeFromCart(productId));
+    } else {
+      dispatch(updateQuantity({ id: productId, quantity: newQuantity }));
+    }
+  };
   return (
     <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
       <ImageBackground
@@ -284,9 +312,16 @@ export default function HomeScreen() {
           <View style={styles.productsSection}>
             <View style={styles.productsGrid}>
               {products.map((product) => {
-                const qty = quantities[product.id] || 0;
+                const qty = existingCartItem(product.id)?.quantity || 0;
                 return (
-                  <TouchableOpacity key={product.id} style={styles.productCard}>
+                  <TouchableOpacity key={product.id} style={styles.productCard} onPress={() => {
+                    router.push({
+                      pathname: '/Product',
+                      params: {
+                        product: JSON.stringify(product)
+                      }
+                    });
+                  }}>
                     <View style={styles.productImage}>
                       <Image source={product.img} style={styles.productPic} resizeMode="contain" />
                     </View>
@@ -309,7 +344,8 @@ export default function HomeScreen() {
                         {qty === 0 ? (
                           <TouchableOpacity
                             style={styles.addButton}
-                            onPress={() => increment(product.id)}
+                            onPress={() => incrementQuantity(product.id)}
+                            onPressIn={() => handleAddToCart(product)}
                           >
                             <Text style={styles.addButtonText}>+ Add</Text>
                           </TouchableOpacity>
@@ -317,7 +353,7 @@ export default function HomeScreen() {
                           <View style={styles.qtyControl}>
                             <TouchableOpacity
                               style={styles.qtySideButton}
-                              onPress={() => decrement(product.id)}
+                              onPress={() => decrementQuantity(product.id)}
                             >
                               <Text style={styles.qtySideButtonText}>−</Text>
                             </TouchableOpacity>
@@ -326,7 +362,7 @@ export default function HomeScreen() {
                             </View>
                             <TouchableOpacity
                               style={styles.qtySideButtonFilled}
-                              onPress={() => increment(product.id)}
+                              onPress={() => incrementQuantity(product.id)}
                             >
                               <Text style={styles.qtySideButtonFilledText}>+</Text>
                             </TouchableOpacity>

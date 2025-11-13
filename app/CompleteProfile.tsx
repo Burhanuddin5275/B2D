@@ -16,28 +16,27 @@ export default function CompleteProfile() {
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [image, setImage] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false);
 
   const pickImage = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        alert('Sorry, we need camera roll permissions to select an image!');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+     try {
+      setIsLoading(true);
+      const image = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images', 'videos'],
         allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
+        aspect: [4, 3],
+        quality: 1,
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setImage(result.assets[0].uri);
+      console.log('Selected image:', image);
+
+      if (image && !image.canceled && image.assets && image.assets[0]) {
+        setImage(image.assets[0].uri);
       }
     } catch (error) {
-      console.error('Error picking an image:', error);
-      alert('Failed to pick an image. Please try again.');
+      console.error('Error picking image:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 

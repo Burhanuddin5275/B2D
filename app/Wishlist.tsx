@@ -1,33 +1,70 @@
+import Header from '@/components/Header';
+import { addToCart, removeFromCart, selectCartItems, updateQuantity } from '@/store/cartSlice';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
-import { useState } from 'react';
 import { Image, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
+import { moderateScale, scale } from 'react-native-size-matters';
 import { useDispatch, useSelector } from 'react-redux';
 import { removeFromWishlist, selectWishlistItems } from '../store/wishlistSlice';
-import Header from '@/components/Header';
 
 export default function Wishlist() {
   const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
   const wishlistItems = useSelector(selectWishlistItems);
-  const [quantities, setQuantities] = useState<Record<number, number>>({});
+  const cartItems = useSelector(selectCartItems);
+interface Product {
+  id: number;
+  name: string;
+  subtitle: string;
+  image: any;
+  price: number;
+  quantity?: number;
+  weight?: number;
+  unit?: string;
+  category: string;
+  seller: string;
+}
+  
+const existingCartItem = (productId: number) => 
+  cartItems.find((item) => item.id === productId); // This should be cartItems, not wishlistItems
 
-  const increment = (id: number) => {
-    setQuantities(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+const handleAddToCart = (product: any) => {
+  const cartItem = existingCartItem(product.id);
+  const currentQty = cartItem?.quantity || 0;
+  const newQuantity = currentQty + 1;
+  
+  if (currentQty > 0) {
+    dispatch(updateQuantity({ id: product.id, quantity: newQuantity }));
+  } else {
+    dispatch(
+      addToCart({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        quantity: 1,
+        img: product.img,
+        seller: product.seller,
+      })
+    );
+  }
+};
+
+  const incrementQuantity = (productId: number) => {
+    const currentQty = existingCartItem(productId)?.quantity || 0;
+    const newQuantity = currentQty + 1;
+    dispatch(updateQuantity({ id: productId, quantity: newQuantity }));
   };
 
-  const decrement = (id: number) => {
-    setQuantities(prev => {
-      const current = prev[id] || 0;
-      const next = Math.max(0, current - 1);
-      const updated = { ...prev, [id]: next };
-      if (next === 0) delete updated[id];
-      return updated;
-    });
+  const decrementQuantity = (productId: number) => {
+    const currentQty = existingCartItem(productId)?.quantity || 0;
+    const newQuantity = currentQty - 1;
+    
+    if (newQuantity <= 0) {
+      dispatch(removeFromCart(productId));
+    } else {
+      dispatch(updateQuantity({ id: productId, quantity: newQuantity }));
+    }
   };
-
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <ImageBackground
@@ -36,58 +73,61 @@ export default function Wishlist() {
       >
       <Header title="Wishlist" showDefaultIcons={false}/>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-          {wishlistItems.map((item) => (
-            <View key={item.id} style={styles.productCard}>
-              <View style={styles.productImageContainer}>
-                <Image source={item.img} style={styles.productImage} resizeMode="contain" />
-                <TouchableOpacity
-                  style={styles.heartButton}
-                  onPress={() => dispatch(removeFromWishlist(item.id))}
-                >
-                  <Ionicons name="heart" size={20} color="#FF6B6B" />
-                </TouchableOpacity>
-              </View>
+          {wishlistItems.map((item) => {
+            const qty = existingCartItem(item.id)?.quantity || 0;
+            return (
+              <View key={item.id} style={styles.productCard}>
+                <View style={styles.productImageContainer}>
+                  <Image source={item.img} style={styles.productImage} resizeMode="contain" />
+                  <TouchableOpacity
+                    style={styles.heartButton}
+                    onPress={() => dispatch(removeFromWishlist(item.id))}
+                  >
+                    <Ionicons name="heart" size={20} color="#FF6B6B" />
+                  </TouchableOpacity>
+                </View>
 
-              <View style={styles.productInfo}>
-                <View style={styles.productHeader}>
-                  <View style={styles.productTextContainer}>
-                    <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
-                    <Text style={styles.productSubtitle} numberOfLines={1}>{item.subtitle}</Text>
+                <View style={styles.productInfo}>
+                  <View style={styles.productHeader}>
+                    <View style={styles.productTextContainer}>
+                      <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
+                      <Text style={styles.productSubtitle} numberOfLines={1}>{item.subtitle}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.priceRow}>
+                    <Text style={styles.productPrice}>${item.price}</Text>
+                    {qty > 0 ? (
+                      <View style={styles.qtyControl}>
+                        <TouchableOpacity
+                          style={styles.qtySideButton}
+                          onPress={() => decrementQuantity(item.id)}
+                        >
+                          <Text style={styles.qtySideButtonText}>−</Text>
+                        </TouchableOpacity>
+                        <View style={styles.qtyPill}>
+                          <Text style={styles.qtyText}>{String(qty).padStart(2, '0')}</Text>
+                        </View>
+                        <TouchableOpacity
+                          style={styles.qtySideButtonFilled}
+                          onPress={() => incrementQuantity(item.id)}
+                        >
+                          <Text style={styles.qtySideButtonFilledText}>+</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={() => handleAddToCart(item)}
+                      >
+                        <Text style={styles.addButtonText}>+ Add</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
-
-                <View style={styles.priceRow}>
-                  <Text style={styles.productPrice}>${item.price}</Text>
-                  {quantities[item.id] > 0 ? (
-                    <View style={styles.qtyControl}>
-                      <TouchableOpacity
-                        style={styles.qtySideButton}
-                        onPress={() => decrement(item.id)}
-                      >
-                        <Text style={styles.qtySideButtonText}>−</Text>
-                      </TouchableOpacity>
-                      <View style={styles.qtyPill}>
-                        <Text style={styles.qtyText}>{String(quantities[item.id]).padStart(2, '0')}</Text>
-                      </View>
-                      <TouchableOpacity
-                        style={styles.qtySideButtonFilled}
-                        onPress={() => increment(item.id)}
-                      >
-                        <Text style={styles.qtySideButtonFilledText}>+</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <TouchableOpacity
-                      style={styles.addButton}
-                      onPress={() => increment(item.id)}
-                    >
-                      <Text style={styles.addButtonText}>+ Add</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
               </View>
-            </View>
-          ))}
+            );
+          })}
         </ScrollView>
       </ImageBackground>
     </SafeAreaView>
