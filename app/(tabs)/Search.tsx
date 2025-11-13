@@ -1,3 +1,5 @@
+import { addToCart, removeFromCart, selectCartItems, updateQuantity } from '@/store/cartSlice'
+import { addToWishlist, removeFromWishlist, selectWishlistItems } from '@/store/wishlistSlice'
 import Ionicons from '@expo/vector-icons/Ionicons'
 import { useNavigation } from '@react-navigation/native'
 import { ImageBackground } from 'expo-image'
@@ -6,11 +8,13 @@ import { Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, T
 
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { scale, verticalScale } from 'react-native-size-matters'
+import { useAppDispatch, useAppSelector } from '@/store/useAuth'
+import { router } from 'expo-router'
 
 const { width } = Dimensions.get('window')
 
 type Suggestion = {
-  id: string
+  id: string | number
   title: string
   subtitle: string
   image?: any
@@ -19,6 +23,7 @@ type Suggestion = {
   type: 'category' | 'product'
   price?: string
   unit?: string
+  seller?: string
 }
 
 const CATEGORIES: Suggestion[] = [
@@ -40,103 +45,104 @@ const CATEGORIES: Suggestion[] = [
 ]
 const PRODUCTS: Suggestion[] = [
   {
-    id: 'prod-1',
+    id: 1,
     title: 'RITZ Fresh Stacks\nOriginal Crackers',
     subtitle: 'Family Size, 17.8 oz',
     price: '4.98',
     image: require('../../assets/images/Ritz.png'),
-    type: 'product'
+    type: 'product',
+    seller: 'Fresh Mart',
   },
   {
-    id: 'prod-2',
+    id: 2,
     title: 'Great Value Mini\nPretzel Twists',
     subtitle: '16 oz',
     price: '2.24',
     image: require('../../assets/images/Mini.png'),
-    type: 'product'
+    type: 'product',
+    seller: 'Fresh Mart',
   },
   {
-    id: 'prod-3',
+    id: 3,
     title: 'Loacker Classic Wafers Mix, Variety...',
     subtitle: '45g/1.59oz, Pack of 6',
     price: '10.19',
     image: require('../../assets/images/loacker.png'),
-    type: 'product'
+    type: 'product',
+    seller: 'Fresh Mart',
   },
   {
-    id: 'prod-4',
+    id: 4,
     title: 'LOVE CORN Variety Pack | Sea Salt, BBQ...',
     subtitle: '0.7oz, 18 Bags',
     price: '15.19',
     image: require('../../assets/images/snack.png'),
-    type: 'product'
+    type: 'product',
+    seller: 'Fresh Mart',
   },
-    {
-    id: 'prod-5',
+  {
+    id: 5,
     title: 'Fresh Sweet\nCorn on the Cob',
     subtitle: '1 each',
     price: '4.98',
     image: require('../../assets/images/corn.png'),
-    type: 'product'
+    type: 'product',
+    seller: 'Lisa Mart',
   },
   {
-    id: 'prod-6',
+    id: 6,
     title: 'Fresh Strawberry',
     subtitle: '12 pieces',
     price: '2.24',
     image: require('../../assets/images/strawberry.png'),
-    type: 'product'
+    type: 'product',
+    seller: 'Lisa Mart',
   },
   {
-    id: 'prod-7',
+    id: 7,
     title: 'Fresh Roma Tomato',
     subtitle: '1 pieces',
     price: '10.19',
     image: require('../../assets/images/tomatao.png'),
-    type: 'product'
+    type: 'product',
+    seller: 'Lisa Mart',
   },
   {
-    id: 'prod-8',
+    id: 8,
     title: 'Fresh Hass Avocado',
     subtitle: '1 pieces',
     price: '15.19',
     image: require('../../assets/images/avocados.png'),
-    type: 'product'
-  }, 
+    type: 'product',
+    seller: 'Lisa Mart',
+  },
 
 ];
 const Search = () => {
   const navigation = useNavigation()
   const [query, setQuery] = useState('')
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const [wishlist, setWishlist] = useState<string[]>([]);
+  const dispatch = useAppDispatch();
+  const wishlistItems = useAppSelector(selectWishlistItems);
+  const cartItems = useAppSelector(selectCartItems);
+  const wishlistIds = useMemo(() => wishlistItems.map(item => item.id), [wishlistItems]);
+  const checkIsInWishlist = (productId: number) => wishlistIds.includes(productId);
   const insets = useSafeAreaInsets();
 
-  const toggleWishlist = (productId: string) => {
-    setWishlist(prev =>
-      prev.includes(productId)
-        ? prev.filter(id => id !== productId)
-        : [...prev, productId]
-    );
+  const toggleWishlist = (product: any) => {
+    const payload = {
+      id: product.id,
+      name: product.title,
+      subtitle: product.subtitle,
+      price: Number(product.price),
+      img: product.image,
+      seller: product.seller ?? 'Marketplace',
+    };
+    if (checkIsInWishlist(product.id)) {
+      dispatch(removeFromWishlist(product.id));
+    } else {
+      dispatch(addToWishlist(payload));
+    }
   };
-
-  const isInWishlist = (productId: string) => wishlist.includes(productId);
-
-
-  const increment = (id: string) => {
-    setQuantities(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
-  };
-
-  const decrement = (id: string) => {
-    setQuantities(prev => {
-      const current = prev[id] || 0;
-      const next = Math.max(0, current - 1);
-      const updated = { ...prev, [id]: next };
-      if (next === 0) delete updated[id];
-      return updated;
-    });
-  };
-
 
   const { categories, products } = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -151,6 +157,46 @@ const Search = () => {
       )
     }
   }, [query])
+
+  const existingCartItem = (productId: number) =>
+    cartItems.find((item) => item.id === productId);
+
+  const handleAddToCart = (product: any) => {
+    const currentQty = existingCartItem(product.id)?.quantity || 0;
+    const newQuantity = currentQty + 1;
+
+    if (currentQty > 0) {
+      dispatch(updateQuantity({ id: product.id, quantity: newQuantity }));
+    } else {
+      dispatch(
+        addToCart({
+          id: product.id,
+          name: product.title,
+          price: Number(product.price),
+          img: product.image,
+          seller: product.seller ?? 'Marketplace',
+          quantity: 1,
+        })
+      );
+    }
+  };
+
+  const incrementQuantity = (productId: number) => {
+    const currentQty = existingCartItem(productId)?.quantity || 0;
+    const newQuantity = currentQty + 1;
+    dispatch(updateQuantity({ id: productId, quantity: newQuantity }));
+  };
+
+  const decrementQuantity = (productId: number) => {
+    const currentQty = existingCartItem(productId)?.quantity || 0;
+    const newQuantity = currentQty - 1;
+
+    if (newQuantity <= 0) {
+      dispatch(removeFromCart(productId));
+    } else {
+      dispatch(updateQuantity({ id: productId, quantity: newQuantity }));
+    }
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
@@ -195,7 +241,7 @@ const Search = () => {
                 <Text style={styles.sectionTitle}>Category</Text>
                 <FlatList
                   data={categories}
-                  keyExtractor={item => item.id}
+                  keyExtractor={(item) => String(item.id)}
                   renderItem={({ item }) => (
                     <View style={styles.row}>
                       {item.image ? (
@@ -227,20 +273,39 @@ const Search = () => {
                 >
                   <View style={styles.productsGrid}>
                     {products.map((item) => {
-                      const qty = quantities[item.id] || 0;
+                      const productId = item.id as number;
+                      const qty = existingCartItem(productId)?.quantity || 0;
                       return (
-                        <TouchableOpacity key={item.id} style={styles.productCard}>
+                        <TouchableOpacity
+                          key={item.id}
+                          style={styles.productCard}
+                          onPress={() => {
+                            router.push({
+                              pathname: '/Product',
+                              params: {
+                                product: JSON.stringify({
+                                  id: item.id,
+                                  name: item.title,
+                                  price: parseFloat(item.price || '0'),
+                                  img: item.image,
+                                  subtitle: item.subtitle,
+                                  seller: item.seller || 'Unknown Seller'
+                                })
+                              }
+                            });
+                          }}
+                        >
                           <View style={styles.productImage}>
                             <Image source={item.image} style={styles.productPic} resizeMode="contain" />
                           </View>
                           <TouchableOpacity
-                            style={[styles.favoriteButton, isInWishlist(item.id) && styles.favoriteButtonActive]}
-                            onPress={() => toggleWishlist(item.id)}
+                            style={[styles.favoriteButton, checkIsInWishlist(productId) && styles.favoriteButtonActive]}
+                            onPress={() => toggleWishlist(item)}
                           >
                             <Ionicons
-                              name={isInWishlist(item.id) ? "heart" : "heart-outline"}
+                              name={checkIsInWishlist(productId) ? "heart" : "heart-outline"}
                               size={20}
-                              color={isInWishlist(item.id) ? "#cfcdcdff" : "#888"}
+                              color={checkIsInWishlist(productId) ? "#cfcdcdff" : "#888"}
                             />
                           </TouchableOpacity>
                           <View style={styles.productInfo}>
@@ -251,7 +316,8 @@ const Search = () => {
                               {qty === 0 ? (
                                 <TouchableOpacity
                                   style={styles.addButton}
-                                  onPress={() => increment(item.id)}
+                                  onPress={() => incrementQuantity(productId)}
+                                  onPressIn={() => handleAddToCart(item)}
                                 >
                                   <Text style={styles.addButtonText}>+ Add</Text>
                                 </TouchableOpacity>
@@ -259,7 +325,7 @@ const Search = () => {
                                 <View style={styles.qtyControl}>
                                   <TouchableOpacity
                                     style={styles.qtySideButton}
-                                    onPress={() => decrement(item.id)}
+                                    onPress={() => decrementQuantity(productId)}
                                   >
                                     <Text style={styles.qtySideButtonText}>−</Text>
                                   </TouchableOpacity>
@@ -268,7 +334,7 @@ const Search = () => {
                                   </View>
                                   <TouchableOpacity
                                     style={styles.qtySideButtonFilled}
-                                    onPress={() => increment(item.id)}
+                                    onPress={() => incrementQuantity(productId)}
                                   >
                                     <Text style={styles.qtySideButtonFilledText}>+</Text>
                                   </TouchableOpacity>
@@ -422,7 +488,7 @@ const styles = StyleSheet.create({
   },
   productsGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap', 
+    flexWrap: 'wrap',
     marginBottom: verticalScale(120)
   },
   productCard: {

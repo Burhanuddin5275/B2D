@@ -7,6 +7,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Image,
   ImageBackground,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -35,6 +36,8 @@ export default function Cart() {
   const [additionalComments, setAdditionalComments] = useState(
     'Please leave the package at the front door.'
   );
+  const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'credit' | 'debit' | 'square'>('credit');
 
   const sellerGroups = useMemo<SellerGroup[]>(() => {
     const map = new Map<string, SellerGroup>();
@@ -84,19 +87,36 @@ export default function Cart() {
     }
   };
 
+  const activeSeller = sellerGroups.find((group) => group.seller === activeSellerId);
+  const subtotal = activeSeller?.totalPrice ?? 0;
+  const deliveryFee = deliveryType === 'express' ? 49 : 29;
+  const tipAmount =
+    selectedTip === 'other'
+      ? parseFloat(customTip) || 0
+      : subtotal * (parseInt(selectedTip, 10) / 100);
+  const taxAmount = subtotal * 0.18;
+  const payableTotal = subtotal + deliveryFee + tipAmount + taxAmount;
+
   const tipSummary = useMemo(() => {
     if (selectedTip === 'other') {
+      if (!customTip) {
+        return 'No tip added';
+      }
       const value = parseFloat(customTip);
       if (!isNaN(value) && value > 0) {
         return `$${value.toFixed(2)} tip added`;
       }
       return 'No tip added';
     }
-    const percentage = Number(selectedTip) / 100;
-    const amount = cartTotalPrice * percentage;
-    return `$${amount.toFixed(2)} tip added`;
-  }, [selectedTip, customTip, cartTotalPrice]);
-
+    return `$${(subtotal * (parseInt(selectedTip, 10) / 100)).toFixed(2)} tip added`;
+  }, [selectedTip, customTip, subtotal]);
+  const addresses = [
+    { id: '1', type: 'Home', address: '456 Elm Street, Apt 12B, Los Angeles CA, 90001, United States' },
+    { id: '2', type: 'Work', address: '789 Business Ave, Suite 400, Los Angeles CA, 90015, United States' },
+    { id: '3', type: 'Other', address: '123 Other Place, Los Angeles CA, 90025, United States' }
+  ];
+  const [isAddressModalVisible, setIsAddressModalVisible] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState(addresses[0]);
   return (
     <SafeAreaView
       style={styles.safeArea}
@@ -269,15 +289,17 @@ export default function Cart() {
               <View style={styles.addressSection}>
                 <View style={styles.sectionHeaderRow}>
                   <Text style={styles.sectionHeading}>Deliver this order to</Text>
-                  <TouchableOpacity activeOpacity={0.7}>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => setIsAddressModalVisible(true)}
+                  >
                     <Text style={styles.linkText}>Change</Text>
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.addressLabel}>
-                  Home (456 Elm Street, Apt 12B, Los Angeles CA, 90001, United States)
+                  {selectedAddress.type} ({selectedAddress.address})
                 </Text>
               </View>
-
               <View style={styles.tipsSection}>
                 <View style={styles.sectionHeaderRow}>
                   <Text style={styles.sectionHeading}>Add tip to Driver</Text>
@@ -358,62 +380,164 @@ export default function Cart() {
                   placeholderTextColor="#A7A7A7"
                   style={styles.commentsInput}
                   textAlignVertical="top"
-                /> 
+                />
               </View>
-              <View style={styles.orderSummary}> 
+              <View style={styles.orderSummary}>
                 <Text style={styles.sectionPriceDetails}>Price Details</Text>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>
-                    Products({sellerGroups.find(s => s.seller === activeSellerId)?.items.reduce((sum, item) => sum + item.quantity, 0) || 0} items)
+                    Products({activeSeller?.items.reduce((sum, item) => sum + item.quantity, 0) || 0} items)
                   </Text>
                   <Text style={styles.summaryValue}>
-                    ${sellerGroups.find(s => s.seller === activeSellerId)?.totalPrice.toFixed(2) || '0.00'}
+                    ${subtotal.toFixed(2)}
                   </Text>
                 </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Delivery Fee</Text>
-                  <Text style={styles.summaryValue}>${deliveryType === 'express' ? '49.00' : '29.00'}</Text>
-                </View> 
+                  <Text style={styles.summaryValue}>${deliveryFee.toFixed(2)}</Text>
+                </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Tax</Text>
-                  <Text style={styles.summaryValue}>${(cartTotalPrice * 0.18).toFixed(2)}</Text>
+                  <Text style={styles.summaryValue}>${taxAmount.toFixed(2)}</Text>
                 </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Tip</Text>
-                  <Text style={styles.summaryValue}>
-                    {selectedTip === 'other' 
-                      ? `$${customTip || '0.00'}`
-                      : `$${(cartTotalPrice * (parseInt(selectedTip) / 100)).toFixed(2)}`}
-                  </Text>
+                  <Text style={styles.summaryValue}>${tipAmount.toFixed(2)}</Text>
                 </View>
                 <View style={[styles.summaryRow, styles.totalRow]}>
                   <Text style={styles.totalLabel}>Total</Text>
-                  <Text style={styles.totalValue}>
-                    ${(
-                      (sellerGroups.find(s => s.seller === activeSellerId)?.totalPrice || 0) + 
-                      (deliveryType === 'express' ? 49 : 29) + 
-                      (cartTotalPrice * 0.18) + // Add GST
-                      (selectedTip === 'other' 
-                        ? parseFloat(customTip) || 0 
-                        : cartTotalPrice * (parseInt(selectedTip) / 100))
-                    ).toFixed(2)}
-                  </Text>
+                  <Text style={styles.totalValue}>${payableTotal.toFixed(2)}</Text>
                 </View>
               </View>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.placeOrderButton}
                 activeOpacity={0.9}
-                onPress={() => {
-                  // Handle place order logic here
-                  console.log('Placing order...');
-                }}
+                onPress={() => setIsPaymentModalVisible(true)}
               >
                 <Text style={styles.placeOrderButtonText}>Place Order</Text>
               </TouchableOpacity>
             </>
           )}
         </ScrollView>
+        <Modal
+          visible={isPaymentModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setIsPaymentModalVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setIsPaymentModalVisible(false)}
+          />
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Payment method</Text>
+              <TouchableOpacity onPress={() => setIsPaymentModalVisible(false)}>
+                <Ionicons name="close" size={20} color="#9E9970" />
+              </TouchableOpacity>
+            </View>
+            {[
+              { id: 'credit', label: 'Credit Card' },
+              { id: 'debit', label: 'Debit Card' },
+              { id: 'square', label: 'Marketplace Square Payment' },
+            ].map((method) => {
+              const isActive = selectedPaymentMethod === method.id;
+              return (
+                <TouchableOpacity
+                  key={method.id}
+                  style={[
+                    styles.paymentOption,
+                    method.id === 'square' && styles.paymentOptionLast,
+                  ]}
+                  activeOpacity={0.85}
+                  onPress={() => setSelectedPaymentMethod(method.id as typeof selectedPaymentMethod)}
+                >
+                  <View style={[styles.modalRadioOuter, isActive && styles.modalRadioOuterActive]}>
+                    {isActive && <View style={styles.modalRadioInner} />}
+                  </View>
+                  <Text style={[styles.paymentOptionLabel, isActive && styles.paymentOptionLabelActive]}>
+                    {method.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+            <TouchableOpacity
+              style={styles.modalPrimaryButton}
+              activeOpacity={0.9}
+              onPress={() => setIsPaymentModalVisible(false)}
+            >
+              <Text style={styles.modalPrimaryButtonText}>
+                Proceed to pay ${payableTotal.toFixed(2)}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
+        <Modal
+          visible={isAddressModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setIsAddressModalVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setIsAddressModalVisible(false)}
+          >
+            <View style={[styles.modalContainer, { maxHeight: '60%' }]}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Select Delivery Address</Text>
+                <TouchableOpacity onPress={() => setIsAddressModalVisible(false)}>
+                  <Ionicons name="close" size={20} color="#9E9970" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView>
+                {addresses.map((address) => (
+                  <TouchableOpacity
+                    key={address.id}
+                    style={[styles.addressOption, selectedAddress.id === address.id && styles.selectedAddress]}
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      setSelectedAddress(address);
+                      setIsAddressModalVisible(false);
+                    }}
+                  >
+                    <View style={styles.addressItemContainer}>
+                      <View style={styles.addressDetails}>
+                        <View style={styles.addressTypeRow}>
+                          <Text style={styles.addressType}>{address.type}</Text>
+                        </View>
+                        <Text style={styles.addressText}>{address.address}</Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.editButton}
+                        onPress={() => {
+                          // Handle edit address
+                          console.log('Edit address:', address.id);
+                        }}
+                      >
+                        <Ionicons name="create-outline" size={20} color="#9E9970" />
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              <TouchableOpacity
+                style={[styles.modalPrimaryButton, { marginTop: 10 }]}
+                activeOpacity={0.9}
+                onPress={() => {
+                  // Handle add new address
+                  setIsAddressModalVisible(false);
+                }}
+              >
+                <Text style={styles.modalPrimaryButtonText}>Add New Address</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </ImageBackground>
     </SafeAreaView>
   );
@@ -429,7 +553,7 @@ const styles = StyleSheet.create({
 
   scrollContent: {
     paddingHorizontal: scale(20),
-    paddingBottom: verticalScale(140),
+    paddingBottom: verticalScale(100),
     paddingTop: verticalScale(16),
     gap: verticalScale(16),
   },
@@ -478,15 +602,15 @@ const styles = StyleSheet.create({
     width: scale(10),
     height: scale(10),
     borderRadius: scale(10),
-    borderColor:colors.white,
-    borderWidth:1
+    borderColor: colors.white,
+    borderWidth: 1
   },
   radioOuterActive: {
     backgroundColor: colors.primaryDark,
     borderColor: colors.primaryDark,
   },
   radioInnerActive: {
-    backgroundColor: '#FFFFFF', 
+    backgroundColor: '#FFFFFF',
   },
   sellerInfo: {
     flex: 1,
@@ -547,13 +671,13 @@ const styles = StyleSheet.create({
     borderRadius: scale(8),
     paddingHorizontal: scale(4),
     paddingVertical: verticalScale(4),
-  }, 
+  },
   quantityButton: {
     width: scale(14),
     height: scale(24),
-    borderRadius: scale(12), 
+    borderRadius: scale(12),
     alignItems: 'center',
-    justifyContent: 'center', 
+    justifyContent: 'center',
   },
   quantityButtonText: {
     fontFamily: 'PoppinsSemi',
@@ -597,14 +721,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: scale(16),
   },
   disclaimerTitle: {
-    fontFamily: 'Montserrat', 
+    fontFamily: 'Montserrat',
     fontSize: moderateScale(13),
     color: colors.primaryDark,
   },
   disclaimerText: {
     fontFamily: 'InterRegular',
     fontSize: moderateScale(12),
-    color: colors.primaryDark, 
+    color: colors.primaryDark,
     lineHeight: 18,
   },
   deliverySection: {
@@ -679,10 +803,52 @@ const styles = StyleSheet.create({
     color: '#2F2D1E',
     lineHeight: 18,
   },
+  addressOption: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderWidth: 1,
+    borderColor: colors.primaryDark,
+    borderRadius: scale(12),
+    marginBottom: verticalScale(8),
+
+  },
+  selectedAddress: {
+    backgroundColor: colors.secondaryLight,
+  },
+
+  addressDetails: {
+    flex: 1,
+  },
+  addressTypeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  addressType: {
+    fontFamily: 'InterSemiBold',
+    fontSize: 14,
+    marginRight: 8,
+  },
+  addressText: {
+    fontFamily: 'InterRegular',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+
+  addressItemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: verticalScale(16),
+  },
+  editButton: {
+    padding: 8,
+    marginLeft: 8,
+  },
   tipsSection: {
     marginTop: verticalScale(20),
     paddingTop: verticalScale(20),
-    borderTopWidth: 1, 
+    borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
   },
   tipInfoRow: {
@@ -742,18 +908,18 @@ const styles = StyleSheet.create({
   },
   commentsInput: {
     backgroundColor: '#F9F9F9',
-    borderRadius: scale(12), 
+    borderRadius: scale(12),
     paddingHorizontal: scale(14),
-    paddingVertical: verticalScale(14) ,
+    paddingVertical: verticalScale(14),
     fontFamily: 'InterRegular',
     fontSize: moderateScale(14),
     minHeight: verticalScale(120),
   },
-  orderSummary: { 
+  orderSummary: {
     padding: scale(12),
     marginBottom: verticalScale(16),
     borderTopWidth: 1,
-  borderTopColor: '#f0f0f0',
+    borderTopColor: '#f0f0f0',
     paddingTop: verticalScale(20),
   },
   sectionPriceDetails: {
@@ -767,7 +933,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: verticalScale(12),
   },
-  summaryLabel: { 
+  summaryLabel: {
     fontFamily: 'InterRegular',
     fontSize: moderateScale(14),
     color: '#666666',
@@ -798,11 +964,97 @@ const styles = StyleSheet.create({
     borderRadius: scale(8),
     paddingVertical: verticalScale(14),
     alignItems: 'center',
-    justifyContent: 'center', 
+    justifyContent: 'center',
   },
   placeOrderButtonText: {
     color: 'white',
     fontFamily: 'InterSemiBold',
     fontSize: moderateScale(14),
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  modalContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: scale(20),
+    borderTopRightRadius: scale(20),
+    borderBottomLeftRadius: scale(20),
+    borderBottomRightRadius: scale(20),
+    backgroundColor: '#FFFFFF',
+    paddingTop: verticalScale(18),
+    paddingHorizontal: scale(20),
+    paddingBottom: verticalScale(18),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 18,
+    elevation: 12,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: verticalScale(12),
+  },
+  modalTitle: {
+    textAlign: 'center',
+    fontFamily: 'Montserrat',
+    fontSize: moderateScale(15),
+    color: '#2F2D1E',
+  },
+  paymentOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: verticalScale(12),
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EEE4C6',
+  },
+  paymentOptionLast: {
+    borderBottomWidth: 0,
+  },
+  modalRadioOuter: {
+    width: scale(20),
+    height: scale(20),
+    borderRadius: scale(10),
+    borderWidth: 1.5,
+    borderColor: '#D9D5BE',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: scale(12),
+  },
+  modalRadioOuterActive: {
+    borderColor: colors.primaryDark,
+  },
+  modalRadioInner: {
+    width: scale(12),
+    height: scale(12),
+    borderRadius: scale(6),
+    backgroundColor: colors.primaryDark,
+  },
+  paymentOptionLabel: {
+    fontFamily: 'InterRegular',
+    fontSize: moderateScale(13),
+    color: '#4E4A37',
+  },
+  paymentOptionLabelActive: {
+    fontFamily: 'InterSemiBold',
+    color: '#2F2D1E',
+  },
+  modalPrimaryButton: {
+    marginTop: verticalScale(20),
+    backgroundColor: colors.primaryDark,
+    borderRadius: scale(8),
+    paddingVertical: verticalScale(14),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalPrimaryButtonText: {
+    fontFamily: 'PoppinsSemi',
+    fontSize: moderateScale(15),
+    color: '#FFFFFF',
   },
 });

@@ -540,6 +540,7 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderColor: '#E0E0E0',
     position: 'relative',
+    justifyContent:'space-between',  
     padding: 10,
     borderRadius: 0,
     borderTopWidth: 1,
