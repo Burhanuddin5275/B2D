@@ -1,4 +1,5 @@
 import Header from '@/components/Header';
+import { colors } from '@/theme/colors';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { router } from 'expo-router';
@@ -88,8 +89,9 @@ const styles = StyleSheet.create({
     },
 
     subtitle: {
-        fontFamily: 'InterRegular',
+        fontFamily: 'PoppinsMedium',
         fontSize: moderateScale(14),
+        fontWeight:500,
         textAlign: 'center',
         marginTop: verticalScale(10),
         paddingHorizontal: scale(58),
@@ -105,9 +107,10 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(254, 189, 47, 0.35)',
     },
     messageInput: {
-        fontFamily: 'InterRegular',
+        fontFamily: 'MontserratMedium',
+        fontWeight:500,
         fontSize: 14,
-        color: '#2F2D1E',
+        color: colors.primaryDark,
     },
     supportCard: {
        marginBottom: verticalScale(20),
@@ -115,7 +118,8 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     supportText: {
-        fontFamily: 'InterBold',
+        fontFamily: 'MontserratMedium',
+        fontWeight:500,
         fontSize: moderateScale(14),
         marginHorizontal: scale(20),
         textAlign: 'center',
@@ -134,9 +138,10 @@ const styles = StyleSheet.create({
         marginRight: 12,
     },
     infoValue: {
-        fontFamily: 'PoppinsMedium',
-        fontSize: 15,
-        color: '#E9B10F',
+        fontFamily: 'Montserrat',
+        fontWeight:700,
+        fontSize: moderateScale(14),
+        color: colors.primaryDark,
     },
     footer: {
         position: 'absolute',
@@ -146,18 +151,19 @@ const styles = StyleSheet.create({
     },
     primaryButton: {
         height: verticalScale(68),
-        backgroundColor: '#F2B705',
+        backgroundColor: colors.primaryDark,
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#F2B705',
+        shadowColor: colors.primaryDark,
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.3,
         shadowRadius: 10,
         elevation: 4,
     },
     buttonLabel: {
-        fontFamily: 'PoppinsSemi',
-        fontSize: 16,
-        color: '#FFFFFF',
+        fontFamily: 'Montserrat',
+        fontWeight:600,
+        fontSize: moderateScale(16),
+        color: colors.white,
     },
 });

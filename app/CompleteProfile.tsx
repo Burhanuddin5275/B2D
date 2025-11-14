@@ -7,6 +7,7 @@ import { Image, ImageBackground, ScrollView, StyleSheet, Text, TextInput, Toucha
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 import { useAppSelector } from '../store/useAuth';
+import { colors } from '@/theme/colors';
 
 export default function CompleteProfile() {
   const { phone: urlPhone } = useLocalSearchParams();
@@ -160,7 +161,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: verticalScale(10),
     borderWidth: 1,
-    borderColor: '#E9B10F',
+    borderColor: colors.primaryDark,
     overflow: 'hidden',
   },
   profileImage: {
@@ -169,25 +170,27 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   uploadHint: {
-    marginTop: verticalScale(10),
-    color: '#8A8A8A',
+    marginTop: verticalScale(10), 
+    fontSize: moderateScale(15),
     fontFamily: 'Montserrat',
   },
   formGroup: {
-    marginTop: verticalScale(14),
+    marginTop: verticalScale(14), 
   },
   label: {
     marginBottom: verticalScale(6),
-    fontFamily: 'Montserrat',
-    color: '#1F1F1F',
+    fontFamily: 'MontserratMedium',
+    fontWeight:500,
+    fontSize:moderateScale(15)
   },
   input: {
     height: verticalScale(54),
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E9B10F',
+    fontWeight:400, 
+    borderColor: colors.primaryDark,
     paddingHorizontal: scale(14),
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   phoneRowHeader: {
     flexDirection: 'row',
@@ -196,18 +199,19 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(6),
   },
   notEditable: {
-    color: '#8A8A8A',
+    color: colors.textPrimary,
     fontFamily: 'Montserrat',
+    fontSize:moderateScale(14)
   },
   phoneInputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E9B10F',
+    borderColor: colors.primaryDark,
     borderRadius: 10,
     paddingHorizontal: scale(15),
     height: verticalScale(54),
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   flagBox: {
     width: scale(28),
@@ -218,26 +222,27 @@ const styles = StyleSheet.create({
   },
   prefix: {
     fontSize: moderateScale(14),
-    color: '#1F1F1F',
-    marginLeft: scale(8),
+    fontFamily: 'MontserratMedium',
+    marginLeft: scale(8), 
     marginRight: scale(8),
   },
   phoneInput: {
     flex: 1,
     fontSize: moderateScale(14),
-    color: '#1F1F1F',
+    fontFamily: 'MontserratMedium',
+    color: colors.textPrimary,
   },
   submitBtn: {
-    backgroundColor: '#E9B10F',
-    paddingVertical: verticalScale(14),
+    backgroundColor: colors.primaryDark,
+    paddingVertical: verticalScale(14), 
     borderRadius: moderateScale(8),
     marginTop: verticalScale(24),
     marginBottom: verticalScale(28),
   },
   disabledBtn: {
-    backgroundColor: '#C9C9C9',
+    backgroundColor: colors.textSecondary,
   },
-  submitText: {
+  submitText: { 
     color: '#fff',
     fontSize: moderateScale(14),
     fontFamily: 'Montserrat',

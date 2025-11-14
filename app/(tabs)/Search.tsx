@@ -10,6 +10,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { scale, verticalScale } from 'react-native-size-matters'
 import { useAppDispatch, useAppSelector } from '@/store/useAuth'
 import { router } from 'expo-router'
+import { ProductStyle } from '@/assets/css/style'
 
 const { width } = Dimensions.get('window')
 
@@ -266,19 +267,19 @@ const Search = () => {
               </>
             )}
             {products.length > 0 && (
-              <View style={styles.productsSection}>
-                <Text style={styles.sectionTitle}>Products</Text>
+              <View style={ProductStyle.productsSection}>
                 <ScrollView
                   showsVerticalScrollIndicator={false}
                 >
-                  <View style={styles.productsGrid}>
+                  <Text style={styles.sectionTitle}>Products</Text>
+                  <View style={[ProductStyle.productsGrid,{marginBottom: verticalScale(100)}]}>
                     {products.map((item) => {
                       const productId = item.id as number;
                       const qty = existingCartItem(productId)?.quantity || 0;
                       return (
                         <TouchableOpacity
                           key={item.id}
-                          style={styles.productCard}
+                          style={ProductStyle.productCard}
                           onPress={() => {
                             router.push({
                               pathname: '/Product',
@@ -295,11 +296,11 @@ const Search = () => {
                             });
                           }}
                         >
-                          <View style={styles.productImage}>
-                            <Image source={item.image} style={styles.productPic} resizeMode="contain" />
+                          <View style={ProductStyle.productImage}>
+                            <Image source={item.image} style={ProductStyle.productPic} resizeMode="contain" />
                           </View>
                           <TouchableOpacity
-                            style={[styles.favoriteButton, checkIsInWishlist(productId) && styles.favoriteButtonActive]}
+                            style={[ProductStyle.favoriteButton, checkIsInWishlist(productId) && ProductStyle.favoriteButtonActive]}
                             onPress={() => toggleWishlist(item)}
                           >
                             <Ionicons
@@ -308,35 +309,35 @@ const Search = () => {
                               color={checkIsInWishlist(productId) ? "#cfcdcdff" : "#888"}
                             />
                           </TouchableOpacity>
-                          <View style={styles.productInfo}>
-                            <Text style={styles.productName}>{item.title}</Text>
-                            <Text style={styles.productSubtitle}>{item.subtitle}</Text>
-                            <Text style={styles.priceText}>${item.price}</Text>
-                            <View style={styles.buttonContainer}>
+                          <View style={ProductStyle.productInfo}>
+                            <Text style={ProductStyle.productName}>{item.title}</Text>
+                            <Text style={ProductStyle.productSubtitle}>{item.subtitle}</Text>
+                            <Text style={ProductStyle.priceText}>${item.price}</Text>
+                            <View style={ProductStyle.buttonContainer}>
                               {qty === 0 ? (
                                 <TouchableOpacity
-                                  style={styles.addButton}
+                                  style={ProductStyle.addButton}
                                   onPress={() => incrementQuantity(productId)}
                                   onPressIn={() => handleAddToCart(item)}
                                 >
-                                  <Text style={styles.addButtonText}>+ Add</Text>
+                                  <Text style={ProductStyle.addButtonText}>+ Add</Text>
                                 </TouchableOpacity>
                               ) : (
-                                <View style={styles.qtyControl}>
+                                <View style={ProductStyle.qtyControl}>
                                   <TouchableOpacity
-                                    style={styles.qtySideButton}
+                                    style={ProductStyle.qtySideButton}
                                     onPress={() => decrementQuantity(productId)}
                                   >
-                                    <Text style={styles.qtySideButtonText}>−</Text>
+                                    <Text style={ProductStyle.qtySideButtonText}>−</Text>
                                   </TouchableOpacity>
-                                  <View style={styles.qtyPill}>
-                                    <Text style={styles.qtyText}>{String(qty).padStart(2, '0')}</Text>
+                                  <View style={ProductStyle.qtyPill}>
+                                    <Text style={ProductStyle.qtyText}>{String(qty).padStart(2, '0')}</Text>
                                   </View>
                                   <TouchableOpacity
-                                    style={styles.qtySideButtonFilled}
+                                    style={ProductStyle.qtySideButtonFilled}
                                     onPress={() => incrementQuantity(productId)}
                                   >
-                                    <Text style={styles.qtySideButtonFilledText}>+</Text>
+                                    <Text style={ProductStyle.qtySideButtonFilledText}>+</Text>
                                   </TouchableOpacity>
                                 </View>
                               )}
@@ -482,127 +483,6 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: '#E9E9EA',
-  },
-  productsSection: {
-    marginVertical: verticalScale(25)
-  },
-  productsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: verticalScale(120)
-  },
-  productCard: {
-    width: scale(175),
-    borderRightWidth: 1,
-    borderColor: '#E0E0E0',
-    position: 'relative',
-    padding: 10,
-    borderRadius: 0,
-    borderTopWidth: 1,
-  },
-  favoriteButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    borderRadius: 15,
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  favoriteButtonActive: {
-    backgroundColor: 'rgba(163, 161, 161, 0.1)',
-  },
-  productImage: {
-    width: scale(150),
-    height: verticalScale(140),
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  productPic: {
-    width: 120,
-    height: 120,
-  },
-  productInfo: {
-    paddingHorizontal: 4,
-  },
-  productName: {
-    color: '#1E1E1E',
-    fontSize: 14,
-    fontWeight: '700',
-    lineHeight: 18,
-  },
-  productSubtitle: {
-    color: '#666',
-    fontSize: 12,
-    marginTop: 2,
-  },
-  priceText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#000',
-    marginTop: 4,
-  },
-  buttonContainer: {
-    marginTop: 8,
-    width: '100%',
-  },
-  qtyControl: {
-    backgroundColor: '#F4A300',
-    borderRadius: 12,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 0,
-    height: 36,
-  },
-  qtySideButton: {
-    paddingHorizontal: 12,
-    height: '100%',
-    justifyContent: 'center',
-  },
-  qtySideButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '800',
-    lineHeight: 22,
-  },
-  qtyPill: {
-    minWidth: 36,
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  qtyText: {
-    color: '#fff',
-    fontWeight: '800',
-    textAlign: 'center'
-  },
-  qtySideButtonFilled: {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F4A300',
-  },
-  qtySideButtonFilledText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  addButton: {
-    borderColor: '#F4A300',
-    borderWidth: 1,
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  addButtonText: {
-    color: '#F4A300',
-    fontWeight: '700',
-    fontSize: 14,
   },
 })
 

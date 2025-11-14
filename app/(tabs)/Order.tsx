@@ -18,7 +18,17 @@ export default function Orders() {
   const insets = useSafeAreaInsets();
 
   const renderItem = ({ item }: any) => (
-    <TouchableOpacity style={styles.card}>
+    <TouchableOpacity style={styles.card}
+      onPress={() => router.push({
+        pathname: '/OrderTracker',
+        params: {
+          orderId: item.id,
+          amount: item.amount,
+          date: item.date,
+          status: item.status,
+          color: item.color,
+        }
+      })}>
       <View>
         <Text style={styles.orderId}>{item.id}</Text>
         <Text style={styles.amount}>{item.amount}    {item.date}</Text>
@@ -68,25 +78,26 @@ const styles = StyleSheet.create({
     borderLeftWidth: 1
   },
   orderId: {
-    fontSize: moderateScale(20),
-    fontFamily: 'PoppinsSemiBold',
-    color: '#000',
+    fontSize: moderateScale(16),
+    fontWeight: '600',
+    fontFamily: 'Montserrat',
   },
   amount: {
     fontSize: moderateScale(14),
-    fontFamily: 'PoppinsMedium',
-    color: '#1E1E1E',
+    fontWeight: '500',
+    fontFamily: 'MontserratMedium',
     marginTop: 2,
   },
   date: {
     fontSize: moderateScale(12),
-    fontFamily: 'PoppinsRegular',
-    color: '#6E6E6E',
+    fontWeight: '600',
+    fontFamily: 'MontserratMedium',
     marginVertical: 2,
   },
   status: {
-    fontSize: moderateScale(13),
-    fontFamily: 'PoppinsMedium',
+    fontSize: moderateScale(14),
+    fontWeight: '600',
+    fontFamily: 'Montserrat',
     marginTop: 4,
   },
 });

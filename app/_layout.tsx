@@ -47,6 +47,9 @@ export default function RootLayout() {
             <Stack.Screen name='ManageAddress' options={{ headerShown: false }} />
             <Stack.Screen name='AddAddress' options={{ headerShown: false }} />
             <Stack.Screen name='Product' options={{ headerShown: false }} />
+            <Stack.Screen name='OrderTracker' options={{ headerShown: false }} />
+            <Stack.Screen name='Terms' options={{ headerShown: false }} />
+            <Stack.Screen name='Privacy' options={{ headerShown: false }} />
           </Stack>
           <StatusBar style="light" />
         </ThemeProvider>

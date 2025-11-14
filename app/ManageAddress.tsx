@@ -1,11 +1,12 @@
 import Header from '@/components/Header';
 import { colors } from '@/theme/colors';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ImageBackground, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { scale, verticalScale } from 'react-native-size-matters';
+import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 
 interface Address {
     id: string;
@@ -14,6 +15,9 @@ interface Address {
 }
 
 const ManageAddress = () => {
+    const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
+    const [isModalVisible, setIsModalVisible] = useState(false);
+    const insets = useSafeAreaInsets();
     const [addresses, setAddresses] = useState<Address[]>([
         {
             id: '1',
@@ -42,29 +46,83 @@ const ManageAddress = () => {
                                     <Text style={styles.addressName}>{address.name}</Text>
                                 </View>
                             </View>
-                           <View style={{flexDirection: 'row', width:scale(250)}}>
-                        <Text style={styles.addressText}>{address.address}</Text>
-                                    <TouchableOpacity 
+                            <View style={{ flexDirection: 'row', width: scale(250) }}>
+                                <Text style={styles.addressText}>{address.address}</Text>
+                                <TouchableOpacity
                                     style={styles.menuButton}
                                     onPress={() => {
-                                        // Handle menu press (edit/delete)
-                                        // You can implement an action sheet or modal here
+                                        setSelectedAddress(address);
+                                        setIsModalVisible(true);
                                     }}
                                 >
                                     <Ionicons name="ellipsis-vertical" size={25} color={'gray'} />
                                 </TouchableOpacity>
-                           </View>
+                            </View>
                         </View>
                     ))}
                 </ScrollView>
 
-                <TouchableOpacity 
-                    style={styles.addButton} 
+                <TouchableOpacity
+                    style={styles.addButton}
                     onPress={() => router.push('/AddAddress')}
                 >
-                    <Ionicons name="add" size={24} color="#fff" />
                     <Text style={styles.addButtonText}>Add New Address</Text>
                 </TouchableOpacity>
+
+                {/* Action Modal */}
+                <Modal
+                    visible={isModalVisible}
+                    transparent={true}
+                    animationType="slide"
+                    onRequestClose={() => setIsModalVisible(false)}
+                >
+                    <View style={[styles.modalOverlay,{ paddingBottom: Math.max(insets.bottom, verticalScale(1)) }]}>
+                        <TouchableOpacity 
+                            style={styles.modalBackground}
+                            activeOpacity={1}
+                            onPress={() => setIsModalVisible(false)}
+                        />
+                        <View style={styles.modalContainer}>
+                            <View style={styles.actionSheet}>
+                                <TouchableOpacity 
+                                    style={styles.actionButton}
+                                    onPress={() => {
+                                        if (selectedAddress) {
+                                            router.push({
+                                                pathname: '/AddAddress',
+                                                params: { addressId: selectedAddress.id }
+                                            });
+                                        }
+                                        setIsModalVisible(false);
+                                    }}
+                                >
+                                    <Text style={styles.actionButtonText}>Edit address</Text>
+                                </TouchableOpacity>
+                                
+                                <View style={styles.divider} />
+                                
+                                <TouchableOpacity 
+                                    style={[styles.actionButton, styles.destructiveButton]}
+                                    onPress={() => {
+                                        if (selectedAddress) {
+                                            setAddresses(addresses.filter(addr => addr.id !== selectedAddress.id));
+                                        }
+                                        setIsModalVisible(false);
+                                    }}
+                                >
+                                    <Text style={styles.destructiveButtonText}>Remove address</Text>
+                                </TouchableOpacity>
+                            </View>
+                            
+                            <TouchableOpacity 
+                                style={styles.cancelButton}
+                                onPress={() => setIsModalVisible(false)}
+                            >
+                                <Text style={styles.cancelButtonText}>Cancel</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Modal>
             </ImageBackground>
         </SafeAreaView>
     );
@@ -81,7 +139,7 @@ const styles = StyleSheet.create({
     },
     scrollView: {
         flex: 1,
-        paddingBottom: 100, // To make space for the add button
+        paddingBottom: verticalScale(100),
     },
     scrollViewContent: {
         padding: 16,
@@ -98,24 +156,24 @@ const styles = StyleSheet.create({
     addressHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 12,
     },
     addressTitleContainer: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     addressName: {
-        fontSize: 16,
+        fontFamily:'Montserrat',
+        fontSize: moderateScale(16),
         fontWeight: '600',
-        color: '#000',
         marginRight: 8,
     },
     menuButton: {
-    marginLeft: scale(15)
+        marginLeft: scale(15)
     },
     addressText: {
-        fontSize: 14,
-        color: '#666',
+        fontFamily:'MontserratMedium',
+        fontWeight:'500',
+        fontSize: moderateScale(14),
     },
 
     addButton: {
@@ -123,7 +181,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         backgroundColor: colors.primaryDark,
         borderRadius: 8,
-        padding: 16, 
+        padding: 16,
         bottom: 0,
         justifyContent: 'center',
         alignItems: 'center',
@@ -135,9 +193,64 @@ const styles = StyleSheet.create({
         right: 0,
     },
     addButtonText: {
-        color: '#fff',
-        fontSize: 16,
+        fontFamily:'Montserrat',
+        color: colors.white,
+        fontSize: moderateScale(16),
         fontWeight: '600',
         marginLeft: 8,
+    },
+    modalOverlay: {
+        flex: 1,
+        justifyContent: 'flex-end',
+        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    },
+    modalBackground: {
+    flex:1, 
+    },
+    modalContainer: {
+        padding: 8,
+        paddingBottom: 34,
+    },
+    actionSheet: {
+        backgroundColor: 'rgba(242, 242, 247, 0.8)',
+        borderRadius: 13,
+        overflow: 'hidden',
+        marginBottom: 8,
+        marginHorizontal: 8,
+    },
+    actionButton: {
+        paddingVertical: 16,
+        alignItems: 'center',
+        backgroundColor: 'white',
+    },
+    actionButtonText: {
+        fontFamily:'MontserratMedium',
+        fontSize: moderateScale(14),
+        color: '#007AFF',
+        fontWeight: '400',
+    },
+    destructiveButton: {
+        backgroundColor: 'white',
+    },
+    destructiveButtonText: {
+        fontSize: moderateScale(14),
+        color: '#FF3B30',
+        fontWeight: '600',
+    },
+    cancelButton: {
+        backgroundColor: colors.secondaryLight,
+        borderRadius: 13,
+        paddingVertical: 16,
+        alignItems: 'center',
+        marginHorizontal: 8,
+    },
+    cancelButtonText: {
+        fontSize: moderateScale(14),
+        color: '#298ef9ff',
+        fontWeight: '600',
+    },
+    divider: {
+        height: 0.5,
+        backgroundColor: 'rgba(60, 60, 67, 0.29)',
     },
 });

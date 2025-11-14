@@ -4,20 +4,21 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { ImageBackground } from 'expo-image';
 import { router } from 'expo-router';
+import { ProductStyle } from '../../assets/css/style';
 import React, { useEffect, useRef, useState } from 'react';
 import { Dimensions, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { scale, verticalScale } from 'react-native-size-matters';
+import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 import { useSelector } from 'react-redux';
 import { addToWishlist, removeFromWishlist, selectWishlistItems } from '../../store/wishlistSlice';
 const { width } = Dimensions.get('window');
 
 const categories = [
   { id: 1, name: 'Snacks', icon: '🍿', color: '#a3b984ff' },
-  { id: 2, name: 'Spices &\nSeasoning', icon: '🌶️', color: '#FFD4C4' },
-  { id: 3, name: 'Cooking\nOil & Ghee', icon: '🧴', color: '#C41E3A' },
+  { id: 2, name: 'Spices Seasoning', icon: '🌶️', color: '#FFD4C4' },
+  { id: 3, name: 'Cooking Oil Ghee', icon: '🧴', color: '#C41E3A' },
   { id: 4, name: 'Grains', icon: '🍚', color: '#FFE4A3' },
-  { id: 5, name: 'Lentils &\nBeans', icon: '🥜', color: '#8B6F47' },
+  { id: 5, name: 'Lentils Beans', icon: '🥜', color: '#8B6F47' },
   { id: 6, name: 'Pulses', icon: '🫘', color: '#4A90E2' },
 ];
 
@@ -188,7 +189,7 @@ export default function HomeScreen() {
     <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
       <ImageBackground
         source={require('../../assets/images/background2.png')}
-        style={styles.backgroundImage}
+        style={ProductStyle.backgroundImage}  
       >
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           <View style={styles.headerShadowWrapper}>
@@ -309,12 +310,12 @@ export default function HomeScreen() {
           </View>
 
           {/* Products Section */}
-          <View style={styles.productsSection}>
-            <View style={styles.productsGrid}>
+          <View style={ProductStyle.productsSection}>
+            <View style={ProductStyle.productsGrid}>
               {products.map((product) => {
                 const qty = existingCartItem(product.id)?.quantity || 0;
                 return (
-                  <TouchableOpacity key={product.id} style={styles.productCard} onPress={() => {
+                  <TouchableOpacity key={product.id} style={ProductStyle.productCard} onPress={() => {
                     router.push({
                       pathname: '/Product',
                       params: {
@@ -322,11 +323,11 @@ export default function HomeScreen() {
                       }
                     });
                   }}>
-                    <View style={styles.productImage}>
-                      <Image source={product.img} style={styles.productPic} resizeMode="contain" />
+                    <View style={ProductStyle.productImage}>
+                      <Image source={product.img} style={ProductStyle.productPic} resizeMode="contain" />
                     </View>
                     <TouchableOpacity
-                      style={[styles.favoriteButton, checkIsInWishlist(product.id) && styles.favoriteButtonActive]}
+                      style={[ProductStyle.favoriteButton, checkIsInWishlist(product.id) && ProductStyle.favoriteButtonActive]}
                       onPress={() => toggleWishlist(product)}
                     >
                       <Ionicons
@@ -335,36 +336,36 @@ export default function HomeScreen() {
                         color={checkIsInWishlist(product.id) ? "#b9b7b7ff" : "#888"}
                       />
                     </TouchableOpacity>
-                    <View style={styles.productInfo}>
-                      <Text style={styles.productName}>{product.name}</Text>
-                      <Text style={styles.productSubtitle}>{product.subtitle}</Text>
+                    <View style={ProductStyle.productInfo}>
+                      <Text style={ProductStyle.productName}>{product.name}</Text>
+                      <Text style={ProductStyle.productSubtitle}>{product.subtitle}</Text>
 
-                      <Text style={styles.priceText}>${product.price.toFixed(2)}</Text>
-                      <View style={styles.buttonContainer}>
+                      <Text style={ProductStyle.priceText}>${product.price.toFixed(2)}</Text>
+                      <View style={ProductStyle.buttonContainer}>
                         {qty === 0 ? (
                           <TouchableOpacity
-                            style={styles.addButton}
+                            style={ProductStyle.addButton}
                             onPress={() => incrementQuantity(product.id)}
                             onPressIn={() => handleAddToCart(product)}
                           >
-                            <Text style={styles.addButtonText}>+ Add</Text>
+                            <Text style={ProductStyle.addButtonText}>+ Add</Text>
                           </TouchableOpacity>
                         ) : (
-                          <View style={styles.qtyControl}>
+                          <View style={ProductStyle.qtyControl}>
                             <TouchableOpacity
-                              style={styles.qtySideButton}
+                              style={ProductStyle.qtySideButton}
                               onPress={() => decrementQuantity(product.id)}
                             >
-                              <Text style={styles.qtySideButtonText}>−</Text>
+                              <Text style={ProductStyle.qtySideButtonText}>−</Text>
                             </TouchableOpacity>
-                            <View style={styles.qtyPill}>
-                              <Text style={styles.qtyText}>{String(qty).padStart(2, '0')}</Text>
+                            <View style={ProductStyle.qtyPill}>
+                              <Text style={ProductStyle.qtyText}>{String(qty).padStart(2, '0')}</Text>
                             </View>
                             <TouchableOpacity
-                              style={styles.qtySideButtonFilled}
+                              style={ProductStyle.qtySideButtonFilled}
                               onPress={() => incrementQuantity(product.id)}
                             >
-                              <Text style={styles.qtySideButtonFilledText}>+</Text>
+                              <Text style={ProductStyle.qtySideButtonFilledText}>+</Text>
                             </TouchableOpacity>
                           </View>
                         )}
@@ -382,14 +383,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  backgroundImage: {
-    flex: 1,
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: width,
-  },
+
   scrollView: {
     flex: 1,
   },
@@ -415,18 +409,20 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(10),
   },
   deliveryLabel: {
-    fontSize: 14,
-    color: '#000',
-    fontWeight: '500',
+    fontFamily:'Montserrat',
+    fontSize: moderateScale(14),
+    fontWeight: '600',
   },
   deliveryTime: {
-    fontSize: 32,
-    fontWeight: 'bold',
+    fontSize: moderateScale(28),
+    fontWeight: '600',
+    fontFamily:'Montserrat',
     color: '#000',
-    marginTop: 2,
   },
   deliveryAddress: {
-    fontSize: 14,
+    fontFamily:'PoppinsMedium',
+    fontWeight:'500',
+    fontSize: moderateScale(14),
     color: '#000',
     marginTop: 4,
   },
@@ -461,22 +457,22 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(16),
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  viewAll: {
-    fontSize: 14,
-    color: '#F4A300',
+    fontFamily:'Montserrat',
+    fontSize: moderateScale(20),
     fontWeight: '600',
   },
+  viewAll: {
+    fontSize: moderateScale(14), 
+    color: '#F4A300',
+    fontWeight: '500',
+  },
   categoriesScroll: {
-    paddingLeft: 20,
+    paddingLeft: scale(20),
   },
   categoryCard: {
     alignItems: 'center',
     marginRight: 16,
-    width: 80,
+    width: scale(80),
   },
   categoryIcon: {
     width: 80,
@@ -487,13 +483,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   categoryEmoji: {
-    fontSize: 36,
+    fontSize: moderateScale(36),
   },
   categoryName: {
-    fontSize: 12,
+    fontFamily:'MontserratMedium',
+    fontWeight:'500',
+    fontSize: moderateScale(12),
     textAlign: 'center',
-    color: '#000',
-    lineHeight: 16,
   },
   storesScroll: {
     height: verticalScale(150),
@@ -525,132 +521,5 @@ const styles = StyleSheet.create({
   paginationDotActive: {
     backgroundColor: '#000',
   },
-  productsSection: {
-    marginTop: verticalScale(20),
-    flexDirection: 'row'
-  },
-  productsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: verticalScale(80)
-  },
-  productCard: {
-    width: scale(175),
-    borderRightWidth: 1,
-    borderColor: '#E0E0E0',
-    position: 'relative',
-    justifyContent:'space-between',  
-    padding: 10,
-    borderRadius: 0,
-    borderTopWidth: 1,
-  },
-  productImage: {
-    width: scale(150),
-    height: verticalScale(140),
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  productEmoji: {
-    fontSize: 60,
-  },
-  productPic: {
-    width: 120,
-    height: 120,
-  },
-  favoriteButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    borderRadius: 15,
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  favoriteButtonActive: {
-    backgroundColor: 'rgba(163, 161, 161, 0.1)',
-  },
 
-  productInfo: {
-    paddingHorizontal: 4,
-  },
-  productName: {
-    color: '#1E1E1E',
-    fontSize: 14,
-    fontWeight: '700',
-    lineHeight: 18,
-  },
-  productSubtitle: {
-    color: '#666',
-    fontSize: 12,
-    marginTop: 2,
-  },
-  buttonContainer: {
-    marginTop: 8,
-    width: '100%',
-  },
-  priceText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#000',
-  },
-  addButton: {
-    borderColor: '#f5a607ff',
-    borderWidth: 1,
-    paddingVertical: 8,
-    borderRadius: 8,
-
-  },
-  addButtonText: {
-    color: '#F4A300',
-    fontWeight: '700',
-    textAlign: 'center',
-    fontSize: 14,
-  },
-  qtyControl: {
-    backgroundColor: '#F4A300',
-    borderRadius: 12,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 0,
-    height: 36,
-  },
-  qtySideButton: {
-    paddingHorizontal: 12,
-    height: '100%',
-    justifyContent: 'center',
-  },
-  qtySideButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '800',
-    lineHeight: 22,
-  },
-  qtyPill: {
-    minWidth: 36,
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  qtyText: {
-    color: '#fff',
-    fontWeight: '800',
-    textAlign: 'center'
-  },
-  qtySideButtonFilled: {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F4A300',
-  },
-  qtySideButtonFilledText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '800',
-  },
 });

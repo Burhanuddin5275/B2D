@@ -175,10 +175,11 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
+    marginTop: verticalScale(10),
   },
   logo: {
-    width: scale(180),
-    height: verticalScale(150),
+    width: scale(149),
+    height: verticalScale(96),
   },
   imageWrapper: {
     width: scale(200),
@@ -213,7 +214,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: moderateScale(24),
     fontFamily: 'PoppinsBold',
-    color: '#1E1E1E',
+    fontWeight: '600',
     textAlign: 'center',
     marginBottom: 20,
     lineHeight: 30,
@@ -236,7 +237,7 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: moderateScale(16),
-    color: '#1E1E1E',
+    fontWeight: '400',
     textAlign: 'center',
     lineHeight: 24,
     fontFamily: 'PoppinsMedium',

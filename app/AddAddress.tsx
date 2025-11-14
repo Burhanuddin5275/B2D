@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { verticalScale } from 'react-native-size-matters';
+import { moderateScale, verticalScale } from 'react-native-size-matters';
 
 const AddAddress = () => {
     const router = useRouter();
@@ -153,10 +153,10 @@ const styles = StyleSheet.create({
         padding: 10,
     },
     label: {
-        fontSize: 16,
+        fontFamily:'MontserratMedium',
+        fontSize: moderateScale(14),
         fontWeight: '500',
         marginBottom: 8,
-        color: '#333',
     },
     inputContainer: {
        borderWidth: 1,
@@ -167,8 +167,7 @@ const styles = StyleSheet.create({
     },
     input: {
         padding: 15,
-        fontSize: 16,
-        color: '#333',
+        fontSize: moderateScale(14),
     },
     addressInputContainer: {
         height: 120,

@@ -6,6 +6,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { moderateScale, scale } from 'react-native-size-matters';
 import { useDispatch, useSelector } from 'react-redux';
 import { removeFromWishlist, selectWishlistItems } from '../store/wishlistSlice';
+import { colors } from '@/theme/colors';
 
 export default function Wishlist() {
   const insets = useSafeAreaInsets();
@@ -182,17 +183,19 @@ const styles = StyleSheet.create({
 
   },
   productName: {
+    fontFamily:'Montserrat',
     fontSize: moderateScale(14),
     fontWeight: '600',
   },
   productSubtitle: {
+    fontFamily:'Montserrat',
     fontSize: moderateScale(12),
-    color: '#888',
+    color: colors.textPrimary,
   },
   productPrice: {
+    fontFamily:'Montserrat',
     fontSize: moderateScale(16),
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '600',
   },
   actionsRow: {
     flexDirection: 'row',
@@ -200,7 +203,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   addButton: {
-    borderColor: '#f5a607ff',
+    borderColor: colors.primaryDark,
     borderWidth: 1,
     paddingVertical: 8,
     borderRadius: 8,
@@ -208,13 +211,13 @@ const styles = StyleSheet.create({
 
   },
   addButtonText: {
-    color: '#F4A300',
+    color:  colors.primaryDark,
     fontWeight: '700',
-    textAlign: 'center',
-    fontSize: 14,
+    textAlign: 'center', 
+    fontSize: moderateScale(14),
   },
   qtyControl: {
-    backgroundColor: '#F4A300',
+    backgroundColor: colors.primaryDark,
     borderRadius: 12,
     alignItems: 'center',
     flexDirection: 'row',

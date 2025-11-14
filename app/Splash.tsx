@@ -70,23 +70,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12, 
     borderRadius: 25,
-    width: '80%',
+    width: scale(200),
   },
   buttonText: {
     fontSize: moderateScale(18),
+    fontWeight: '600',
     fontFamily:' Montserrat',
     textAlign: 'center', 
   },
   subText: {
     width: scale(240),
     fontSize: moderateScale(14),
+    fontWeight: '400',
     fontFamily:' MontserratMedium',
-    color: '#1A1A1A',
     textAlign: 'center',
-  },
-  loginText: {
-    color: '#007AFF',
-    fontWeight: '600',
   },
 });
 

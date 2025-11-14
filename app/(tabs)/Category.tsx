@@ -1,4 +1,5 @@
 import Header from '@/components/Header'
+import { colors } from '@/theme/colors'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import React, { useState } from 'react'
@@ -7,6 +8,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { scale, verticalScale } from 'react-native-size-matters'
 import { useDispatch, useSelector } from 'react-redux'
 import { addToWishlist, removeFromWishlist, selectWishlistItems } from '../../store/wishlistSlice'
+import { ProductStyle } from '@/assets/css/style'
 
 interface Product {
   id: number;
@@ -20,9 +22,8 @@ interface Product {
 
 
 const Category = () => {
+  const [selectedOption, setSelectedOption] = useState('Relevance');
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams();
-  const { category } = params;
   const [quantities, setQuantities] = useState<Record<number, number>>({});
   const [wishlist, setWishlist] = useState<number[]>([]);
   const checkIsInWishlist = (productId: number) => wishlist.includes(productId);
@@ -86,14 +87,14 @@ const Category = () => {
         ]}/>
         <ScrollView style={{flex: 1}}>
           {/* Products Section */}
-          <View style={styles.productsSection}>
-            <View style={styles.productsGrid}>
+          <View style={ProductStyle.productsSection}> 
+            <View style={ProductStyle.productsGrid}>
               {productsData.length > 0 ? productsData.map((product: Product) => {
                 const qty = quantities[product.id] || 0;
                 return (
                   <TouchableOpacity 
                     key={product.id} 
-                    style={styles.productCard}
+                    style={ProductStyle.productCard}
                     onPress={() => {
                       router.push({
                         pathname: '/Product', 
@@ -103,11 +104,11 @@ const Category = () => {
                         }
                       });
                     }}>
-                    <View style={styles.productImage}>
-                      <Image source={product.img} style={styles.productPic} resizeMode="contain" />
+                    <View style={ProductStyle.productImage}>
+                      <Image source={product.img} style={ProductStyle.productPic} resizeMode="contain" />
                     </View>
                     <TouchableOpacity
-                      style={[styles.favoriteButton, checkIsInWishlist(product.id) && styles.favoriteButtonActive]}
+                      style={[ProductStyle.favoriteButton, checkIsInWishlist(product.id) && ProductStyle.favoriteButtonActive]}
                       onPress={() => toggleWishlist(product)}
                     >
                       <Ionicons
@@ -116,35 +117,35 @@ const Category = () => {
                         color={checkIsInWishlist(product.id) ? "#b9b7b7ff" : "#888"}
                       />
                     </TouchableOpacity>
-                    <View style={styles.productInfo}>
-                      <Text style={styles.productName}>{product.name}</Text>
-                      <Text style={styles.productSubtitle}>{product.subtitle}</Text>
+                    <View style={ProductStyle.productInfo}>
+                      <Text style={ProductStyle.productName}>{product.name}</Text>
+                      <Text style={ProductStyle.productSubtitle}>{product.subtitle}</Text>
 
-                      <Text style={styles.priceText}>${product.price.toFixed(2)}</Text>
-                      <View style={styles.buttonContainer}>
+                      <Text style={ProductStyle.priceText}>${product.price.toFixed(2)}</Text>
+                      <View style={ProductStyle.buttonContainer}>
                         {qty === 0 ? (
                           <TouchableOpacity
-                            style={styles.addButton}
+                            style={ProductStyle.addButton}
                             onPress={() => increment(product.id)}
                           >
-                            <Text style={styles.addButtonText}>+ Add</Text>
+                            <Text style={ProductStyle.addButtonText}>+ Add</Text>
                           </TouchableOpacity>
                         ) : (
-                          <View style={styles.qtyControl}>
+                          <View style={ProductStyle.qtyControl}>
                             <TouchableOpacity
-                              style={styles.qtySideButton}
+                              style={ProductStyle.qtySideButton}
                               onPress={() => decrement(product.id)}
                             >
-                              <Text style={styles.qtySideButtonText}>−</Text>
+                              <Text style={ProductStyle.qtySideButtonText}>−</Text>
                             </TouchableOpacity>
-                            <View style={styles.qtyPill}>
-                              <Text style={styles.qtyText}>{String(qty).padStart(2, '0')}</Text>
+                            <View style={ProductStyle.qtyPill}>
+                              <Text style={ProductStyle.qtyText}>{String(qty).padStart(2, '0')}</Text>
                             </View>
                             <TouchableOpacity
-                              style={styles.qtySideButtonFilled}
+                              style={ProductStyle.qtySideButtonFilled}
                               onPress={() => increment(product.id)}
                             >
-                              <Text style={styles.qtySideButtonFilledText}>+</Text>
+                              <Text style={ProductStyle.qtySideButtonFilledText}>+</Text>
                             </TouchableOpacity>
                           </View>
                         )}
@@ -167,7 +168,7 @@ const Category = () => {
         animationType="none"
         onRequestClose={hideFilterModal}
       >
-        <View style={styles.modalOverlay}>
+        <View style={[styles.modalOverlay,{ paddingBottom: Math.max(insets.bottom, verticalScale(1))}]}>
           <TouchableOpacity 
             style={styles.modalBackground}
             activeOpacity={1}
@@ -178,36 +179,65 @@ const Category = () => {
                 styles.bottomSheet,
               ]}
             >
-              <View style={styles.dragHandle} />
               <View style={styles.filterContent}>
                 <View style={styles.headerContainer}>
-                  <Text style={styles.filterTitle}>Sort By</Text>
-                  <TouchableOpacity onPress={hideFilterModal}>
+                  <Text style={styles.filterTitle}>Sort products By</Text>
+                  <TouchableOpacity 
+                    onPress={hideFilterModal}
+                    style={{
+                      position: 'absolute',
+                      right: 0,
+                    }}
+                  >
                     <Ionicons name="close" size={24} color="#000" />
                   </TouchableOpacity>
                 </View>
                 
                 {/* Sort Options */}
                 <View style={styles.optionsContainer}>
-                  <TouchableOpacity style={styles.optionItem}>
+                  <TouchableOpacity 
+                    style={styles.optionItem}
+                    onPress={() => setSelectedOption('Relevance')}
+                  >
+                    <View style={styles.radioButton}>
+                      {selectedOption === 'Relevance' && <View style={styles.radioButtonSelected} />}
+                    </View>
                     <Text style={styles.optionText}>Relevance</Text>
                   </TouchableOpacity>
                   
                   <View style={styles.divider} />
                   
-                  <TouchableOpacity style={styles.optionItem}>
+                  <TouchableOpacity 
+                    style={styles.optionItem}
+                    onPress={() => setSelectedOption('Price (low to high)')}
+                  >
+                    <View style={styles.radioButton}>
+                      {selectedOption === 'Price (low to high)' && <View style={styles.radioButtonSelected} />}
+                    </View>
                     <Text style={styles.optionText}>Price (low to high)</Text>
                   </TouchableOpacity>
                   
                   <View style={styles.divider} />
                   
-                  <TouchableOpacity style={styles.optionItem}>
+                  <TouchableOpacity 
+                    style={styles.optionItem}
+                    onPress={() => setSelectedOption('Price (high to low)')}
+                  >
+                    <View style={styles.radioButton}>
+                      {selectedOption === 'Price (high to low)' && <View style={styles.radioButtonSelected} />}
+                    </View>
                     <Text style={styles.optionText}>Price (high to low)</Text>
                   </TouchableOpacity>
                   
                   <View style={styles.divider} />
                   
-                  <TouchableOpacity style={styles.optionItem}>
+                  <TouchableOpacity 
+                    style={styles.optionItem}
+                    onPress={() => setSelectedOption('Popularity')}
+                  >
+                    <View style={styles.radioButton}>
+                      {selectedOption === 'Popularity' && <View style={styles.radioButtonSelected} />}
+                    </View>
                     <Text style={styles.optionText}>Popularity</Text>
                   </TouchableOpacity>
                 </View>
@@ -225,9 +255,10 @@ export default Category
 const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
+    position: 'relative',
   },
   modalOverlay: {
     flex: 1,
@@ -240,179 +271,61 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: verticalScale(47),
-    height: verticalScale(350),
+    bottom:0,
+    height: verticalScale(320),
     backgroundColor: 'white',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    padding: 10,
-  },
-  dragHandle: {
-    width: 40,
-    height: 5,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 3,
-    alignSelf: 'center',
-    marginBottom: 15,
+    padding: scale(10),
   },
   filterContent: {
     flex: 1,
-    paddingHorizontal: 16,
+    marginTop: verticalScale(20),
   },
   filterTitle: {
-    fontSize: 18,
+    fontSize: scale(15),
     fontWeight: '600',
     color: '#000',
+    textAlign: 'center',
   },
   optionsContainer: {
-    marginTop: 16,
     backgroundColor: '#fff',
     borderRadius: 8,
     overflow: 'hidden',
   },
   optionItem: {
-    paddingVertical: 16,
-    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: verticalScale(16),
+    paddingHorizontal: scale(16),
+  },
+  radioButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: colors.primaryDark,
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioButtonSelected: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.primaryDark,
   },
   optionText: {
-    fontSize: 16,
+    fontSize: scale(16),
     color: '#000',
   },
   divider: {
     height: 1,
     backgroundColor: '#E0E0E0',
-    marginLeft: 16,
+    marginLeft: scale(16),
   },
   backgroundImage: {
     flex: 1,
     width: '100%',
-  },
-  productsSection: {
-    marginTop: verticalScale(20),
-    flexDirection: 'row'
-  },
-  productsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: verticalScale(80)
-  },
-  productCard: {
-    width: scale(175),
-    borderRightWidth: 1,
-    borderColor: '#E0E0E0',
-    position: 'relative',
-    padding: 10,
-    borderRadius: 0,
-    borderTopWidth: 1,
-    justifyContent:'space-between',  
-  },
-  productImage: {
-    width: scale(150),
-    height: verticalScale(140),
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  productEmoji: {
-    fontSize: 60,
-  },
-  productPic: {
-    width: 120,
-    height: 120,
-  },
-  favoriteButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    borderRadius: 15,
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  favoriteButtonActive: {
-    backgroundColor: 'rgba(163, 161, 161, 0.1)',
-  },
-
-  productInfo: {
-    paddingHorizontal: 4,
-  },
-  productName: {
-    color: '#1E1E1E',
-    fontSize: 14,
-    fontWeight: '700',
-    lineHeight: 18,
-  },
-  productSubtitle: {
-    color: '#666',
-    fontSize: 12,
-    marginTop: 2,
-  },
-  buttonContainer: {
-    marginTop: 8,
-    width: '100%',
-  },
-  priceText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#000',
-  },
-  addButton: {
-    borderColor: '#f5a607ff',
-    borderWidth: 1,
-    paddingVertical: 8,
-    borderRadius: 8,
-
-  },
-  addButtonText: {
-    color: '#F4A300',
-    fontWeight: '700',
-    textAlign: 'center',
-    fontSize: 14,
-  },
-  qtyControl: {
-    backgroundColor: '#F4A300',
-    borderRadius: 12,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 0,
-    height: 36,
-  },
-  qtySideButton: {
-    paddingHorizontal: 12,
-    height: '100%',
-    justifyContent: 'center',
-  },
-  qtySideButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '800',
-    lineHeight: 22,
-  },
-  qtyPill: {
-    minWidth: 36,
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  qtyText: {
-    color: '#fff',
-    fontWeight: '800',
-    textAlign: 'center'
-  },
-  qtySideButtonFilled: {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F4A300',
-  },
-  qtySideButtonFilledText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '800',
   },
 })

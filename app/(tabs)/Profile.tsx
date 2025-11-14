@@ -1,17 +1,20 @@
+import Header from '@/components/Header';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useState } from 'react';
+import { ImageBackground, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 import { logout } from '../../store/authSlice';
 import { useAppDispatch, useAppSelector } from '../../store/useAuth';
-import Header from '@/components/Header';
+import { colors } from '@/theme/colors';
 
 
 export default function Profile() {
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
   const dispatch = useAppDispatch();
   const insets = useSafeAreaInsets();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const handleLogout = () => {
     dispatch(logout()); 
@@ -71,13 +74,13 @@ export default function Profile() {
                   />
                   <RowItem
                     iconName="document-text"
-                    label="Terms & conditions"
-                    onPress={() => { }}
+                    label="Terms & conditions" 
+                    onPress={() => { router.push('/Terms')}}
                   />
                   <RowItem
                     iconName="shield-checkmark"
                     label="Privacy policy"
-                    onPress={() => { }}
+                    onPress={() => { router.push('/Privacy')}}
                   />
                   <RowItem
                     iconName="log-out"
@@ -85,17 +88,59 @@ export default function Profile() {
                     onPress={handleLogout}
                     isLast={true}
                   />
-                  <TouchableOpacity style={styles.deleteAccountWrap} onPress={() => { }}>
+                  <TouchableOpacity 
+                    style={styles.deleteAccountWrap} 
+                    onPress={() => setShowDeleteModal(true)}
+                  >
                     <Text style={styles.deleteAccountText}>Delete this account</Text>
                   </TouchableOpacity>
+                  
+                  {/* Delete Account Confirmation Modal */}
+                  <Modal
+                    visible={showDeleteModal}
+                    transparent={true}
+                    animationType="fade"
+                    onRequestClose={() => setShowDeleteModal(false)}
+                  >
+                    <View style={styles.modalOverlay}>
+                      <TouchableOpacity 
+                        style={styles.modalBackground}
+                        activeOpacity={1}
+                        onPress={() => setShowDeleteModal(false)}
+                      />
+                      <View style={styles.modalContainer}>
+                        <View style={styles.actionSheet}>
+                          <Text style={styles.modalTitle}>Delete this Account</Text>
+                          <Text style={styles.modalMessage}>Are you sure you want to delete your account? This action cannot be undone.</Text>
+                          
+                          <TouchableOpacity 
+                            style={[styles.modalButton, styles.destructiveButton]}
+                            onPress={() => {
+                              // Handle account deletion
+                              setShowDeleteModal(false);
+                            }}
+                          >
+                            <Text style={styles.destructiveButtonText}>Delete My Account</Text>
+                          </TouchableOpacity>
+                          
+                          <TouchableOpacity 
+                            style={[styles.modalButton, styles.cancelButton]}
+                            onPress={() => setShowDeleteModal(false)}
+                          >
+                            <Text style={styles.cancelButtonText}>Cancel</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </View>
+                  </Modal>
                 </>
               ) : (
                 <>
                   <RowItem iconName="call" label="Contact us" onPress={() => { router.push('/ContactUs')}} />
                   <RowItem iconName="information-circle" label="About us" onPress={() => {router.push('/AboutUs')}} />
-                  <RowItem iconName="document-text" label="Terms & conditions" onPress={() => { }} />
-                  <RowItem iconName="shield-checkmark" label="Privacy policy" onPress={() => { }} isLast />
-                </>
+                  <RowItem iconName="document-text" label="Terms & conditions" onPress={() => { router.push('/Terms')}} />
+                  <RowItem iconName="shield-checkmark" label="Privacy policy" onPress={() => {router.push('/Privacy')}} isLast />
+                </> 
               )}
             </View>
           </View>
@@ -118,11 +163,11 @@ function RowItem({ iconName, label, onPress, isLast }: RowItemProps) {
       <View style={[styles.row, !isLast && styles.rowDivider]}>
         <View style={styles.leftIconWrap}>
           <View style={styles.leftIconInner}>
-            <Ionicons name={iconName as any} size={moderateScale(18)} color="#F1B90B" />
+            <Ionicons name={iconName as any} size={moderateScale(18)} color={colors.primaryDark} />
           </View>
         </View>
         <Text style={styles.rowLabel}>{label}</Text>
-        <Ionicons name="chevron-forward" size={moderateScale(20)} color="#D9B54A" />
+        <Ionicons name="chevron-forward" size={moderateScale(20)} color={colors.primaryDark} />
       </View>
     </TouchableOpacity>
   );
@@ -179,8 +224,8 @@ const styles = StyleSheet.create({
     width: scale(40),
     height: scale(40),
     borderRadius: scale(50),
-    borderColor: 'gray',
-    borderWidth: 1,
+    borderColor: colors.textPrimary,
+    borderWidth: 0.4,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: scale(12),
@@ -189,13 +234,12 @@ const styles = StyleSheet.create({
     width: scale(34),
     height: scale(34),
     borderRadius: scale(17),
-    backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
   },
   rowLabel: {
     flex: 1,
-    color: '#F1B90B',
+    color: colors.primaryDark,
     fontSize: moderateScale(14),
     fontFamily: 'Montserrat',
   },
@@ -204,9 +248,79 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   deleteAccountText: {
-    color: '#E44C4C',
-    fontSize: moderateScale(14),
+    color: '#E44C4C', 
+    fontSize: moderateScale(14), 
     fontFamily: 'Montserrat',
   },
-
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    padding: 20,
+  },
+  modalBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  modalContainer: {
+    paddingTop: verticalScale(16),
+    width: scale(250),
+    backgroundColor: 'rgba(245, 245, 245, 0.95)',
+    borderRadius: 14,
+    padding: 0,
+    overflow: 'hidden',
+  },
+  modalTitle: {
+    fontSize: 18,
+    textAlign: 'center',
+    fontWeight: 'bold',
+    fontFamily: 'Montserrat',
+  },
+  modalMessage: {
+    paddingHorizontal: verticalScale(16),
+    paddingVertical: verticalScale(10),
+    textAlign: 'center',
+    fontFamily: 'Montserrat',
+    fontSize: moderateScale(12),
+  },
+  modalButton: {
+    paddingVertical: verticalScale(10),
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  destructiveButton: {
+    backgroundColor: 'transparent',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.1)',
+  },
+  destructiveButtonText: {
+    color: '#007AFF',
+    fontFamily: 'Montserrat',
+    fontSize: 17,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  cancelButton: {
+    backgroundColor: 'transparent',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.1)',
+    marginTop: 8,
+  },
+  cancelButtonText: {
+    color: '#FF3B30',
+    fontFamily: 'Montserrat',
+    fontSize: 17,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  actionSheet: {
+    width: '100%',
+  },
 });

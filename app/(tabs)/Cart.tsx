@@ -15,7 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 
 type SellerGroup = {
@@ -29,6 +29,7 @@ export default function Cart() {
   const dispatch = useAppDispatch();
   const cartItems = useAppSelector(selectCartItems);
   const cartTotalPrice = useAppSelector(selectCartTotalPrice);
+  const insets = useSafeAreaInsets();
   const [deliveryType, setDeliveryType] = useState<'express' | 'regular'>('express');
   const [scheduled, setScheduled] = useState(false);
   const [selectedTip, setSelectedTip] = useState<'10' | '15' | '20' | 'other'>('10');
@@ -119,7 +120,7 @@ export default function Cart() {
   const [selectedAddress, setSelectedAddress] = useState(addresses[0]);
   return (
     <SafeAreaView
-      style={styles.safeArea}
+      style={[styles.safeArea,{ paddingBottom: Math.max(insets.bottom, verticalScale(1)) }]}
     >
       <ImageBackground
         source={require('../../assets/images/background2.png')}
@@ -426,11 +427,12 @@ export default function Cart() {
           animationType="fade"
           onRequestClose={() => setIsPaymentModalVisible(false)}
         >
-          <TouchableOpacity
-            style={styles.modalOverlay}
+         <View style={[styles.modalOverlay,{ paddingBottom: Math.max(insets.bottom, verticalScale(1))}]}>
+           <TouchableOpacity
+            style={styles.modalBackground}
             activeOpacity={1}
             onPress={() => setIsPaymentModalVisible(false)}
-          />
+          >
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Payment method</Text>
@@ -463,6 +465,8 @@ export default function Cart() {
                 </TouchableOpacity>
               );
             })}
+          </View>
+          </TouchableOpacity>
             <TouchableOpacity
               style={styles.modalPrimaryButton}
               activeOpacity={0.9}
@@ -471,72 +475,74 @@ export default function Cart() {
               <Text style={styles.modalPrimaryButtonText}>
                 Proceed to pay ${payableTotal.toFixed(2)}
               </Text>
-            </TouchableOpacity>
-          </View>
+            </TouchableOpacity> 
+         </View>
         </Modal>
         <Modal
           visible={isAddressModalVisible}
-          transparent
+          transparent={true}
           animationType="fade"
           onRequestClose={() => setIsAddressModalVisible(false)}
         >
-          <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setIsAddressModalVisible(false)}
-          >
-            <View style={[styles.modalContainer, { maxHeight: '60%' }]}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Select Delivery Address</Text>
-                <TouchableOpacity onPress={() => setIsAddressModalVisible(false)}>
-                  <Ionicons name="close" size={20} color="#9E9970" />
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView>
-                {addresses.map((address) => (
-                  <TouchableOpacity
-                    key={address.id}
-                    style={[styles.addressOption, selectedAddress.id === address.id && styles.selectedAddress]}
-                    activeOpacity={0.85}
-                    onPress={() => {
-                      setSelectedAddress(address);
-                      setIsAddressModalVisible(false);
-                    }}
-                  >
-                    <View style={styles.addressItemContainer}>
-                      <View style={styles.addressDetails}>
-                        <View style={styles.addressTypeRow}>
-                          <Text style={styles.addressType}>{address.type}</Text>
-                        </View>
-                        <Text style={styles.addressText}>{address.address}</Text>
-                      </View>
-                      <TouchableOpacity
-                        style={styles.editButton}
-                        onPress={() => {
-                          // Handle edit address
-                          console.log('Edit address:', address.id);
-                        }}
-                      >
-                        <Ionicons name="create-outline" size={20} color="#9E9970" />
-                      </TouchableOpacity>
-                    </View>
+          <View style={[styles.modalOverlay, { paddingBottom: Math.max(insets.bottom, verticalScale(1)) }]}>
+            <TouchableOpacity
+              style={styles.modalBackground}
+              activeOpacity={1}
+              onPress={() => setIsAddressModalVisible(false)}
+            >
+              <View style={[styles.modalContainer, { maxHeight: verticalScale(400) }]}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Select Delivery Address</Text>
+                  <TouchableOpacity onPress={() => setIsAddressModalVisible(false)}>
+                    <Ionicons name="close" size={20} color="#9E9970" />
                   </TouchableOpacity>
-                ))}
-              </ScrollView>
+                </View>
 
-              <TouchableOpacity
-                style={[styles.modalPrimaryButton, { marginTop: 10 }]}
-                activeOpacity={0.9}
-                onPress={() => {
-                  // Handle add new address
-                  setIsAddressModalVisible(false);
-                }}
-              >
-                <Text style={styles.modalPrimaryButtonText}>Add New Address</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
+                <ScrollView>
+                  {addresses.map((address) => (
+                    <TouchableOpacity
+                      key={address.id}
+                      style={[styles.addressOption, selectedAddress.id === address.id && styles.selectedAddress]}
+                      activeOpacity={0.85}
+                      onPress={() => {
+                        setSelectedAddress(address);
+                        setIsAddressModalVisible(false);
+                      }}
+                    >
+                      <View style={styles.addressItemContainer}>
+                        <View style={styles.addressDetails}>
+                          <View style={styles.addressTypeRow}>
+                            <Text style={styles.addressType}>{address.type}</Text>
+                          </View>
+                          <Text style={styles.addressText}>{address.address}</Text>
+                        </View>
+                        <TouchableOpacity
+                          style={styles.editButton}
+                          onPress={() => {
+                            // Handle edit address
+                            console.log('Edit address:', address.id);
+                          }}
+                        >
+                          <Ionicons name="create-outline" size={20} color="#9E9970" />
+                        </TouchableOpacity>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </TouchableOpacity>
+            
+                <TouchableOpacity
+                  style={[styles.modalPrimaryButton]}
+                  activeOpacity={0.9}
+                  onPress={() => {
+                    // Handle add new address
+                    setIsAddressModalVisible(false);
+                  }}
+                >
+                  <Text style={styles.modalPrimaryButtonText}>Add New Address</Text>
+                </TouchableOpacity>
+          </View>
         </Modal>
       </ImageBackground>
     </SafeAreaView>
@@ -975,6 +981,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.35)',
   },
+  modalBackground: {
+    flex: 1,
+  },
   modalContainer: {
     position: 'absolute',
     left: 0,
@@ -982,8 +991,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     borderTopLeftRadius: scale(20),
     borderTopRightRadius: scale(20),
-    borderBottomLeftRadius: scale(20),
-    borderBottomRightRadius: scale(20),
     backgroundColor: '#FFFFFF',
     paddingTop: verticalScale(18),
     paddingHorizontal: scale(20),
@@ -1045,10 +1052,8 @@ const styles = StyleSheet.create({
     color: '#2F2D1E',
   },
   modalPrimaryButton: {
-    marginTop: verticalScale(20),
     backgroundColor: colors.primaryDark,
-    borderRadius: scale(8),
-    paddingVertical: verticalScale(14),
+    paddingVertical: verticalScale(18),
     alignItems: 'center',
     justifyContent: 'center',
   },
