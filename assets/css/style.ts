@@ -7,11 +7,6 @@ export const ProductStyle = StyleSheet.create({
 
     backgroundImage: {
         flex: 1,
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        width: width,
     },
     productsSection: {
         marginTop: verticalScale(20),

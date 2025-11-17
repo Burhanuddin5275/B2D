@@ -49,7 +49,6 @@ const styles = StyleSheet.create({
     descriptionText: {
         fontSize: moderateScale(14),
         lineHeight: moderateScale(22),
-        color: '#333',
         fontFamily: 'InterRegular',
     },
 })

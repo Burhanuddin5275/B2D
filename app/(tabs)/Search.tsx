@@ -7,10 +7,11 @@ import React, { useMemo, useState } from 'react'
 import { Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
-import { scale, verticalScale } from 'react-native-size-matters'
+import { moderateScale, scale, verticalScale } from 'react-native-size-matters'
 import { useAppDispatch, useAppSelector } from '@/store/useAuth'
 import { router } from 'expo-router'
 import { ProductStyle } from '@/assets/css/style'
+import { colors } from '@/theme/colors'
 
 const { width } = Dimensions.get('window')
 
@@ -405,7 +406,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 14,
-    color: '#F4A300',
+    color: colors.primaryDark,
   },
   cancel: {
     color: '#0A84FF',
@@ -468,15 +469,16 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   rowTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1E1E1E',
+    fontFamily:'Montserrat',
+    fontSize: moderateScale(14),
+    fontWeight: '600',
     marginBottom: 2,
   },
   rowSubtitle: {
-    fontSize: 12,
-    color: '#8E8E93',
-  },
+    fontFamily:'Montserrat',
+    fontSize: moderateScale(12),
+    color: colors.textPrimary,
+  },  
   rowAction: {
     padding: 6,
   },

@@ -1,4 +1,5 @@
 import Header from '@/components/Header';
+import { colors } from '@/theme/colors';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Image, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -115,20 +116,21 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   title: {
-    fontSize: moderateScale(20),
-    fontWeight: '700',
-    color: '#1F1F1F',
+    fontFamily: 'PoppinsBold',
+    fontWeight: '600', 
+    fontSize: moderateScale(22),
+    lineHeight: verticalScale(30),
   },
   phoneInputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E9B10F',
+    borderColor: colors.primaryDark,
     borderRadius: 10,
     paddingHorizontal: scale(15),
     height: verticalScale(50),
     marginBottom: verticalScale(20),
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     width: '85%',
     alignSelf: 'center',
   },
@@ -141,35 +143,35 @@ const styles = StyleSheet.create({
   },
   prefix: {
     fontSize: moderateScale(14),
-    color: '#1F1F1F',
     marginRight: scale(8),
   },
   input: {
     flex: 1,
     fontSize: moderateScale(14),
-    color: '#1F1F1F',
+    color: colors.black,
   },
   continueBtn: {
     width: '88%',
-    backgroundColor: '#E9B10F',
+    backgroundColor: colors.primaryDark,
     paddingVertical: verticalScale(14),
     borderRadius: moderateScale(8),
-    alignItems: 'center',
+    alignItems: 'center', 
     marginTop: verticalScale(16),
     marginBottom: verticalScale(18),
     alignSelf: 'center',
   },
-  disabledBtn: {
-    backgroundColor: '#C9C9C9',
-  },
+  disabledBtn: { 
+    backgroundColor: colors.textSecondary,
+  }, 
   continueText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: moderateScale(14),
+    fontFamily: 'Montserrat', 
     fontWeight: '600',
   },
   agreeText: {
     textAlign: 'center',
-    color: '#A1A1A1',
+    color: colors.textPrimary,
     fontSize: moderateScale(12),
     marginBottom: 5,
     width: '100%',
@@ -184,16 +186,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   link: {
-    color: '#F1B90B',
+    color: colors.primaryDark,
     fontSize: moderateScale(12),
     fontWeight: '600',
-  },
+  },  
   andText: {
-    color: '#3F3F3F',
+    color: colors.textPrimary,
     fontSize: moderateScale(12),
   },
   dot: {
-    color: '#3F3F3F',
+    color: colors.textPrimary,
     fontSize: moderateScale(12),
   },
 });

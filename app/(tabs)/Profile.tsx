@@ -17,7 +17,7 @@ export default function Profile() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const handleLogout = () => {
-    dispatch(logout()); 
+    dispatch(logout());
   };
 
   return (
@@ -26,7 +26,7 @@ export default function Profile() {
         source={require('../../assets/images/background2.png')}
         style={styles.backgroundImage}
       >
-      <Header title="Profile" showDefaultIcons={false} />
+        <Header title="Profile" showDefaultIcons={false} />
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollViewContent}
@@ -52,35 +52,35 @@ export default function Profile() {
                     label="Wishlist"
                     onPress={() => { router.push('/Wishlist') }}
                   />
-                  <RowItem 
+                  <RowItem
                     iconName="location"
                     label="Manage addresses"
-                    onPress={() => { router.push('/ManageAddress')}}
+                    onPress={() => { router.push('/ManageAddress') }}
                   />
                   <RowItem
                     iconName="person"
                     label="Manage Profile"
-                    onPress={() => {router.push('/CompleteProfile')}}
+                    onPress={() => { router.push('/CompleteProfile') }}
                   />
                   <RowItem
                     iconName="call"
                     label="Contact us"
-                    onPress={() => {router.push('/ContactUs')}}
-                  /> 
+                    onPress={() => { router.push('/ContactUs') }}
+                  />
                   <RowItem
                     iconName="information-circle"
-                    label="About us" 
-                    onPress={() => {router.push('/AboutUs')}}
+                    label="About us"
+                    onPress={() => { router.push('/AboutUs') }}
                   />
                   <RowItem
                     iconName="document-text"
-                    label="Terms & conditions" 
-                    onPress={() => { router.push('/Terms')}}
+                    label="Terms & conditions"
+                    onPress={() => { router.push('/Terms') }}
                   />
                   <RowItem
                     iconName="shield-checkmark"
                     label="Privacy policy"
-                    onPress={() => { router.push('/Privacy')}}
+                    onPress={() => { router.push('/Privacy') }}
                   />
                   <RowItem
                     iconName="log-out"
@@ -88,13 +88,13 @@ export default function Profile() {
                     onPress={handleLogout}
                     isLast={true}
                   />
-                  <TouchableOpacity 
-                    style={styles.deleteAccountWrap} 
+                  <TouchableOpacity
+                    style={styles.deleteAccountWrap}
                     onPress={() => setShowDeleteModal(true)}
                   >
                     <Text style={styles.deleteAccountText}>Delete this account</Text>
                   </TouchableOpacity>
-                  
+
                   {/* Delete Account Confirmation Modal */}
                   <Modal
                     visible={showDeleteModal}
@@ -103,7 +103,7 @@ export default function Profile() {
                     onRequestClose={() => setShowDeleteModal(false)}
                   >
                     <View style={styles.modalOverlay}>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={styles.modalBackground}
                         activeOpacity={1}
                         onPress={() => setShowDeleteModal(false)}
@@ -111,9 +111,15 @@ export default function Profile() {
                       <View style={styles.modalContainer}>
                         <View style={styles.actionSheet}>
                           <Text style={styles.modalTitle}>Delete this Account</Text>
-                          <Text style={styles.modalMessage}>Are you sure you want to delete your account? This action cannot be undone.</Text>
-                          
+                          <Text style={styles.modalMessage}>Are you sure you want to delete this customer account? By proceeding,
+                            all the data will be removed permanently.</Text>
                           <TouchableOpacity 
+                            style={[styles.modalButton, styles.cancelButton]}
+                            onPress={() => setShowDeleteModal(false)}
+                          >
+                            <Text style={styles.cancelButtonText}>Cancel</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
                             style={[styles.modalButton, styles.destructiveButton]}
                             onPress={() => {
                               // Handle account deletion
@@ -122,13 +128,6 @@ export default function Profile() {
                           >
                             <Text style={styles.destructiveButtonText}>Delete My Account</Text>
                           </TouchableOpacity>
-                          
-                          <TouchableOpacity 
-                            style={[styles.modalButton, styles.cancelButton]}
-                            onPress={() => setShowDeleteModal(false)}
-                          >
-                            <Text style={styles.cancelButtonText}>Cancel</Text>
-                          </TouchableOpacity>
                         </View>
                       </View>
                     </View>
@@ -136,11 +135,11 @@ export default function Profile() {
                 </>
               ) : (
                 <>
-                  <RowItem iconName="call" label="Contact us" onPress={() => { router.push('/ContactUs')}} />
-                  <RowItem iconName="information-circle" label="About us" onPress={() => {router.push('/AboutUs')}} />
-                  <RowItem iconName="document-text" label="Terms & conditions" onPress={() => { router.push('/Terms')}} />
-                  <RowItem iconName="shield-checkmark" label="Privacy policy" onPress={() => {router.push('/Privacy')}} isLast />
-                </> 
+                  <RowItem iconName="call" label="Contact us" onPress={() => { router.push('/ContactUs') }} />
+                  <RowItem iconName="information-circle" label="About us" onPress={() => { router.push('/AboutUs') }} />
+                  <RowItem iconName="document-text" label="Terms & conditions" onPress={() => { router.push('/Terms') }} />
+                  <RowItem iconName="shield-checkmark" label="Privacy policy" onPress={() => { router.push('/Privacy') }} isLast />
+                </>
               )}
             </View>
           </View>
@@ -187,7 +186,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
- 
+
   content: {
     padding: scale(16),
     paddingBottom: verticalScale(40),
@@ -248,8 +247,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   deleteAccountText: {
-    color: '#E44C4C', 
-    fontSize: moderateScale(14), 
+    color: '#E44C4C',
+    fontSize: moderateScale(14),
     fontFamily: 'Montserrat',
   },
   modalOverlay: {
@@ -281,13 +280,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat',
   },
   modalMessage: {
-    paddingHorizontal: verticalScale(16),
+    paddingHorizontal: verticalScale(10),
     paddingVertical: verticalScale(10),
     textAlign: 'center',
-    fontFamily: 'Montserrat',
-    fontSize: moderateScale(12),
+    fontFamily: 'MontserratMedium',
+    fontSize: moderateScale(10),
   },
-  modalButton: {
+  modalButton: { 
     paddingVertical: verticalScale(10),
     width: '100%',
     alignItems: 'center',
@@ -298,26 +297,24 @@ const styles = StyleSheet.create({
   destructiveButton: {
     backgroundColor: 'transparent',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.1)',
+    borderTopColor: colors.textSecondary,
   },
   destructiveButtonText: {
-    color: '#007AFF',
+    color: '#FF3B30',
     fontFamily: 'Montserrat',
-    fontSize: 17,
-    fontWeight: '600',
+    fontSize: moderateScale(14),
     textAlign: 'center',
   },
   cancelButton: {
     backgroundColor: 'transparent',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.1)',
-    marginTop: 8,
+    borderTopColor: colors.textSecondary,
+    marginTop: verticalScale(8),
   },
   cancelButtonText: {
-    color: '#FF3B30',
+    color: '#007AFF',
     fontFamily: 'Montserrat',
-    fontSize: 17,
-    fontWeight: '600',
+    fontSize: moderateScale(14),
     textAlign: 'center',
   },
   actionSheet: {

@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    paddingTop: verticalScale(30),
+    paddingTop: verticalScale(20),
     paddingHorizontal: scale(20),
     paddingBottom: verticalScale(40),
   },
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     fontFamily: 'PoppinsBold',
     fontWeight: '600',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: verticalScale(20),
     lineHeight: 30,
   },
   descriptionBox: {
@@ -246,7 +246,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: verticalScale(20),
+    marginTop: verticalScale(15),
+    marginBottom: verticalScale(10),
   },
   paginationDot: {
     width: 10,

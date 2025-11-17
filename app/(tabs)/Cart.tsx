@@ -567,20 +567,21 @@ const styles = StyleSheet.create({
     gap: verticalScale(6),
   },
   headline: {
-    fontFamily: 'Montserrat',
+    fontFamily: 'PoppinsSemi',
+    fontWeight: '600',
     fontSize: moderateScale(16),
-    color: '#2F2D1E',
-  },
+  }, 
   subHeadline: {
-    fontFamily: 'InterRegular',
+    fontFamily: '  PoppinsMedium',
+    fontStyle: 'italic',
     fontSize: moderateScale(12),
-    color: '#7C7754',
+    color: colors.textPrimary,
   },
   sellerCard: {
     backgroundColor: 'white',
     borderRadius: 8,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 12, 
     borderWidth: 1,
     borderColor: '#e0e0e0',
   },
@@ -622,9 +623,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sellerName: {
-    fontFamily: 'PoppinsSemi',
-    fontSize: moderateScale(14),
-    color: '#2F2D1E',
+    fontFamily: 'Montserrat',
+    fontSize: moderateScale(14), 
   },
   sellerMeta: {
     fontFamily: 'InterRegular',
@@ -659,15 +659,15 @@ const styles = StyleSheet.create({
     gap: verticalScale(6),
   },
   itemName: {
-    fontFamily: 'InterRegular',
+    fontFamily: 'PoppinsSemi',
+    fontWeight: '600',
     fontSize: moderateScale(12),
-    color: '#2F2D1E',
     lineHeight: 18,
   },
   itemPrice: {
-    fontFamily: 'Montserrat',
+    fontFamily: 'PoppinsSemi',
+    fontWeight: '600',
     fontSize: moderateScale(13),
-    color: '#2F2D1E',
   },
   quantityControls: {
     flexDirection: 'row',
@@ -712,12 +712,13 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   emptyTitle: {
-    fontFamily: 'Montserrat',
+    fontFamily: 'PoppinsSemi',
+    fontWeight: '600',
     fontSize: moderateScale(18),
     color: '#2F2D1E',
   },
   emptyText: {
-    fontFamily: 'InterRegular',
+    fontFamily: 'PoppinsMedium',
     fontSize: moderateScale(12),
     color: '#7C7754',
     textAlign: 'center',
@@ -727,12 +728,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: scale(16),
   },
   disclaimerTitle: {
-    fontFamily: 'Montserrat',
+    fontFamily: 'PoppinsSemi',
+    fontWeight: '600',
     fontSize: moderateScale(13),
     color: colors.primaryDark,
   },
   disclaimerText: {
-    fontFamily: 'InterRegular',
+    fontFamily: 'PoppinsMedium',
     fontSize: moderateScale(12),
     color: colors.primaryDark,
     lineHeight: 18,
@@ -743,7 +745,8 @@ const styles = StyleSheet.create({
     paddingTop: verticalScale(20),
   },
   sectionHeading: {
-    fontFamily: 'Montserrat',
+    fontFamily: 'PoppinsSemi',
+    fontWeight: '600',
     fontSize: moderateScale(14),
     color: '#2F2D1E',
   },
@@ -769,12 +772,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.secondaryLight,
   },
   deliveryChipLabel: {
-    fontFamily: 'InterRegular',
+    fontFamily: 'PoppinsMedium',
     fontSize: moderateScale(13),
   },
   deliveryChipLabelActive: {
     color: colors.black,
-    fontFamily: 'InterBold',
+    fontFamily: 'PoppinsSemi',
   },
   scheduleButton: {
     flexDirection: 'row',
@@ -785,7 +788,7 @@ const styles = StyleSheet.create({
   },
 
   scheduleButtonLabel: {
-    fontFamily: 'InterRegular',
+    fontFamily: 'PoppinsMedium',
     fontSize: moderateScale(13),
   },
   addressSection: {
@@ -799,12 +802,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   linkText: {
-    fontFamily: 'InterSemiBold',
+    fontFamily: 'PoppinsSemi',
     fontSize: moderateScale(12),
     color: colors.primaryDark,
   },
   addressLabel: {
-    fontFamily: 'InterRegular',
+    fontFamily: 'PoppinsMedium',
     fontSize: moderateScale(12),
     color: '#2F2D1E',
     lineHeight: 18,
@@ -831,12 +834,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   addressType: {
-    fontFamily: 'InterSemiBold',
-    fontSize: 14,
+    fontFamily: 'PoppinsSemi',
+    fontSize: moderateScale(14),
     marginRight: 8,
   },
   addressText: {
-    fontFamily: 'InterRegular',
+    fontFamily: 'PoppinsMedium',
     fontSize: 13,
     lineHeight: 18,
   },
@@ -863,7 +866,7 @@ const styles = StyleSheet.create({
     gap: scale(6),
   },
   tipInfoText: {
-    fontFamily: 'InterRegular',
+    fontFamily: 'PoppinsMedium',
     fontSize: moderateScale(12),
     color: colors.primaryDark,
   },
@@ -888,11 +891,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFE49A',
   },
   tipButtonLabel: {
-    fontFamily: 'InterRegular',
+    fontFamily: 'PoppinsMedium',
     fontSize: moderateScale(13),
   },
   tipButtonLabelActive: {
-    fontFamily: 'InterBold',
+    fontFamily: 'PoppinsSemi',
   },
   customTipInput: {
     borderWidth: 1,
@@ -900,7 +903,7 @@ const styles = StyleSheet.create({
     borderRadius: scale(10),
     paddingHorizontal: scale(12),
     paddingVertical: verticalScale(10),
-    fontFamily: 'InterRegular',
+    fontFamily: 'PoppinsMedium',
     fontSize: moderateScale(13),
     color: '#2F2D1E',
   },
@@ -917,7 +920,7 @@ const styles = StyleSheet.create({
     borderRadius: scale(12),
     paddingHorizontal: scale(14),
     paddingVertical: verticalScale(14),
-    fontFamily: 'InterRegular',
+    fontFamily: 'PoppinsMedium',
     fontSize: moderateScale(14),
     minHeight: verticalScale(120),
   },
@@ -929,7 +932,8 @@ const styles = StyleSheet.create({
     paddingTop: verticalScale(20),
   },
   sectionPriceDetails: {
-    fontFamily: 'InterBold',
+    fontFamily: 'PoppinsSemi',
+    fontWeight: '600',
     fontSize: moderateScale(12),
     color: '#333333',
     marginBottom: verticalScale(12),
@@ -940,12 +944,12 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(12),
   },
   summaryLabel: {
-    fontFamily: 'InterRegular',
+    fontFamily: 'PoppinsMedium',
     fontSize: moderateScale(14),
     color: '#666666',
   },
   summaryValue: {
-    fontFamily: 'InterMedium',
+    fontFamily: 'PoppinsMedium',
     fontSize: moderateScale(14),
     color: '#333333',
   },
@@ -956,12 +960,13 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(4),
   },
   totalLabel: {
-    fontFamily: 'InterBold',
+    fontFamily: 'PoppinsSemi',
+    fontWeight: '600',
     fontSize: moderateScale(16),
     color: '#333333',
   },
   totalValue: {
-    fontFamily: 'InterBold',
+    fontFamily: 'PoppinsSemi',
     fontSize: moderateScale(16),
     color: colors.primaryDark,
   },
@@ -974,7 +979,8 @@ const styles = StyleSheet.create({
   },
   placeOrderButtonText: {
     color: 'white',
-    fontFamily: 'InterSemiBold',
+    fontFamily: 'PoppinsSemi',
+    fontWeight: '600',
     fontSize: moderateScale(14),
   },
   modalOverlay: {
@@ -1009,7 +1015,8 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     textAlign: 'center',
-    fontFamily: 'Montserrat',
+    fontFamily: 'PoppinsSemi',
+    fontWeight: '600',
     fontSize: moderateScale(15),
     color: '#2F2D1E',
   },
@@ -1043,12 +1050,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryDark,
   },
   paymentOptionLabel: {
-    fontFamily: 'InterRegular',
+    fontFamily: 'PoppinsMedium',
     fontSize: moderateScale(13),
     color: '#4E4A37',
   },
   paymentOptionLabelActive: {
-    fontFamily: 'InterSemiBold',
+    fontFamily: 'PoppinsSemi',
     color: '#2F2D1E',
   },
   modalPrimaryButton: {

@@ -15,6 +15,7 @@ import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 import { loginSuccess } from '../store/authSlice';
 import { useAppDispatch } from '../store/useAuth';
 import Header from '@/components/Header';
+import { colors } from '@/theme/colors';
 
 const VerifyNumber = () => {
   const { phone } = useLocalSearchParams();
@@ -135,9 +136,10 @@ const VerifyNumber = () => {
         >
           <SafeAreaView style={styles.safeArea}>
             <View style={styles.header}>
-              <Text style={styles.title}>Verify your number</Text>
+              <Text style={styles.title}>Verify phone number!</Text>
               <Text style={styles.subtitle}>
-                We have sent you an SMS with the code to {phone || '+1 234 567 890'}
+                Please enter the code that we've
+                sent to <Text style={{color:colors.primaryDark}}>{phone || '+1 234 567 890'}</Text>
               </Text>
             </View>
 
@@ -167,7 +169,14 @@ const VerifyNumber = () => {
                 />
               ))}
             </View>
-
+            <TouchableOpacity
+              style={[styles.verifyButton, { opacity: code.every(c => c) ? 1 : 0.5 }]}
+              onPress={handleVerify}
+              disabled={!code.every(c => c)}
+            >
+              <Text style={styles.verifyButtonText}>Verify & proceed</Text>
+            </TouchableOpacity>
+            
             <View style={styles.resendContainer}>
               <Text style={styles.resendText}>
                 {isCountdownActive
@@ -185,14 +194,6 @@ const VerifyNumber = () => {
                 </TouchableOpacity>
               )}
             </View>
-
-            <TouchableOpacity
-              style={[styles.verifyButton, { opacity: code.every(c => c) ? 1 : 0.5 }]}
-              onPress={handleVerify}
-              disabled={!code.every(c => c)}
-            >
-              <Text style={styles.verifyButtonText}>Verify</Text>
-            </TouchableOpacity>
           </SafeAreaView>
         </KeyboardAvoidingView>
       </ImageBackground>
@@ -222,21 +223,20 @@ const styles = StyleSheet.create({
     height: scale(100),
   },
   header: {
-    marginBottom: verticalScale(40),
+    marginBottom: verticalScale(10),
     alignItems: 'center',
   },
   title: {
-    fontSize: moderateScale(24),
-    fontWeight: 'bold',
-    color: '#000',
+    fontSize: moderateScale(22),
+    fontWeight: '600',
     marginBottom: verticalScale(8),
-    fontFamily: 'Montserrat-Bold',
+    fontFamily: 'PoppinsBold',
   },
   subtitle: {
     fontSize: moderateScale(14),
-    color: '#666',
+    fontWeight: '500',
     textAlign: 'center',
-    fontFamily: 'Montserrat',
+    fontFamily: 'PoppinsMedium',
   },
   codeContainer: {
     flexDirection: 'row',
@@ -246,43 +246,44 @@ const styles = StyleSheet.create({
   codeInput: {
     width: scale(60),
     height: scale(60),
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderWidth: 1.5,
+    borderColor: colors.primaryDark,
     borderRadius: 12,
     textAlign: 'center',
     fontSize: moderateScale(24),
-    color: '#000',
-    backgroundColor: '#FFF',
-    fontFamily: 'Montserrat-Bold',
+    backgroundColor: colors.white,
+    fontFamily: 'Montserrat',
+    fontWeight: '600',
   },
   resendContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: verticalScale(32),
+    marginTop: verticalScale(10),
   },
   resendText: {
     fontSize: moderateScale(14),
-    color: '#666',
+    color: colors.textPrimary,
     marginRight: 4,
-    fontFamily: 'Montserrat',
+    fontFamily: 'PoppinsMedium',
+    fontWeight: '500',
   },
   resendButton: {
     fontSize: moderateScale(14),
-    color: '#F4A300',
-    fontWeight: '600',
-    fontFamily: 'Montserrat-SemiBold',
+    color: colors.primaryDark,
+    fontWeight: '500',
+    fontFamily: 'PoppinsMedium',
   },
   verifyButton: {
-    backgroundColor: '#F4A300',
+    backgroundColor: colors.primaryDark,
     paddingVertical: verticalScale(16),
     borderRadius: 12,
     alignItems: 'center',
   },
   verifyButtonText: {
-    color: '#FFF',
-    fontSize: moderateScale(16),
+    color: colors.white,
+    fontSize: moderateScale(14),
     fontWeight: '600',
-    fontFamily: 'Montserrat-SemiBold',
+    fontFamily: 'Montserrat',
   },
 });
 

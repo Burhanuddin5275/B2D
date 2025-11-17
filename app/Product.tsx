@@ -491,29 +491,29 @@ const styles = StyleSheet.create({
     paddingVertical: verticalScale(18),
   },
   productTitle: {
-    fontFamily: 'InterBold',
+    fontFamily: 'Montserrat',
+    fontWeight:600,
     fontSize: moderateScale(16),
-    color: '#2F2D1E',
     lineHeight: 22,
   },
   productSubtitle: {
     marginTop: verticalScale(6),
-    fontFamily: 'InterRegular',
+    fontFamily: 'Montserrat',
+    fontWeight:500,
     fontSize: moderateScale(13),
-    color: '#5C5739',
     lineHeight: 20,
   },
   priceText: {
-    fontSize: moderateScale(20),
-    fontWeight: 'bold',
+    fontSize: moderateScale(16),
     marginBottom: verticalScale(16),
-    color: '#2F2D1E',
+    fontFamily: 'Montserrat',
+    fontWeight:600,
   },
-  sellerText: {
+  sellerText: { 
     marginTop: verticalScale(8),
-    fontFamily: 'InterRegular',
+    fontFamily: ' MontserratMedium',
     fontSize: moderateScale(13),
-    color: '#5C5739',
+    color: colors.textPrimary,
   },
 
   ratingRow: {
@@ -522,19 +522,18 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(12),
   },
   ratingScore: {
-    fontFamily: 'InterRegular',
+    fontFamily: 'MontserratMedium',
     fontSize: moderateScale(13),
-    color: '#373525',
+    color: colors.textPrimary,
   },
   ratingCount: {
     fontFamily: 'InterRegular',
     fontSize: moderateScale(13),
-    color: '#7C7754',
-  },
+    color: colors.textPrimary,
+    },
   packLabel: {
     fontFamily: 'Montserrat',
     fontSize: moderateScale(14),
-    color: '#2F2D1E',
   },
   packOptionsRow: {
     flexDirection: 'row',
@@ -549,15 +548,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   packOptionIdle: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#D8C68A',
-  },
+    borderColor: colors.secondaryLight,
+  }, 
   packOptionActive: {
-    backgroundColor: '#FFE9A2',
-    borderColor: '#E0B21B',
+    backgroundColor: colors.primary,
+    borderColor: colors.primaryDark,
   },
   packOptionTitle: {
-    fontFamily: 'PoppinsSemi',
+    fontFamily: 'Montserrat',
     fontSize: moderateScale(14),
     color: '#5F5830',
   },
@@ -566,9 +564,8 @@ const styles = StyleSheet.create({
   },
   packOptionPrice: {
     marginTop: verticalScale(4),
-    fontFamily: 'InterRegular',
+    fontFamily: 'Montserrat',
     fontSize: moderateScale(12),
-    color: '#7C7754',
   },
   packOptionPriceActive: {
     color: '#2F290B',
@@ -579,16 +576,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: scale(12),
   },
   disclaimerTitle: {
-    fontFamily: 'InterRegular',
+    fontFamily: 'MontserratMedium',
     fontSize: moderateScale(12),
     color: colors.primaryDark,
     lineHeight: 18,
   },
   disclaimerNote: {
     marginTop: verticalScale(8),
-    fontFamily: 'InterRegular',
+    fontFamily: 'MontserratMedium',
     fontSize: moderateScale(12),
-    color: '#7C7754',
+    color: colors.textPrimary,
   },
   highlightCard: {
     borderRadius: 18,
@@ -613,34 +610,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   highlightTitle: {
-    fontFamily: 'InterBold',
+    fontFamily: 'Montserrat',
     fontSize: moderateScale(13),
     color: colors.primaryDark,
   },
   highlightDescription: {
     marginTop: verticalScale(6),
-    fontFamily: 'InterRegular',
+    fontFamily: 'MontserratMedium',
     fontSize: moderateScale(12),
     lineHeight: 18,
-    color: '#5C5739',
+    color: colors.textPrimary,
   },
   highlightBlock: {
     marginBottom: verticalScale(14),
   },
   highlightDivider: {
-    height: StyleSheet.hairlineWidth,
+    height: 1,
     backgroundColor: 'rgba(0,0,0,0.12)',
     marginTop: verticalScale(12),
   },
   sectionDivider: {
-    height: StyleSheet.hairlineWidth,
+    height:1,
     backgroundColor: 'rgba(0,0,0,0.16)',
     marginVertical: verticalScale(18),
   },
   ratingsHeading: {
     fontFamily: 'Montserrat',
     fontSize: moderateScale(14),
-    color: '#2F2D1E',
   },
   ratingsContent: {
     flexDirection: 'row',
@@ -655,13 +651,12 @@ const styles = StyleSheet.create({
   ratingValue: {
     fontFamily: 'Montserrat',
     fontSize: moderateScale(32),
-    color: '#2F2D1E',
   },
   ratingCustomers: {
     marginTop: verticalScale(6),
-    fontFamily: 'InterRegular',
+    fontFamily: 'MontserratMedium',
     fontSize: moderateScale(12),
-    color: '#7C7754',
+    color: colors.textPrimary,
     textAlign: 'center',
   },
   ratingBreakdown: {
@@ -674,9 +669,9 @@ const styles = StyleSheet.create({
     gap: scale(8),
   },
   breakdownLabel: {
-    fontFamily: 'InterRegular',
+    fontFamily: 'MontserratMedium',
     fontSize: moderateScale(12),
-    color: '#2F2D1E',
+    color: colors.textPrimary,
   },
   progressTrack: {
     flex: 1,
@@ -692,9 +687,9 @@ const styles = StyleSheet.create({
   breakdownValue: {
     width: scale(42),
     textAlign: 'right',
-    fontFamily: 'InterRegular',
+    fontFamily: 'MontserratMedium',
     fontSize: moderateScale(12),
-    color: '#2F2D1E',
+    color: colors.textPrimary,
   },
   reviewsSection: {
     marginTop: verticalScale(24),
@@ -703,7 +698,6 @@ const styles = StyleSheet.create({
   reviewsHeading: {
     fontFamily: 'Montserrat',
     fontSize: moderateScale(14),
-    color: '#2F2D1E',
   },
   reviewItem: {
     marginTop: verticalScale(12),
@@ -723,29 +717,27 @@ const styles = StyleSheet.create({
   },
   reviewRatingText: {
     marginLeft: scale(4),
-    fontFamily: 'InterSemiBold',
+    fontFamily: 'MontserratMedium',
     fontSize: moderateScale(12),
     color: '#2F2D1E',
   },
   reviewerName: {
-    fontFamily: 'InterSemiBold',
+    fontFamily: 'MontserratMedium',
     fontSize: moderateScale(12),
     color: '#2F2D1E',
     marginRight: scale(8),
   },
   reviewDate: {
-    fontFamily: 'InterRegular',
+    fontFamily: 'MontserratMedium',
     fontSize: moderateScale(11),
     color: '#7C7754',
   },
   reviewTitle: {
-    fontFamily: 'InterSemiBold',
+    fontFamily: 'Montserrat',
     fontSize: moderateScale(14),
-    color: '#2F2D1E',
-    marginBottom: verticalScale(4),
   },
   reviewText: {
-    fontFamily: 'InterRegular',
+    fontFamily: 'MontserratMedium',
     fontSize: moderateScale(12),
     color: '#2F2D1E',
     lineHeight: moderateScale(16),

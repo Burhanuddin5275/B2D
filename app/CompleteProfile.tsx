@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 import { useAppSelector } from '../store/useAuth';
 import { colors } from '@/theme/colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function CompleteProfile() {
   const { phone: urlPhone } = useLocalSearchParams();
@@ -18,6 +19,7 @@ export default function CompleteProfile() {
   const [email, setEmail] = useState('')
   const [image, setImage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const pickImage = async () => {
      try {
@@ -136,11 +138,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   backgroundImage: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+flex: 1,
   },
 
   content: {

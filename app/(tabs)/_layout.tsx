@@ -1,9 +1,10 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Dimensions, View } from 'react-native';
+import { Dimensions, Platform, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 
@@ -13,21 +14,10 @@ export default function TabLayout() {
   const { width: screenWidth } = Dimensions.get('window');
   const insets = useSafeAreaInsets();
 
-const hasSystemNavigation = insets.bottom > 0; // If bottom inset is greater than 0, system navigation is present
-const tabBarHeight = hasSystemNavigation 
-  ? verticalScale(40)  // Smaller height when system navigation is present
-  : verticalScale(50); // Slightly larger height when no system navigation
 
-const getTabBarHeight = () => {
-  return screenWidth < 350
-    ? tabBarHeight - verticalScale(5)  // Slightly smaller for very small screens
-    : screenWidth < 400
-    ? tabBarHeight
-    : tabBarHeight + verticalScale(5); // Slightly larger for larger screens
-};
-
-  // 👇 Dynamically calculate bottom spacing
-  const bottomInset = insets.bottom > 0 ? insets.bottom : verticalScale(16);
+  const getTabBarHeight = () => {
+    return screenWidth < 350 ? verticalScale(75) : screenWidth < 350 ? verticalScale(70) : verticalScale(65);
+  };
 
   return (
     <Tabs
@@ -36,24 +26,28 @@ const getTabBarHeight = () => {
         tabBarInactiveTintColor: '#8E8E93',
         headerShown: false,
         tabBarStyle: {
-          height: getTabBarHeight() + bottomInset, 
-          paddingTop: 6,
-          backgroundColor: '#FFF6E2',
-          borderRadius: 25,
-          borderTopWidth: 1,
-          borderTopColor: '#F0F0F0',
+          marginBottom: verticalScale(6),
+          backgroundColor: 'transparent', 
+          paddingTop: verticalScale(6), 
           position: 'absolute',
-          bottom: bottomInset > 20 ? bottomInset - 1 : 0,
-          paddingBottom: bottomInset,
+          bottom: 0,
+          paddingBottom: Math.max(insets.bottom, verticalScale(2)),
           paddingHorizontal: scale(8),
+          height: getTabBarHeight() + (Platform.OS === 'android' ? insets.bottom : 0),
+          borderTopLeftRadius: moderateScale(30),
+          borderTopRightRadius: moderateScale(30),
+          borderTopWidth: 0,
           justifyContent: 'center',
           alignItems: 'center',
         },
         tabBarLabelStyle: {
-          fontSize: moderateScale(12),
-          fontWeight: '500',
-          marginBottom: 2,
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingVertical: verticalScale(4),
+          marginHorizontal: scale(2)
         },
+        tabBarBackground: () => <TabBarBackground />,
       }}
     >
       <Tabs.Screen
@@ -124,10 +118,34 @@ const getTabBarHeight = () => {
           ),
         }}
       />
-          <Tabs.Screen
+      <Tabs.Screen
         name="Category"
         options={{
           title: 'Category',
+          href: null,
+          tabBarIcon: ({ color }) => (
+            <View>
+              <IconSymbol size={24} name="magnifyingglass" color={color} />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="Store"
+        options={{
+          title: 'Store',
+          href: null,
+          tabBarIcon: ({ color }) => (
+            <View>
+              <IconSymbol size={24} name="magnifyingglass" color={color} />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="Stores"
+        options={{
+          title: 'Stores',
           href: null,
           tabBarIcon: ({ color }) => (
             <View>

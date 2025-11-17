@@ -4,12 +4,12 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { ImageBackground } from 'expo-image';
 import { router } from 'expo-router';
-import { ProductStyle } from '../../assets/css/style';
 import React, { useEffect, useRef, useState } from 'react';
 import { Dimensions, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 import { useSelector } from 'react-redux';
+import { ProductStyle } from '../../assets/css/style';
 import { addToWishlist, removeFromWishlist, selectWishlistItems } from '../../store/wishlistSlice';
 const { width } = Dimensions.get('window');
 
@@ -25,14 +25,17 @@ const categories = [
 const stores = [
   {
     id: 1,
+    name: 'Lisa Mart',
     image: require('../../assets/images/store1.png'),
   },
   {
     id: 2,
+    name: 'Fresh',
     image: require('../../assets/images/store2.png'),
   },
   {
     id: 3,
+    name: 'Fresh Mart',
     image: require('../../assets/images/store3.png'),
   },
 
@@ -53,7 +56,7 @@ const products = [
     name: 'Great Value Mini\nPretzel Twists',
     subtitle: '16 oz',
     category: 'Snacks',
-    seller: 'Fresh Mart',
+    seller: 'Lisa Mart',
     price: 2.24,
     img: require('../../assets/images/Mini.png'),
   },
@@ -71,7 +74,7 @@ const products = [
     name: 'LOVE CORN Variety Pack | Sea Salt, BBQ...',
     subtitle: '0.7oz, 18 Bags',
     category: 'Snacks',
-    seller: 'Fresh Mart',
+    seller: 'Lisa Mart',
     price: 15.19,
     img: require('../../assets/images/snack.png'),
   },
@@ -80,7 +83,7 @@ const products = [
     name: 'Fresh Sweet\nCorn on the Cob',
     subtitle: '1 each',
     category: 'Fresh produce',
-    seller: 'Lisa Mart',
+    seller: 'Fresh Mart',
     price: 4.98,
     img: require('../../assets/images/corn.png'),
   },
@@ -98,7 +101,7 @@ const products = [
     name: 'Fresh Roma Tomato',
     subtitle: '1 pieces',
     category: 'Fresh produce',
-    seller: 'Lisa Mart',
+    seller: 'Fresh Mart',
     price: 10.19,
     img: require('../../assets/images/tomatao.png'),
   },
@@ -107,7 +110,7 @@ const products = [
     name: 'Fresh Hass Avocado',
     subtitle: '1 pieces',
     category: 'Fresh produce',
-    seller: 'Lisa Mart',
+    seller: 'Fresh Mart',
     price: 15.19,
     img: require('../../assets/images/avocados.png'),
   },
@@ -290,6 +293,17 @@ export default function HomeScreen() {
                       x: index * storeCardWidth,
                       animated: true
                     });
+                          const storeProducts = products.filter(
+                    product => product.seller.toLowerCase() === store.name.split('\n')[0].toLowerCase()
+                  );
+
+                  router.push({
+                    pathname: '/Store',
+                    params: {
+                      StoreName: store.name,
+                      products: JSON.stringify(storeProducts)
+                    }
+                  })
                   }}
                 >
                   <Image source={store.image} style={styles.storeImage} />
@@ -415,7 +429,7 @@ const styles = StyleSheet.create({
   },
   deliveryTime: {
     fontSize: moderateScale(28),
-    fontWeight: '600',
+    fontWeight: '700',
     fontFamily:'Montserrat',
     color: '#000',
   },

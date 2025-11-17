@@ -163,6 +163,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
+    fontFamily:'Montserrat',
     fontSize: moderateScale(18),
     fontWeight: '600',
     textAlign:'center'

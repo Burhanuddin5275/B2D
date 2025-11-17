@@ -1,7 +1,4 @@
-import { ProductStyle } from '@/assets/css/style'
 import Header from '@/components/Header'
-import { addToCart, removeFromCart, selectCartItems, updateQuantity } from '@/store/cartSlice'
-import { useAppSelector } from '@/store/useAuth'
 import { colors } from '@/theme/colors'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
@@ -11,6 +8,9 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { scale, verticalScale } from 'react-native-size-matters'
 import { useDispatch, useSelector } from 'react-redux'
 import { addToWishlist, removeFromWishlist, selectWishlistItems } from '../../store/wishlistSlice'
+import { ProductStyle } from '@/assets/css/style'
+import { addToCart, removeFromCart, selectCartItems, updateQuantity } from '@/store/cartSlice'
+import { useAppSelector } from '@/store/useAuth'
 
 interface Product {
   id: number;
@@ -23,21 +23,21 @@ interface Product {
 }
 
 
-const Category = () => {
+const Store = () => {
   const [selectedOption, setSelectedOption] = useState('Relevance');
   const insets = useSafeAreaInsets();
   const [quantities, setQuantities] = useState<Record<number, number>>({});
   const [wishlist, setWishlist] = useState<number[]>([]);
   const checkIsInWishlist = (productId: number) => wishlist.includes(productId);
   const dispatch = useDispatch(); 
-  const { categoryName, products } = useLocalSearchParams();
+  const { StoreName, products } = useLocalSearchParams();
   const productsData: Product[] = products ? JSON.parse(products as string) : [];
   const wishlistItems = useSelector(selectWishlistItems);
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const cartItems = useAppSelector(selectCartItems);
 
   // Set header title to the category name
-  const headerTitle = typeof categoryName === 'string' ? categoryName : 'Category';
+  const headerTitle = typeof StoreName === 'string' ? StoreName : 'Store';
 
   const toggleWishlist = (product: any) => {
     if (checkIsInWishlist(product.id)) {
@@ -48,6 +48,8 @@ const Category = () => {
       setWishlist(prev => [...prev, product.id]);
     }
   };
+
+
 
   const showFilterModal = () => {
     setIsFilterVisible(true);
@@ -278,7 +280,7 @@ const [quantity, setQuantity] = useState(1);
   )
 }
 
-export default Category
+export default Store
 
 const styles = StyleSheet.create({
   headerContainer: {

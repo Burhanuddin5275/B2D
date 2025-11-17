@@ -76,15 +76,15 @@ const ManageAddress = () => {
                     animationType="slide"
                     onRequestClose={() => setIsModalVisible(false)}
                 >
-                    <View style={[styles.modalOverlay,{ paddingBottom: Math.max(insets.bottom, verticalScale(1)) }]}>
-                        <TouchableOpacity 
+                    <View style={[styles.modalOverlay, { paddingBottom: Math.max(insets.bottom, verticalScale(1)) }]}>
+                        <TouchableOpacity
                             style={styles.modalBackground}
                             activeOpacity={1}
                             onPress={() => setIsModalVisible(false)}
                         />
                         <View style={styles.modalContainer}>
                             <View style={styles.actionSheet}>
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     style={styles.actionButton}
                                     onPress={() => {
                                         if (selectedAddress) {
@@ -98,10 +98,10 @@ const ManageAddress = () => {
                                 >
                                     <Text style={styles.actionButtonText}>Edit address</Text>
                                 </TouchableOpacity>
-                                
+
                                 <View style={styles.divider} />
-                                
-                                <TouchableOpacity 
+
+                                <TouchableOpacity
                                     style={[styles.actionButton, styles.destructiveButton]}
                                     onPress={() => {
                                         if (selectedAddress) {
@@ -113,8 +113,8 @@ const ManageAddress = () => {
                                     <Text style={styles.destructiveButtonText}>Remove address</Text>
                                 </TouchableOpacity>
                             </View>
-                            
-                            <TouchableOpacity 
+
+                            <TouchableOpacity
                                 style={styles.cancelButton}
                                 onPress={() => setIsModalVisible(false)}
                             >
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     addressName: {
-        fontFamily:'Montserrat',
+        fontFamily: 'Montserrat',
         fontSize: moderateScale(16),
         fontWeight: '600',
         marginRight: 8,
@@ -171,8 +171,8 @@ const styles = StyleSheet.create({
         marginLeft: scale(15)
     },
     addressText: {
-        fontFamily:'MontserratMedium',
-        fontWeight:'500',
+        fontFamily: 'MontserratMedium',
+        fontWeight: '500',
         fontSize: moderateScale(14),
     },
 
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
         right: 0,
     },
     addButtonText: {
-        fontFamily:'Montserrat',
+        fontFamily: 'Montserrat',
         color: colors.white,
         fontSize: moderateScale(16),
         fontWeight: '600',
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0, 0, 0, 0.4)',
     },
     modalBackground: {
-    flex:1, 
+        flex: 1,
     },
     modalContainer: {
         padding: 8,
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'white',
     },
     actionButtonText: {
-        fontFamily:'MontserratMedium',
+        fontFamily: 'MontserratMedium',
         fontSize: moderateScale(14),
         color: '#007AFF',
         fontWeight: '400',
