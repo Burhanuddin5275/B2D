@@ -4,6 +4,7 @@ import {
   Alert, Image,
   ImageBackground,
   KeyboardAvoidingView, Linking, Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -135,49 +136,52 @@ const VerifyNumber = () => {
           style={styles.container}
         >
           <SafeAreaView style={styles.safeArea}>
-            <View style={styles.header}>
+            <ScrollView
+              contentContainerStyle={{paddingBottom: verticalScale(50) }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+                    <View style={styles.header}>
               <Text style={styles.title}>Verify phone number!</Text>
               <Text style={styles.subtitle}>
                 Please enter the code that we've
-                sent to <Text style={{color:colors.primaryDark}}>{phone || '+1 234 567 890'}</Text>
+                sent to <Text style={{ color: colors.primaryDark }}>{phone || '+1 234 567 890'}</Text>
               </Text>
             </View>
-
-            <View style={styles.codeContainer}>
-              {[0, 1, 2, 3].map((index) => (
-                <TextInput
-                  key={index}
-                  ref={(ref) => {
-                    if (ref) {
-                      inputs.current[index] = ref;
-                    }
-                  }}
-                  style={styles.codeInput}
-                  keyboardType="number-pad"
-                  maxLength={1}
-                  value={code[index]}
-                  onChangeText={(text) => handleCodeChange(text, index)}
-                  onKeyPress={({ nativeEvent }) => {
-                    if (nativeEvent.key === 'Backspace' && !code[index] && index > 0) {
-                      // @ts-ignore - refs are handled by React Native
-                      const prevInput = inputs.current[index - 1];
-                      prevInput?.focus();
-                    }
-                  }}
-                  textContentType="oneTimeCode"
-                  autoComplete="one-time-code"
-                />
-              ))}
-            </View>
-            <TouchableOpacity
-              style={[styles.verifyButton, { opacity: code.every(c => c) ? 1 : 0.5 }]}
-              onPress={handleVerify}
-              disabled={!code.every(c => c)}
-            >
-              <Text style={styles.verifyButtonText}>Verify & proceed</Text>
-            </TouchableOpacity>
-            
-            <View style={styles.resendContainer}>
+              <View style={styles.codeContainer}>
+                {[0, 1, 2, 3].map((index) => (
+                  <TextInput
+                    key={index}
+                    ref={(ref) => {
+                      if (ref) {
+                        inputs.current[index] = ref;
+                      }
+                    }}
+                    style={styles.codeInput}
+                    keyboardType="number-pad"
+                    maxLength={1}
+                    value={code[index]}
+                    onChangeText={(text) => handleCodeChange(text, index)}
+                    onKeyPress={({ nativeEvent }) => {
+                      if (nativeEvent.key === 'Backspace' && !code[index] && index > 0) {
+                        // @ts-ignore - refs are handled by React Native
+                        const prevInput = inputs.current[index - 1];
+                        prevInput?.focus();
+                      }
+                    }}
+                    textContentType="oneTimeCode"
+                    autoComplete="one-time-code"
+                  />
+                ))}
+              </View>
+              <TouchableOpacity
+                style={[styles.verifyButton, { opacity: code.every(c => c) ? 1 : 0.5 }]}
+                onPress={handleVerify}
+                disabled={!code.every(c => c)}
+              >
+                <Text style={styles.verifyButtonText}>Verify & proceed</Text>
+              </TouchableOpacity>
+                    <View style={styles.resendContainer}>
               <Text style={styles.resendText}>
                 {isCountdownActive
                   ? `Resend code in ${countdown}s`
@@ -194,6 +198,7 @@ const VerifyNumber = () => {
                 </TouchableOpacity>
               )}
             </View>
+            </ScrollView>
           </SafeAreaView>
         </KeyboardAvoidingView>
       </ImageBackground>

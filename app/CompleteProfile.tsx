@@ -52,7 +52,9 @@ export default function CompleteProfile() {
         style={styles.backgroundImage}
       >
         <Header title="Complete profile" showDefaultIcons={false} />
-        <ScrollView>
+        <ScrollView
+        contentContainerStyle={{paddingBottom: verticalScale(100) }}
+        >
           <View style={styles.content}>
             <TouchableOpacity 
               style={styles.photoWrap} 

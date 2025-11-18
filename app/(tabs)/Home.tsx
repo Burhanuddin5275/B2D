@@ -11,6 +11,7 @@ import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 import { useSelector } from 'react-redux';
 import { ProductStyle } from '../../assets/css/style';
 import { addToWishlist, removeFromWishlist, selectWishlistItems } from '../../store/wishlistSlice';
+import { colors } from '@/theme/colors';
 const { width } = Dimensions.get('window');
 
 const categories = [
@@ -362,7 +363,7 @@ export default function HomeScreen() {
                             onPress={() => incrementQuantity(product.id)}
                             onPressIn={() => handleAddToCart(product)}
                           >
-                            <Text style={ProductStyle.addButtonText}>+ Add</Text>
+                            <Text style={ProductStyle.addButtonText}>Add To Cart</Text>
                           </TouchableOpacity>
                         ) : (
                           <View style={ProductStyle.qtyControl}>
@@ -458,7 +459,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#F4A300',
+    color: colors.primaryDark,
   },
   section: {
     marginTop: verticalScale(20),

@@ -3,6 +3,7 @@ import { CartItem, removeFromCart, selectCartItems, selectCartTotalPrice, update
 import { useAppDispatch, useAppSelector } from '@/store/useAuth';
 import { colors } from '@/theme/colors';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { router } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Image,
@@ -29,6 +30,7 @@ export default function Cart() {
   const dispatch = useAppDispatch();
   const cartItems = useAppSelector(selectCartItems);
   const cartTotalPrice = useAppSelector(selectCartTotalPrice);
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
   const insets = useSafeAreaInsets();
   const [deliveryType, setDeliveryType] = useState<'express' | 'regular'>('express');
   const [scheduled, setScheduled] = useState(false);
@@ -120,7 +122,7 @@ export default function Cart() {
   const [selectedAddress, setSelectedAddress] = useState(addresses[0]);
   return (
     <SafeAreaView
-      style={[styles.safeArea,{ paddingBottom: Math.max(insets.bottom, verticalScale(1)) }]}
+      style={[styles.safeArea, { paddingBottom: Math.max(insets.bottom, verticalScale(1)) }]}
     >
       <ImageBackground
         source={require('../../assets/images/background2.png')}
@@ -208,7 +210,7 @@ export default function Cart() {
                             <View style={styles.itemDetails}>
                               <Text style={styles.itemName}>{item.name}</Text>
                               <Text style={styles.itemPrice}>
-                                ${item.price.toFixed(2)}
+                                ${item.price * item.quantity}
                               </Text>
                             </View>
                             <View style={styles.quantityControls}>
@@ -242,7 +244,7 @@ export default function Cart() {
                 <Text style={styles.disclaimerText}>
                   <Text style={styles.disclaimerTitle}>Disclaimer: </Text>
                   Weight of the vegetables will vary based on their packaging which would
-                  eventually impact the price of the item
+                  eventually impact the price of the item.
                 </Text>
               </View>
             </>
@@ -254,7 +256,7 @@ export default function Cart() {
                 <Text style={styles.sectionHeading}>Delivery type</Text>
                 <View style={styles.deliveryTypeRow}>
                   {[
-                    { id: 'express', label: 'Express (24 hrs)' },
+                    { id: 'express', label: 'Express' },
                     { id: 'regular', label: 'Regular (1-2 days)' },
                   ].map((option) => {
                     const isActive = deliveryType === option.id;
@@ -311,9 +313,9 @@ export default function Cart() {
                 </View>
                 <View style={styles.tipButtonsRow}>
                   {[
+                    { id: '5', label: '5%' },
                     { id: '10', label: '10%' },
                     { id: '15', label: '15%' },
-                    { id: '20', label: '20%' },
                   ].map((option) => {
                     const isActive = selectedTip === option.id;
                     return (
@@ -362,7 +364,7 @@ export default function Cart() {
                       value={customTip}
                       onChangeText={setCustomTip}
                       placeholder="Enter amount"
-                      placeholderTextColor="#A7A7A7"
+                      placeholderTextColor={colors.textPrimary}
                       keyboardType="decimal-pad"
                       style={[styles.customTipInput, { flex: 1 }]}
                     />
@@ -375,10 +377,9 @@ export default function Cart() {
                 <TextInput
                   multiline
                   numberOfLines={4}
-                  value={additionalComments}
                   onChangeText={setAdditionalComments}
                   placeholder="Add delivery instructions for the driver"
-                  placeholderTextColor="#A7A7A7"
+                  placeholderTextColor={colors.textPrimary}
                   style={styles.commentsInput}
                   textAlignVertical="top"
                 />
@@ -414,7 +415,19 @@ export default function Cart() {
               <TouchableOpacity
                 style={styles.placeOrderButton}
                 activeOpacity={0.9}
-                onPress={() => setIsPaymentModalVisible(true)}
+                onPress={() => {
+                  if (!isAuthenticated) {
+                    router.push({
+                      pathname: '/Login',
+                      params: {
+                        redirectTo: '/(tabs)/Cart',
+                        message: 'Please login to place your order'
+                      }
+                    });
+                    return;
+                  }
+                  setIsPaymentModalVisible(true);
+                }}
               >
                 <Text style={styles.placeOrderButtonText}>Place Order</Text>
               </TouchableOpacity>
@@ -427,56 +440,59 @@ export default function Cart() {
           animationType="fade"
           onRequestClose={() => setIsPaymentModalVisible(false)}
         >
-         <View style={[styles.modalOverlay,{ paddingBottom: Math.max(insets.bottom, verticalScale(1))}]}>
-           <TouchableOpacity
-            style={styles.modalBackground}
-            activeOpacity={1}
-            onPress={() => setIsPaymentModalVisible(false)}
-          >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Payment method</Text>
-              <TouchableOpacity onPress={() => setIsPaymentModalVisible(false)}>
-                <Ionicons name="close" size={20} color="#9E9970" />
-              </TouchableOpacity>
-            </View>
-            {[
-              { id: 'credit', label: 'Credit Card' },
-              { id: 'debit', label: 'Debit Card' },
-              { id: 'square', label: 'Marketplace Square Payment' },
-            ].map((method) => {
-              const isActive = selectedPaymentMethod === method.id;
-              return (
-                <TouchableOpacity
-                  key={method.id}
-                  style={[
-                    styles.paymentOption,
-                    method.id === 'square' && styles.paymentOptionLast,
-                  ]}
-                  activeOpacity={0.85}
-                  onPress={() => setSelectedPaymentMethod(method.id as typeof selectedPaymentMethod)}
-                >
-                  <View style={[styles.modalRadioOuter, isActive && styles.modalRadioOuterActive]}>
-                    {isActive && <View style={styles.modalRadioInner} />}
-                  </View>
-                  <Text style={[styles.paymentOptionLabel, isActive && styles.paymentOptionLabelActive]}>
-                    {method.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-          </TouchableOpacity>
+          <View style={[styles.modalOverlay, { paddingBottom: Math.max(insets.bottom, verticalScale(1)) }]}>
+            <TouchableOpacity
+              style={styles.modalBackground}
+              activeOpacity={1}
+              onPress={() => setIsPaymentModalVisible(false)}
+            >
+              <View style={styles.modalContainer}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Payment method</Text>
+                  <TouchableOpacity onPress={() => setIsPaymentModalVisible(false)}>
+                    <Ionicons name="close" size={20} color="#9E9970" />
+                  </TouchableOpacity>
+                </View>
+                {[
+                  { id: 'credit', label: 'Credit Card' },
+                  { id: 'debit', label: 'Debit Card' },
+                  { id: 'square', label: 'Marketplace Square Payment' },
+                ].map((method) => {
+                  const isActive = selectedPaymentMethod === method.id;
+                  return (
+                    <TouchableOpacity
+                      key={method.id}
+                      style={[
+                        styles.paymentOption,
+                        method.id === 'square' && styles.paymentOptionLast,
+                      ]}
+                      activeOpacity={0.85}
+                      onPress={() => setSelectedPaymentMethod(method.id as typeof selectedPaymentMethod)}
+                    >
+                      <View style={[styles.modalRadioOuter, isActive && styles.modalRadioOuterActive]}>
+                        {isActive && <View style={styles.modalRadioInner} />}
+                      </View>
+                      <Text style={[styles.paymentOptionLabel, isActive && styles.paymentOptionLabelActive]}>
+                        {method.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.modalPrimaryButton}
               activeOpacity={0.9}
-              onPress={() => setIsPaymentModalVisible(false)}
+              onPress={() => {
+                setIsPaymentModalVisible(false);
+                router.push('/(tabs)/Order');
+              }}
             >
               <Text style={styles.modalPrimaryButtonText}>
                 Proceed to pay ${payableTotal.toFixed(2)}
               </Text>
-            </TouchableOpacity> 
-         </View>
+            </TouchableOpacity>
+          </View>
         </Modal>
         <Modal
           visible={isAddressModalVisible}
@@ -494,7 +510,7 @@ export default function Cart() {
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>Select Delivery Address</Text>
                   <TouchableOpacity onPress={() => setIsAddressModalVisible(false)}>
-                    <Ionicons name="close" size={20} color="#9E9970" />
+                    <Ionicons name="close" size={20} color={colors.textPrimary} />
                   </TouchableOpacity>
                 </View>
 
@@ -523,7 +539,7 @@ export default function Cart() {
                             console.log('Edit address:', address.id);
                           }}
                         >
-                          <Ionicons name="create-outline" size={20} color="#9E9970" />
+                          <Ionicons name="create-outline" size={20} color={colors.textPrimary} />
                         </TouchableOpacity>
                       </View>
                     </TouchableOpacity>
@@ -531,17 +547,17 @@ export default function Cart() {
                 </ScrollView>
               </View>
             </TouchableOpacity>
-            
-                <TouchableOpacity
-                  style={[styles.modalPrimaryButton]}
-                  activeOpacity={0.9}
-                  onPress={() => {
-                    // Handle add new address
-                    setIsAddressModalVisible(false);
-                  }}
-                >
-                  <Text style={styles.modalPrimaryButtonText}>Add New Address</Text>
-                </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.modalPrimaryButton]}
+              activeOpacity={0.9}
+              onPress={() => {
+                router.replace('/AddAddress');
+                setIsAddressModalVisible(false);
+              }}
+            >
+              <Text style={styles.modalPrimaryButtonText}>Add New Address</Text>
+            </TouchableOpacity>
           </View>
         </Modal>
       </ImageBackground>
@@ -570,7 +586,7 @@ const styles = StyleSheet.create({
     fontFamily: 'PoppinsSemi',
     fontWeight: '600',
     fontSize: moderateScale(16),
-  }, 
+  },
   subHeadline: {
     fontFamily: '  PoppinsMedium',
     fontStyle: 'italic',
@@ -581,7 +597,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 8,
     padding: 16,
-    marginBottom: 12, 
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#e0e0e0',
   },
@@ -624,7 +640,7 @@ const styles = StyleSheet.create({
   },
   sellerName: {
     fontFamily: 'Montserrat',
-    fontSize: moderateScale(14), 
+    fontSize: moderateScale(14),
   },
   sellerMeta: {
     fontFamily: 'InterRegular',
@@ -804,12 +820,12 @@ const styles = StyleSheet.create({
   linkText: {
     fontFamily: 'PoppinsSemi',
     fontSize: moderateScale(12),
+    fontWeight: '600',
     color: colors.primaryDark,
   },
   addressLabel: {
     fontFamily: 'PoppinsMedium',
     fontSize: moderateScale(12),
-    color: '#2F2D1E',
     lineHeight: 18,
   },
   addressOption: {

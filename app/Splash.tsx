@@ -4,6 +4,7 @@ import { Image, ImageBackground, StyleSheet, Text, TouchableOpacity, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors } from '@/theme/colors';
 const Splash = () => {
   const insets = useSafeAreaInsets();
   useEffect(() => {
@@ -67,21 +68,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   getStartedButton: { 
-    paddingHorizontal: 24,
-    paddingVertical: 12, 
+    backgroundColor: colors.primaryDark,
+    paddingHorizontal: scale(14),
+    paddingVertical: verticalScale(8),  
     borderRadius: 25,
-    width: scale(200),
+    width: scale(150),
   },
   buttonText: {
     fontSize: moderateScale(18),
     fontWeight: '600',
     fontFamily:' Montserrat',
-    textAlign: 'center', 
+    textAlign: 'center',
+    color: colors.white, 
   },
   subText: {
+    marginTop: verticalScale(8), 
     width: scale(240),
     fontSize: moderateScale(14),
-    fontWeight: '400',
+    fontWeight: '400', 
     fontFamily:' MontserratMedium',
     textAlign: 'center',
   },

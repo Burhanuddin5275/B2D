@@ -2,7 +2,7 @@ import Header from '@/components/Header';
 import { colors } from '@/theme/colors';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Image, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 
@@ -35,62 +35,65 @@ export default function Login() {
         source={require('../assets/images/background2.png')}
         style={styles.backgroundImage}
       >
-     <Header showBackButton={false} title='' showDefaultIcons={false}/>
+        <Header showBackButton={false} title='' showDefaultIcons={false} />
         <View style={styles.logoWrap}>
           <Image
             source={require('../assets/images/logo.png')}
             style={styles.logo}
           />
         </View>
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: verticalScale(180) }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.titleWrap}>
+            <Text style={styles.title}>Welcome! Login to your</Text>
+            <Text style={styles.title}>customer account!</Text>
+          </View>
 
-        <View style={styles.titleWrap}>
-          <Text style={styles.title}>Welcome! Login to your</Text>
-          <Text style={styles.title}>customer account!</Text>
-        </View>
-
-        <View style={styles.phoneInputWrap}>
-          <View style={styles.flagBox}>
-            <Image
-              source={require('../assets/images/flag.png')}
-              style={{ width: scale(24) }}
-              resizeMode="contain"
+          <View style={styles.phoneInputWrap}>
+            <View style={styles.flagBox}>
+              <Image
+                source={require('../assets/images/flag.png')}
+                style={{ width: scale(24) }}
+                resizeMode="contain"
+              />
+            </View>
+            <Text style={styles.prefix}>+1</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Phone number"
+              keyboardType="phone-pad"
+              placeholderTextColor="#A1A1A1"
+              value={phoneNumber}
+              onChangeText={handlePhoneChange}
+              maxLength={10}
             />
           </View>
-          <Text style={styles.prefix}>+1</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Phone number"
-            keyboardType="phone-pad"
-            placeholderTextColor="#A1A1A1"
-            value={phoneNumber}
-            onChangeText={handlePhoneChange}
-            maxLength={10}
-          />
-        </View>
 
-        <TouchableOpacity
-          activeOpacity={1}
-          style={[styles.continueBtn, !isValid && styles.disabledBtn]}
-          onPress={handleContinue}
-          disabled={!isValid}
-        >
-          <Text style={styles.continueText}>Continue</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.agreeText}>
-          By continuing, you agree to
-        </Text>
-        <View style={styles.linksRow}>
-          <TouchableOpacity>
-            <Text style={styles.link}>Terms & conditions</Text>
+          <TouchableOpacity
+            activeOpacity={1}
+            style={[styles.continueBtn, !isValid && styles.disabledBtn]}
+            onPress={handleContinue}
+            disabled={!isValid}
+          >
+            <Text style={styles.continueText}>Continue</Text>
           </TouchableOpacity>
-          <Text style={styles.andText}> and </Text>
-          <TouchableOpacity>
-            <Text style={styles.link}>Privacy policy</Text>
-          </TouchableOpacity>
-          <Text style={styles.dot}>.</Text>
-        </View>
 
+          <Text style={styles.agreeText}>
+            By continuing, you agree to
+          </Text>
+          <View style={styles.linksRow}>
+            <TouchableOpacity>
+              <Text style={styles.link}>Terms & conditions</Text>
+            </TouchableOpacity>
+            <Text style={styles.andText}> and </Text>
+            <TouchableOpacity>
+              <Text style={styles.link}>Privacy policy.</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </ImageBackground>
     </SafeAreaView>
   );
@@ -100,7 +103,7 @@ const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
   },
- 
+
   logoWrap: {
     marginTop: verticalScale(10),
     marginBottom: verticalScale(24),
@@ -117,7 +120,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: 'PoppinsBold',
-    fontWeight: '600', 
+    fontWeight: '600',
     fontSize: moderateScale(22),
     lineHeight: verticalScale(30),
   },
@@ -155,18 +158,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryDark,
     paddingVertical: verticalScale(14),
     borderRadius: moderateScale(8),
-    alignItems: 'center', 
+    alignItems: 'center',
     marginTop: verticalScale(16),
     marginBottom: verticalScale(18),
     alignSelf: 'center',
   },
-  disabledBtn: { 
+  disabledBtn: {
     backgroundColor: colors.textSecondary,
-  }, 
+  },
   continueText: {
     color: colors.white,
     fontSize: moderateScale(14),
-    fontFamily: 'Montserrat', 
+    fontFamily: 'Montserrat',
     fontWeight: '600',
   },
   agreeText: {
@@ -189,13 +192,10 @@ const styles = StyleSheet.create({
     color: colors.primaryDark,
     fontSize: moderateScale(12),
     fontWeight: '600',
-  },  
+  },
   andText: {
     color: colors.textPrimary,
     fontSize: moderateScale(12),
   },
-  dot: {
-    color: colors.textPrimary,
-    fontSize: moderateScale(12),
-  },
+
 });
