@@ -78,5 +78,6 @@ export const { addToCart, removeFromCart, updateQuantity, clearCart } = cartSlic
 export const selectCartItems = (state: { cart: CartState }) => state.cart.items;
 export const selectCartTotalItems = (state: { cart: CartState }) => state.cart.totalItems;
 export const selectCartTotalPrice = (state: { cart: CartState }) => state.cart.totalPrice;
+export const selectCartUniqueItems = (state: { cart: CartState }) => state.cart.items.length;
 
 export default cartSlice.reducer;

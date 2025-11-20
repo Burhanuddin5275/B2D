@@ -2,9 +2,11 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { selectCartUniqueItems } from '@/store/cartSlice';
+import { useAppSelector } from '@/store/useAuth';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Dimensions, Platform, View } from 'react-native';
+import { Dimensions, Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 
@@ -54,9 +56,10 @@ export default function TabLayout() {
         name="Home"
         options={{
           title: 'Home',
+          tabBarLabelStyle: styles.text,
           tabBarIcon: ({ color }) => (
             <View>
-              <IconSymbol size={24} name="house.fill" color={color} />
+              <IconSymbol size={scale(28)} name="house.fill" color={color} />
             </View>
           ),
         }}
@@ -65,9 +68,10 @@ export default function TabLayout() {
         name="Order"
         options={{
           title: 'Orders',
+          tabBarLabelStyle: styles.text,
           tabBarIcon: ({ color }) => (
             <View>
-              <IconSymbol size={24} name="bag.fill" color={color} />
+              <IconSymbol size={scale(28)} name="bag.fill" color={color} />
             </View>
           ),
         }}
@@ -76,20 +80,32 @@ export default function TabLayout() {
         name="Cart"
         options={{
           title: 'Cart',
-          tabBarIcon: ({ color }) => (
-            <View>
-              <IconSymbol size={24} name="cart.fill" color={color} />
-            </View>
-          ),
+          tabBarLabelStyle: styles.text,
+          tabBarIcon: ({ color }) => {
+            const cartItemsCount = useAppSelector(selectCartUniqueItems);
+            return (
+              <View>
+                <IconSymbol size={scale(28)} name="cart.fill" color={color} />
+                {cartItemsCount > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>
+                      {cartItemsCount > 99 ? '99+' : cartItemsCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            );
+          },
         }}
       />
       <Tabs.Screen
         name="Profile"
         options={{
           title: 'Profile',
+          tabBarLabelStyle: styles.text,
           tabBarIcon: ({ color }) => (
             <View>
-              <IconSymbol size={24} name="person.fill" color={color} />
+              <IconSymbol size={scale(28)} name="person.fill" color={color} />
             </View>
           ),
         }}
@@ -98,10 +114,11 @@ export default function TabLayout() {
         name="Search"
         options={{
           title: 'Search',
+          tabBarLabelStyle: styles.text,
           href: null,
           tabBarIcon: ({ color }) => (
             <View>
-              <IconSymbol size={24} name="magnifyingglass" color={color} />
+              <IconSymbol size={scale(28)} name="magnifyingglass" color={color} />
             </View>
           ),
         }}
@@ -110,10 +127,11 @@ export default function TabLayout() {
         name="Categories"
         options={{
           title: 'Categories',
+          tabBarLabelStyle: styles.text,
           href: null,
           tabBarIcon: ({ color }) => (
             <View>
-              <IconSymbol size={24} name="magnifyingglass" color={color} />
+              <IconSymbol size={scale(28)} name="magnifyingglass" color={color} />
             </View>
           ),
         }}
@@ -125,7 +143,7 @@ export default function TabLayout() {
           href: null,
           tabBarIcon: ({ color }) => (
             <View>
-              <IconSymbol size={24} name="magnifyingglass" color={color} />
+              <IconSymbol size={scale(28)} name="magnifyingglass" color={color} />
             </View>
           ),
         }}
@@ -137,7 +155,7 @@ export default function TabLayout() {
           href: null,
           tabBarIcon: ({ color }) => (
             <View>
-              <IconSymbol size={24} name="magnifyingglass" color={color} />
+              <IconSymbol size={scale(28)} name="magnifyingglass" color={color} />
             </View>
           ),
         }}
@@ -149,7 +167,7 @@ export default function TabLayout() {
           href: null,
           tabBarIcon: ({ color }) => (
             <View>
-              <IconSymbol size={24} name="magnifyingglass" color={color} />
+              <IconSymbol size={scale(28)} name="magnifyingglass" color={color} />
             </View>
           ),
         }}
@@ -157,3 +175,28 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  badge: {
+    position: 'absolute',
+    left: scale(15),
+    bottom: verticalScale(15),
+    backgroundColor: '#FF3B30',
+    borderRadius: 10,
+    minWidth: 15,
+    height: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: 'white',
+    fontSize: scale(8),
+    fontWeight: 'bold',
+  },
+  text:{
+    fontSize: scale(12),
+    fontFamily: 'PoppinsMedium',
+    fontWeight: '400',
+  }
+});

@@ -16,7 +16,7 @@
         "foregroundImage": "./assets/images/b2d.png",
         "backgroundColor": "#FAFAFA"
       },
-      "edgeToEdgeEnabled": true,
+      "edgeToEdgeEnabled": false,
       "predictiveBackGestureEnabled": false,
       "package": "com.hamza527522.B2D"
     },

@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
   },
   innerBg: {
-    height: verticalScale(100),
+    height: verticalScale(75),
     justifyContent: 'center',
   },
   headerRow: {
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: scale(16),
-    height: verticalScale(80),
+    height: verticalScale(75),
     position: 'relative',
     marginTop: verticalScale(20),
   },
