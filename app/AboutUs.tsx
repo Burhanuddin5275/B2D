@@ -1,4 +1,5 @@
 import Header from '@/components/Header';
+import { colors } from '@/theme/colors';
 import React from 'react';
 import { Image, ImageBackground, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,14 +10,14 @@ const AboutUs = () => {
   return (
     <SafeAreaView style={{ flex: 1}}>
       <ImageBackground 
-        source={require('../assets/images/background2.png')}
+        source={require('../assets/images/background.png')}
         style={styles.backgroundImage}
       >
         <Header title="About Us" showDefaultIcons={false} />
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.logoWrap}>
             <Image
-              source={require('../assets/images/logo.png')}
+              source={require('../assets/images/M2d.png')}
               style={styles.logo}
               resizeMode='contain'
             />
@@ -39,6 +40,7 @@ export default AboutUs
 const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
+    backgroundColor: colors.white,
   },
   scrollContent: {
     flexGrow: 1,
@@ -50,11 +52,10 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(10),
   },
   logo: {
-    width: scale(120),
-    height: scale(120),
-  },
+    width: scale(180),
+    height: scale(180),
+  }, 
   descriptionContainer: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: scale(16),
   },

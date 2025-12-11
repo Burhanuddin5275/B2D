@@ -150,12 +150,12 @@ export default function HomeScreen() {
     setWishlist(wishlistItems.map(item => item.id));
   }, [wishlistItems]);
   const [quantity, setQuantity] = useState(1);
-  const existingCartItem = (productId: number) => 
+  const existingCartItem = (productId: number) =>
     cartItems.find((item) => item.id === productId);
   const handleAddToCart = (product: any) => {
     const currentQty = existingCartItem(product.id)?.quantity || 0;
     const newQuantity = currentQty + 1;
-    
+
     if (currentQty > 0) {
       dispatch(updateQuantity({ id: product.id, quantity: newQuantity }));
     } else {
@@ -182,7 +182,7 @@ export default function HomeScreen() {
   const decrementQuantity = (productId: number) => {
     const currentQty = existingCartItem(productId)?.quantity || 0;
     const newQuantity = currentQty - 1;
-    
+
     if (newQuantity <= 0) {
       dispatch(removeFromCart(productId));
     } else {
@@ -192,19 +192,18 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
       <ImageBackground
-        source={require('../../assets/images/background2.png')}
-        style={ProductStyle.backgroundImage}  
+        source={require('../../assets/images/background.png')}
+        style={ProductStyle.backgroundImage}
       >
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           <View style={styles.headerShadowWrapper}>
             <ImageBackground
-              source={require('../../assets/images/background1.png')}
+              source={require('../../assets/images/background.png')}
               style={styles.contentContainer}
             >
               <View style={styles.header}>
                 <View style={styles.deliveryInfo}>
-                  <Text style={styles.deliveryLabel}>Delivery in</Text>
-                  <Text style={styles.deliveryTime}>10 minutes</Text>
+                  <Text style={styles.deliveryTime}>Same Day Delivery</Text>
                   <Text style={styles.deliveryAddress}>Raleigh St, Houston, TX 77021</Text>
                 </View>
               </View>
@@ -216,11 +215,11 @@ export default function HomeScreen() {
                 <TextInput
                   style={styles.searchInput}
                   placeholder="Search for category, store & products"
-                  placeholderTextColor="#E9B10F"
+                  placeholderTextColor={colors.primaryDark}
                   editable={false}
                   pointerEvents="none"
                 />
-                <Ionicons name="search" size={24} color="#E9B10F" />
+                <Ionicons name="search" size={24} color={colors.primaryDark} />
               </TouchableOpacity>
             </ImageBackground>
           </View>
@@ -240,7 +239,6 @@ export default function HomeScreen() {
             >
               {categories.map((category) => (
                 <TouchableOpacity key={category.id} style={styles.categoryCard} onPress={() => {
-                  // Filter products by category and pass to the category page
                   const categoryProducts = products.filter(
                     product => product.category.toLowerCase() === category.name.split('\n')[0].toLowerCase()
                   );
@@ -294,17 +292,17 @@ export default function HomeScreen() {
                       x: index * storeCardWidth,
                       animated: true
                     });
-                          const storeProducts = products.filter(
-                    product => product.seller.toLowerCase() === store.name.split('\n')[0].toLowerCase()
-                  );
+                    const storeProducts = products.filter(
+                      product => product.seller.toLowerCase() === store.name.split('\n')[0].toLowerCase()
+                    );
 
-                  router.push({
-                    pathname: '/Store',
-                    params: {
-                      StoreName: store.name,
-                      products: JSON.stringify(storeProducts)
-                    }
-                  })
+                    router.push({
+                      pathname: '/Store',
+                      params: {
+                        StoreName: store.name,
+                        products: JSON.stringify(storeProducts)
+                      }
+                    })
                   }}
                 >
                   <Image source={store.image} style={styles.storeImage} />
@@ -414,6 +412,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     height: verticalScale(200),
     justifyContent: 'center',
+    backgroundColor: colors.primaryLight
   },
 
   header: {
@@ -424,19 +423,19 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(10),
   },
   deliveryLabel: {
-    fontFamily:'Montserrat',
+    fontFamily: 'Montserrat',
     fontSize: moderateScale(14),
     fontWeight: '600',
   },
   deliveryTime: {
     fontSize: moderateScale(28),
     fontWeight: '700',
-    fontFamily:'Montserrat',
+    fontFamily: 'Montserrat',
     color: '#000',
   },
   deliveryAddress: {
-    fontFamily:'PoppinsMedium',
-    fontWeight:'500',
+    fontFamily: 'PoppinsMedium',
+    fontWeight: '500',
     fontSize: moderateScale(14),
     color: '#000',
     marginTop: 4,
@@ -472,13 +471,13 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(16),
   },
   sectionTitle: {
-    fontFamily:'Montserrat',
+    fontFamily: 'Montserrat',
     fontSize: moderateScale(20),
     fontWeight: '600',
   },
   viewAll: {
-    fontSize: moderateScale(14), 
-    color: '#F4A300',
+    fontSize: moderateScale(14),
+    color: colors.primaryDark,
     fontWeight: '500',
   },
   categoriesScroll: {
@@ -501,8 +500,8 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(36),
   },
   categoryName: {
-    fontFamily:'MontserratMedium',
-    fontWeight:'500',
+    fontFamily: 'MontserratMedium',
+    fontWeight: '500',
     fontSize: moderateScale(12),
     textAlign: 'center',
   },

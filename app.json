@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "B2D",
+    "name": "M2D",
     "slug": "B2D",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/b2d.png",
-    "scheme": "b2d",
+    "icon": "./assets/images/M2d.png",
+    "scheme": "m2d",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -13,10 +13,10 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/b2d.png",
+        "foregroundImage": "./assets/images/M2d.png",
         "backgroundColor": "#FAFAFA"
       },
-      "edgeToEdgeEnabled": false,
+      "edgeToEdgeEnabled": false, 
       "predictiveBackGestureEnabled": false,
       "package": "com.hamza527522.B2D"
     },
@@ -29,7 +29,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/b2d.png",
+          "image": "./assets/images/M2d.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#FFFFFF",

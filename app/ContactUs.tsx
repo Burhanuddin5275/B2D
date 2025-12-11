@@ -27,7 +27,7 @@ const ContactUs = () => {
     return (
         <SafeAreaView style={styles.safeArea}>
             <ImageBackground
-                source={require('../assets/images/background2.png')}
+                source={require('../assets/images/background.png')}
                 style={styles.background}
             >
                 <Header title="Contact Us" showDefaultIcons={false} />
@@ -42,7 +42,7 @@ const ContactUs = () => {
                         value={message}
                         onChangeText={setMessage}
                         placeholder="Type your message here..."
-                        placeholderTextColor="#B49C63"
+                        placeholderTextColor={colors.primaryDark}
                         style={styles.messageInput}
                         textAlignVertical="top"
                     />
@@ -55,14 +55,14 @@ const ContactUs = () => {
 
                     <View style={styles.infoRow}>
                         <View style={styles.infoIcon}>
-                            <Ionicons name="mail" size={18} color="#E9B10F" />
+                            <Ionicons name="mail" size={18} color={colors.primaryDark} />
                         </View>
                         <Text style={styles.infoValue}>support@buzz2door.com</Text>
                     </View>
 
                     <View style={styles.infoRow}>
                         <View style={styles.infoIcon}>
-                            <Ionicons name="call" size={18} color="#E9B10F" />
+                            <Ionicons name="call" size={18} color={colors.primaryDark} />
                         </View>
                         <Text style={styles.infoValue}>1-800-123-4567</Text>
                     </View>
@@ -86,6 +86,7 @@ const styles = StyleSheet.create({
     },
     background: {
         flex: 1,
+        backgroundColor: colors.white,
     },
 
     subtitle: {
@@ -100,11 +101,11 @@ const styles = StyleSheet.create({
         marginTop: 24,
         borderRadius: 18,
         marginHorizontal: scale(20),
-        backgroundColor: 'rgba(255, 211, 122, 0.25)',
+        backgroundColor: 'rgba(122, 255, 131, 0.25)',
         padding: 16,
         height: verticalScale(250),
         borderWidth: 1,
-        borderColor: 'rgba(254, 189, 47, 0.35)',
+        borderColor: 'rgba(47, 254, 64, 0.35)',
     },
     messageInput: {
         fontFamily: 'MontserratMedium',

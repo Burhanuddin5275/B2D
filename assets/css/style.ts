@@ -7,6 +7,7 @@ export const ProductStyle = StyleSheet.create({
 
     backgroundImage: {
         flex: 1,
+        backgroundColor:colors.white
     },
     productsSection: {
         marginTop: verticalScale(20),
@@ -83,20 +84,20 @@ export const ProductStyle = StyleSheet.create({
     },
     addButton: {
         fontFamily:' Montserrat', 
-        borderColor: '#f5a607ff',
+        borderColor: colors.primaryDark,
         borderWidth: 1,
         paddingVertical: 8,
         borderRadius: 8,
 
     },
     addButtonText: {
-        color: '#F4A300',
+        color: colors.primaryDark,
         fontWeight: '700',
         textAlign: 'center',
         fontSize: 14,
     },
     qtyControl: {
-        backgroundColor: '#F4A300',
+        backgroundColor: colors.primaryDark,
         borderRadius: 12,
         alignItems: 'center',
         flexDirection: 'row',
@@ -134,7 +135,6 @@ export const ProductStyle = StyleSheet.create({
         borderRadius: 6,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#F4A300',
     },
     qtySideButtonFilledText: {
         color: '#fff',

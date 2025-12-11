@@ -1,7 +1,8 @@
+import { colors } from '@/theme/colors';
 import { router } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import { Dimensions, Image, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 
 const { width, height } = Dimensions.get('window');
@@ -31,6 +32,7 @@ const slides = [
 const Slider = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
+  const insets = useSafeAreaInsets();
 
   const handleScroll = (event: any) => {
     const contentOffset = event.nativeEvent.contentOffset.x;
@@ -98,7 +100,7 @@ const Slider = () => {
               <View style={styles.illustrationContainer}>
                 <View style={styles.logoContainer}>
                   <Image
-                    source={require('../assets/images/logo.png')}
+                    source={require('../assets/images/M2d.png')}
                     style={styles.logo}
                     resizeMode="contain"
                   />
@@ -113,7 +115,7 @@ const Slider = () => {
               </View>
 
               <ImageBackground
-                source={require('../assets/images/background1.png')}
+                source={require('../assets/images/background.png')}
                 style={styles.contentContainer}
                 resizeMode="cover"
               >
@@ -124,7 +126,7 @@ const Slider = () => {
                   </View>
 
                   {/* Pagination dots */}
-                  <View style={styles.pagination}>
+                  <View style={[styles.pagination,{ paddingBottom: Math.max(insets.bottom, verticalScale(60))}]}>
                     {slides.map((_, index) => (
                       <View
                         key={index}
@@ -159,6 +161,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     width: width,
+    backgroundColor: colors.white,
   },
   scrollView: {
     flex: 1,
@@ -175,11 +178,10 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginTop: verticalScale(10),
   },
   logo: {
-    width: scale(149),
-    height: verticalScale(96),
+    width: scale(200),
+    height: verticalScale(130), 
   },
   imageWrapper: {
     width: scale(200),
@@ -206,8 +208,8 @@ const styles = StyleSheet.create({
     right: 0,
     paddingTop: verticalScale(20),
     paddingHorizontal: scale(20),
-    paddingBottom: verticalScale(40),
-  },
+    backgroundColor:colors.primaryLight
+  }, 
   textContainer: {
     alignItems: 'center',
   },
@@ -217,7 +219,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     marginBottom: verticalScale(20),
-    lineHeight: 30,
   },
   descriptionBox: {
     backgroundColor: '#fff',
@@ -244,10 +245,7 @@ const styles = StyleSheet.create({
   },
   pagination: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
     marginTop: verticalScale(15),
-    marginBottom: verticalScale(10),
   },
   paginationDot: {
     width: 10,
@@ -264,7 +262,7 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     position: 'absolute',
-    top: verticalScale(25),
+    top: verticalScale(12),
     right: scale(10),
     paddingHorizontal: scale(20),
     paddingVertical: verticalScale(10),
@@ -272,7 +270,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   nextButtonText: {
-    color: '#f7c24fff',
+    color: colors.primaryDark,
     fontSize: moderateScale(18),
     fontWeight: 'bold',
   },

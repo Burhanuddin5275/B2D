@@ -1,10 +1,11 @@
+import { colors } from '@/theme/colors';
 import React from 'react';
 import { View } from 'react-native';
 import { verticalScale } from 'react-native-size-matters';
 
 export default function TabBarBackground() {
   // Cream color from screenshot
-  const backgroundColor = '#FBF4E4';
+  const backgroundColor = colors.primaryLight;
   return (
     <View
       style={{

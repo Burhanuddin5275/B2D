@@ -8,11 +8,9 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 import { Dimensions, Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
-
+import { moderateScale, s, scale, verticalScale } from 'react-native-size-matters';
+import { colors } from '@/theme/colors';
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
   const { width: screenWidth } = Dimensions.get('window');
   const insets = useSafeAreaInsets();
 
@@ -24,7 +22,7 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#F4A300',
+        tabBarActiveTintColor: colors.primaryDark,
         tabBarInactiveTintColor: '#8E8E93',
         headerShown: false,
         tabBarStyle: {
@@ -59,7 +57,7 @@ export default function TabLayout() {
           tabBarLabelStyle: styles.text,
           tabBarIcon: ({ color }) => (
             <View>
-              <IconSymbol size={scale(28)} name="house.fill" color={color} />
+              <IconSymbol size={scale(24)} name="house.fill" color={color} style={styles.icon} />
             </View>
           ),
         }}
@@ -71,7 +69,7 @@ export default function TabLayout() {
           tabBarLabelStyle: styles.text,
           tabBarIcon: ({ color }) => (
             <View>
-              <IconSymbol size={scale(28)} name="bag.fill" color={color} />
+              <IconSymbol size={scale(24)} name="bag.fill" color={color} style={styles.icon} />
             </View>
           ),
         }}
@@ -85,7 +83,7 @@ export default function TabLayout() {
             const cartItemsCount = useAppSelector(selectCartUniqueItems);
             return (
               <View>
-                <IconSymbol size={scale(28)} name="cart.fill" color={color} />
+                <IconSymbol size={scale(24)} name="cart.fill" color={color} style={styles.icon} />
                 {cartItemsCount > 0 && (
                   <View style={styles.badge}>
                     <Text style={styles.badgeText}>
@@ -105,7 +103,7 @@ export default function TabLayout() {
           tabBarLabelStyle: styles.text,
           tabBarIcon: ({ color }) => (
             <View>
-              <IconSymbol size={scale(28)} name="person.fill" color={color} />
+              <IconSymbol size={scale(24)} name="person.fill" color={color} style={styles.icon} />
             </View>
           ),
         }}
@@ -118,7 +116,7 @@ export default function TabLayout() {
           href: null,
           tabBarIcon: ({ color }) => (
             <View>
-              <IconSymbol size={scale(28)} name="magnifyingglass" color={color} />
+              <IconSymbol size={scale(24)} name="magnifyingglass" color={color} style={styles.icon} />
             </View>
           ),
         }}
@@ -131,7 +129,7 @@ export default function TabLayout() {
           href: null,
           tabBarIcon: ({ color }) => (
             <View>
-              <IconSymbol size={scale(28)} name="magnifyingglass" color={color} />
+              <IconSymbol size={scale(24)} name="magnifyingglass" color={color} />
             </View>
           ),
         }}
@@ -143,7 +141,7 @@ export default function TabLayout() {
           href: null,
           tabBarIcon: ({ color }) => (
             <View>
-              <IconSymbol size={scale(28)} name="magnifyingglass" color={color} />
+              <IconSymbol size={scale(24)} name="magnifyingglass" color={color} />
             </View>
           ),
         }}
@@ -155,7 +153,7 @@ export default function TabLayout() {
           href: null,
           tabBarIcon: ({ color }) => (
             <View>
-              <IconSymbol size={scale(28)} name="magnifyingglass" color={color} />
+              <IconSymbol size={scale(24)} name="magnifyingglass" color={color} />
             </View>
           ),
         }}
@@ -167,7 +165,7 @@ export default function TabLayout() {
           href: null,
           tabBarIcon: ({ color }) => (
             <View>
-              <IconSymbol size={scale(28)} name="magnifyingglass" color={color} />
+              <IconSymbol size={scale(24)} name="magnifyingglass" color={color} />
             </View>
           ),
         }}
@@ -183,20 +181,25 @@ const styles = StyleSheet.create({
     bottom: verticalScale(15),
     backgroundColor: '#FF3B30',
     borderRadius: 10,
-    minWidth: 15,
+    minWidth: 15, 
     height: 15,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: scale(4),
   },
   badgeText: {
     color: 'white',
     fontSize: scale(8),
     fontWeight: 'bold',
   },
+  icon: {
+   lineHeight: scale(22),
+  },
   text:{
+    marginTop: verticalScale(4),
     fontSize: scale(12),
     fontFamily: 'PoppinsMedium',
-    fontWeight: '400',
+    fontWeight: '400', 
+    lineHeight: scale(10),
   }
 });

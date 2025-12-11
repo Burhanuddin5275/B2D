@@ -107,7 +107,7 @@ const [quantity, setQuantity] = useState(1);
   return (
     <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
       <ImageBackground
-        source={require('../../assets/images/background2.png')}
+        source={require('../../assets/images/background.png')}
         style={styles.backgroundImage}
       >
         <Header title={headerTitle} showDefaultIcons={true} rightIcons={[
@@ -358,5 +358,6 @@ const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
     width: '100%',
+    backgroundColor: colors.white,
   },
 })

@@ -253,7 +253,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F4A300',
   },
   qtySideButtonFilledText: {
     color: '#fff',

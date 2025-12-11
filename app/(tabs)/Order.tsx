@@ -5,6 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 import { router } from 'expo-router';
 import Header from '@/components/Header';
+import { colors } from '@/theme/colors';
 
 const orders = [
   { id: '#123456', amount: '$65.00', date: '10/08/04/20/2024, 3:45 PM', status: 'Order placed', color: '#E9B10F' },
@@ -34,14 +35,14 @@ export default function Orders() {
         <Text style={styles.amount}>{item.amount}    {item.date}</Text>
         <Text style={[styles.status, { color: item.color }]}>{item.status}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={moderateScale(18)} color="#E9B10F" />
+      <Ionicons name="chevron-forward" size={moderateScale(18)} color={colors.primaryDark} />
     </TouchableOpacity>
   );
 
   return (
     <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
       <ImageBackground
-        source={require('../../assets/images/background2.png')}
+        source={require('../../assets/images/background.png')}
         style={styles.backgroundImage}
       >
         <Header title="My orders" showDefaultIcons={false} />
@@ -60,13 +61,14 @@ export default function Orders() {
 const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
+    backgroundColor: colors.white,
   },
   listContainer: {
     padding: scale(16),
     paddingBottom: verticalScale(75),
   },
   card: {
-    backgroundColor: '#FFF7E8',
+    backgroundColor: colors.secondaryLight,
     borderRadius: 12,
     padding: scale(14),
     marginBottom: 12,
@@ -74,7 +76,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E9B10F',
+    borderColor: colors.primaryDark,
     borderLeftWidth: 1
   },
   orderId: {

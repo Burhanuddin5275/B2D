@@ -1,3 +1,4 @@
+import { colors } from '@/theme/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
@@ -39,7 +40,7 @@ const Header: React.FC<HeaderProps> = ({
   title,
   showBackButton = true,
   onBackPress,
-  backgroundImage = require('../assets/images/background1.png'),
+  backgroundImage = require('../assets/images/background.png'),
   headerStyle,
   titleStyle,
   rightIcons,
@@ -139,6 +140,7 @@ const styles = StyleSheet.create({
   innerBg: {
     height: verticalScale(75),
     justifyContent: 'center',
+    backgroundColor:colors.primaryLight
   },
   headerRow: {
     flexDirection: 'row',

@@ -1,4 +1,5 @@
 import Header from '@/components/Header';
+import { colors } from '@/theme/colors';
 import { Entypo, FontAwesome5, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
@@ -117,7 +118,7 @@ const products = [
   return (
     <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
       <ImageBackground
-        source={require('../../assets/images/background2.png')}
+        source={require('../../assets/images/background.png')}
         style={styles.backgroundImage}
       >
         <Header title="Categories" showDefaultIcons={false} />
@@ -162,6 +163,7 @@ const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
     width: '100%',
+    backgroundColor: colors.white,
   },
   content: {
     flex: 1,

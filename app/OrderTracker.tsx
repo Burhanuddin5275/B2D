@@ -158,7 +158,7 @@ const OrderTracker = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ImageBackground
-        source={require('../assets/images/background2.png')}
+        source={require('../assets/images/background.png')}
         style={styles.background}
       >
         <Header title={`Order ${params.orderId}`} showDefaultIcons={false} />
@@ -341,6 +341,7 @@ const styles = StyleSheet.create({
   },
   background: {
     flex: 1,
+    backgroundColor:colors.white
   },
   scroll: {
     flex: 1,

@@ -120,14 +120,14 @@ const VerifyNumber = () => {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <ImageBackground
-        source={require('../assets/images/background2.png')}
+        source={require('../assets/images/background.png')}
         style={styles.backgroundImage}
         resizeMode="cover"
       >
         <Header title="" showBackButton={false} showDefaultIcons={false} />
         <View style={styles.logoWrap}>
           <Image
-            source={require('../assets/images/logo.png')}
+            source={require('../assets/images/M2d.png')}
             style={styles.logo}
           />
         </View>
@@ -217,15 +217,15 @@ const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
     width: '100%',
+    backgroundColor: colors.white,
   },
   logoWrap: {
     marginTop: verticalScale(10),
-    marginBottom: verticalScale(24),
     alignItems: 'center',
   },
   logo: {
-    width: scale(150),
-    height: scale(100),
+    width: scale(200),
+    height: scale(140),
   },
   header: {
     marginBottom: verticalScale(10),

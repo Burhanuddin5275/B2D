@@ -17,11 +17,11 @@ const Splash = () => {
       source={require('@/assets/images/background.png')}
       style={styles.backgroundImage}
       resizeMode="cover"
-    >
+    >   
       <View style={styles.container}>
         <View style={styles.logoContainer}>
           <Image
-            source={require('@/assets/images/logo.png')}
+            source={require('@/assets/images/M2d.png')}
             style={styles.logo}
             resizeMode="contain"
           />
@@ -47,6 +47,7 @@ const Splash = () => {
 const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
+    backgroundColor: colors.white,
   },
   container: {
     flex: 1,
@@ -54,12 +55,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logoContainer: {
-    width: scale(200),
-    height: verticalScale(200),  
+    width: scale(250),
+    height: verticalScale(300),  
   },
   logo: {
-    width: scale(200),
-    height: verticalScale(200)
+    width: scale(250),
+    height: verticalScale(250)
   },
   bottomContent: {
     position: 'absolute',

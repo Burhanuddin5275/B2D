@@ -203,11 +203,11 @@ const Search = () => {
   return (
     <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
       <ImageBackground
-        source={require('../../assets/images/background2.png')}
+        source={require('../../assets/images/background.png')}
         style={styles.backgroundImage}
       >
         <ImageBackground
-          source={require('../../assets/images/background1.png')}
+          source={require('../../assets/images/background.png')}
           style={styles.innerBg}
         >
           <View style={styles.searchBar}>
@@ -367,8 +367,10 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     width: width,
+    backgroundColor: colors.white,
   },
   innerBg: {
+    backgroundColor:colors.primaryLight,
     height: verticalScale(120),
     shadowColor: '#000',
     shadowOffset: {

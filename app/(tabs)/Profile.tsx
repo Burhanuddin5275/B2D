@@ -23,7 +23,7 @@ export default function Profile() {
   return (
     <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
       <ImageBackground
-        source={require('../../assets/images/background2.png')}
+        source={require('../../assets/images/background.png')}
         style={styles.backgroundImage}
       >
         <Header title="Profile" showDefaultIcons={false} />
@@ -185,6 +185,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    backgroundColor: colors.white,
   },
 
   content: {
@@ -192,7 +193,7 @@ const styles = StyleSheet.create({
     paddingBottom: verticalScale(40),
   },
   loginButton: {
-    backgroundColor: '#F1B90B',
+    backgroundColor: colors.primaryDark,
     paddingVertical: verticalScale(14),
     borderRadius: moderateScale(8),
     marginTop: verticalScale(6),

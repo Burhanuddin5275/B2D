@@ -2,22 +2,40 @@ import Header from '@/components/Header';
 import { colors } from '@/theme/colors';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Image, ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Image, ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
+
 
 
 
 export default function Login() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isValid, setIsValid] = useState(false);
-  const insets = useSafeAreaInsets();
+  const formatPhoneNumber = (digits: string) => {
+    const cleaned = digits.slice(0, 10);
+    const len = cleaned.length;
+  
+    if (len === 0) return '';
+
+    if (len < 4) {
+      return `(${cleaned}`;
+    }
+
+    if (len < 8) {
+      return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3)}`;
+    }
+
+    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 7)}-${cleaned.slice(7)}`;
+  };
+
   const handlePhoneChange = (text: string) => {
     // Remove any non-digit characters and add +1 prefix
     const cleaned = text.replace(/\D/g, '');
-    setPhoneNumber(cleaned);
+    const limited = cleaned.slice(0, 10);
+    setPhoneNumber(limited);
     // Enable continue button if number is 10 digits
-    setIsValid(cleaned.length === 10);
+    setIsValid(limited.length === 10);
   };
 
   const handleContinue = () => {
@@ -32,13 +50,13 @@ export default function Login() {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <ImageBackground
-        source={require('../assets/images/background2.png')}
+        source={require('../assets/images/background.png')}
         style={styles.backgroundImage}
       >
         <Header showBackButton={false} title='' showDefaultIcons={false} />
         <View style={styles.logoWrap}>
           <Image
-            source={require('../assets/images/logo.png')}
+            source={require('../assets/images/M2d.png')}
             style={styles.logo}
           />
         </View>
@@ -63,12 +81,12 @@ export default function Login() {
             <Text style={styles.prefix}>+1</Text>
             <TextInput
               style={styles.input}
-              placeholder="Phone number"
+              placeholder="(333) 2224-2444"
               keyboardType="phone-pad"
               placeholderTextColor="#A1A1A1"
-              value={phoneNumber}
+              value={formatPhoneNumber(phoneNumber)}
               onChangeText={handlePhoneChange}
-              maxLength={10}
+              maxLength={16}
             />
           </View>
 
@@ -102,16 +120,16 @@ export default function Login() {
 const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
+    backgroundColor: colors.white,
   },
 
   logoWrap: {
     marginTop: verticalScale(10),
-    marginBottom: verticalScale(24),
     alignItems: 'center',
   },
   logo: {
-    width: scale(150),
-    height: scale(100),
+    width: scale(200),
+    height: scale(150),
   },
   titleWrap: {
     alignItems: 'center',

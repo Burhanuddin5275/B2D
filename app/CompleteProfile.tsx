@@ -68,7 +68,7 @@ export default function CompleteProfile() {
                     style={styles.profileImage} 
                   />
                 ) : (
-                  <Ionicons name="add" size={moderateScale(36)} color="#E9B10F" />
+                  <Ionicons name="add" size={moderateScale(36)} color={colors.primaryDark} />
                 )}
               </View>
               <Text style={styles.uploadHint}>

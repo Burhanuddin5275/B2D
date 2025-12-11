@@ -1,5 +1,11 @@
 import Header from '@/components/Header';
-import { CartItem, removeFromCart, selectCartItems, selectCartTotalPrice, updateQuantity } from '@/store/cartSlice';
+import {
+  CartItem,
+  removeFromCart,
+  selectCartItems,
+  selectCartTotalPrice,
+  updateQuantity
+} from '@/store/cartSlice';
 import { useAppDispatch, useAppSelector } from '@/store/useAuth';
 import { colors } from '@/theme/colors';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -14,7 +20,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
@@ -33,24 +39,28 @@ export default function Cart() {
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
   const insets = useSafeAreaInsets();
   const [deliveryType, setDeliveryType] = useState<'express' | 'regular'>('express');
-  const [scheduled, setScheduled] = useState(false);
+  const [deliverySlots, setDeliverySlots] = useState<string[]>([]);
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const CUTOFF_TIME = "6:00 PM";
+
   const [selectedTip, setSelectedTip] = useState<'10' | '15' | '20' | 'other'>('10');
   const [customTip, setCustomTip] = useState('');
-  const [additionalComments, setAdditionalComments] = useState(
-    'Please leave the package at the front door.'
-  );
+  const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'credit' | 'debit' | 'square'>('credit');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] =
+    useState<'credit' | 'debit' | 'square'>('credit');
+
 
   const sellerGroups = useMemo<SellerGroup[]>(() => {
     const map = new Map<string, SellerGroup>();
+
     cartItems.forEach((item) => {
       if (!map.has(item.seller)) {
         map.set(item.seller, {
           seller: item.seller,
           items: [],
           totalQuantity: 0,
-          totalPrice: 0,
+          totalPrice: 0
         });
       }
       const group = map.get(item.seller)!;
@@ -58,6 +68,7 @@ export default function Cart() {
       group.totalQuantity += item.quantity;
       group.totalPrice += item.price * item.quantity;
     });
+
     return Array.from(map.values());
   }, [cartItems]);
 
@@ -76,10 +87,7 @@ export default function Cart() {
   }, [sellerGroups, activeSellerId]);
 
   const cartIsEmpty = cartItems.length === 0;
-
-  const handleSelectSeller = (sellerId: string) => {
-    setActiveSellerId(sellerId);
-  };
+  const handleSelectSeller = (sellerId: string) => setActiveSellerId(sellerId);
 
   const handleAdjustQuantity = (item: CartItem, delta: number) => {
     const nextQuantity = item.quantity + delta;
@@ -90,9 +98,25 @@ export default function Cart() {
     }
   };
 
-  const activeSeller = sellerGroups.find((group) => group.seller === activeSellerId);
+  useEffect(() => {
+    if (deliveryType === 'regular') {
+      const slots = [];
+      const today = new Date();
+      for (let i = 1; i <= 7; i++) {
+        const d = new Date();
+        d.setDate(today.getDate() + i);
+        slots.push(d.toDateString());
+      }
+      setDeliverySlots(slots);
+    } else {
+      setDeliverySlots([]); // same-day only
+    }
+  }, [deliveryType]);
+
+  const activeSeller = sellerGroups.find((g) => g.seller === activeSellerId);
   const subtotal = activeSeller?.totalPrice ?? 0;
-  const deliveryFee = deliveryType === 'express' ? 49 : 29;
+
+  const deliveryFee = deliveryType === 'express' ? 20 : 12;
   const tipAmount =
     selectedTip === 'other'
       ? parseFloat(customTip) || 0
@@ -100,39 +124,44 @@ export default function Cart() {
   const taxAmount = subtotal * 0.18;
   const payableTotal = subtotal + deliveryFee + tipAmount + taxAmount;
 
-  const tipSummary = useMemo(() => {
-    if (selectedTip === 'other') {
-      if (!customTip) {
-        return 'No tip added';
-      }
-      const value = parseFloat(customTip);
-      if (!isNaN(value) && value > 0) {
-        return `$${value.toFixed(2)} tip added`;
-      }
-      return 'No tip added';
-    }
-    return `$${(subtotal * (parseInt(selectedTip, 10) / 100)).toFixed(2)} tip added`;
-  }, [selectedTip, customTip, subtotal]);
   const addresses = [
-    { id: '1', type: 'Home', address: '456 Elm Street, Apt 12B, Los Angeles CA, 90001, United States' },
-    { id: '2', type: 'Work', address: '789 Business Ave, Suite 400, Los Angeles CA, 90015, United States' },
-    { id: '3', type: 'Other', address: '123 Other Place, Los Angeles CA, 90025, United States' }
+    {
+      id: '1',
+      type: 'Home',
+      line1: '456 Elm Street, Apt 12B',
+      line2: 'Houston, Texas 90001'
+    },
+    {
+      id: '2',
+      type: 'Work',
+      line1: '789 Business Ave, Suite 400',
+      line2: 'Houston, Texas 90015'
+    },
+    {
+      id: '3',
+      type: 'Other',
+      line1: '123 Other Place',
+      line2: 'Houston, Texas 90025'
+    }
   ];
+
   const [isAddressModalVisible, setIsAddressModalVisible] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState(addresses[0]);
+
+
   return (
-    <SafeAreaView
-      style={[styles.safeArea, { paddingBottom: Math.max(insets.bottom, verticalScale(1)) }]}
-    >
+    <SafeAreaView style={[styles.safeArea]}>
       <ImageBackground
-        source={require('../../assets/images/background2.png')}
+        source={require('../../assets/images/background.png')}
         style={styles.backgroundImage}
       >
         <Header title="Cart" showDefaultIcons={false} />
+
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          {/* HEADER */}
           <View style={styles.pageHeader}>
             <Text style={styles.headline}>Multiple sellers&apos; items in cart.</Text>
             <Text style={styles.subHeadline}>
@@ -140,6 +169,7 @@ export default function Cart() {
             </Text>
           </View>
 
+          {/* EMPTY STATE */}
           {cartIsEmpty ? (
             <View style={styles.emptyState}>
               <Image
@@ -153,34 +183,26 @@ export default function Cart() {
             </View>
           ) : (
             <>
+              {/* SELLERS */}
               {sellerGroups.map((seller) => {
                 const isActive = seller.seller === activeSellerId;
                 return (
                   <TouchableOpacity
                     key={seller.seller}
-                    activeOpacity={0.9}
                     onPress={() => handleSelectSeller(seller.seller)}
-                    style={[
-                      styles.sellerCard,
-                      isActive && styles.sellerCardActive,
-                    ]}
+                    style={[styles.sellerCard, isActive && styles.sellerCardActive]}
                   >
                     <View style={styles.sellerHeader}>
                       <View style={styles.radioWrapper}>
                         <View
-                          style={[
-                            styles.radioOuter,
-                            isActive && styles.radioOuterActive,
-                          ]}
+                          style={[styles.radioOuter, isActive && styles.radioOuterActive]}
                         >
                           <View
-                            style={[
-                              styles.radioInner,
-                              isActive && styles.radioInnerActive,
-                            ]}
+                            style={[styles.radioInner, isActive && styles.radioInnerActive]}
                           />
                         </View>
                       </View>
+
                       <View style={styles.sellerInfo}>
                         <Text style={styles.sellerName}>{seller.seller}</Text>
                         {!isActive && (
@@ -189,6 +211,7 @@ export default function Cart() {
                           </Text>
                         )}
                       </View>
+
                       <Ionicons
                         name={isActive ? 'chevron-up' : 'chevron-down'}
                         size={18}
@@ -203,16 +226,19 @@ export default function Cart() {
                             key={item.id}
                             style={[
                               styles.cartItem,
-                              index !== seller.items.length - 1 && styles.cartItemDivider,
+                              index !== seller.items.length - 1 &&
+                              styles.cartItemDivider
                             ]}
                           >
                             <Image source={item.img} style={styles.itemImage} />
+
                             <View style={styles.itemDetails}>
                               <Text style={styles.itemName}>{item.name}</Text>
                               <Text style={styles.itemPrice}>
-                                ${item.price * item.quantity}
+                                ${(item.price * item.quantity).toFixed(2)}
                               </Text>
                             </View>
+
                             <View style={styles.quantityControls}>
                               <TouchableOpacity
                                 style={styles.quantityButton}
@@ -220,11 +246,13 @@ export default function Cart() {
                               >
                                 <Text style={styles.quantityButtonText}>-</Text>
                               </TouchableOpacity>
+
                               <View style={styles.quantityValueWrapper}>
                                 <Text style={styles.quantityValue}>
                                   {item.quantity.toString().padStart(2, '0')}
                                 </Text>
                               </View>
+
                               <TouchableOpacity
                                 style={styles.quantityButton}
                                 onPress={() => handleAdjustQuantity(item, 1)}
@@ -240,181 +268,213 @@ export default function Cart() {
                 );
               })}
 
+              {/* DISCLAIMER */}
               <View style={styles.disclaimerCard}>
                 <Text style={styles.disclaimerText}>
                   <Text style={styles.disclaimerTitle}>Disclaimer: </Text>
-                  Weight of the vegetables will vary based on their packaging which would
-                  eventually impact the price of the item.
+                  Weight of the vegetables varies based on packaging which affects price.
                 </Text>
               </View>
-            </>
-          )}
 
-          {!cartIsEmpty && (
-            <>
+              {/* DELIVERY SECTION */}
               <View style={styles.deliverySection}>
                 <Text style={styles.sectionHeading}>Delivery type</Text>
+
                 <View style={styles.deliveryTypeRow}>
-                  {[
-                    { id: 'express', label: 'Express' },
-                    { id: 'regular', label: 'Regular (1-2 days)' },
-                  ].map((option) => {
-                    const isActive = deliveryType === option.id;
-                    return (
-                      <TouchableOpacity
-                        key={option.id}
-                        style={[
-                          styles.deliveryChip,
-                          isActive ? styles.deliveryChipActive : styles.deliveryChipIdle,
-                        ]}
-                        activeOpacity={0.85}
-                        onPress={() => setDeliveryType(option.id as 'express' | 'regular')}
-                      >
-                        <Text
-                          style={[
-                            styles.deliveryChipLabel,
-                            isActive && styles.deliveryChipLabelActive,
-                          ]}
-                        >
-                          {option.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+                  <TouchableOpacity
+                    style={[
+                      styles.deliveryChip,
+                      deliveryType === 'express'
+                        ? styles.deliveryChipActive
+                        : styles.deliveryChipIdle
+                    ]}
+                    onPress={() => setDeliveryType('express')}
+                  >
+                    <Text
+                      style={[
+                        styles.deliveryChipLabel,
+                        deliveryType === 'express' && styles.deliveryChipLabelActive
+                      ]}
+                    >
+                      Express
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.deliveryChip,
+                      deliveryType === 'regular'
+                        ? styles.deliveryChipActive
+                        : styles.deliveryChipIdle
+                    ]}
+                    onPress={() => setDeliveryType('regular')}
+                  >
+                    <Text
+                      style={[
+                        styles.deliveryChipLabel,
+                        deliveryType === 'regular' && styles.deliveryChipLabelActive
+                      ]}
+                    >
+                      Regular
+                    </Text>
+                  </TouchableOpacity>
                 </View>
 
-                <View style={styles.scheduleButton}>
-                  <Ionicons name="time-outline" size={18} />
-                  <Text style={styles.scheduleButtonLabel}>Schedule delivery</Text>
-                </View>
+                {/* CUTOFF NOTICE */}
+                <Text style={{ marginTop: 10, fontFamily: 'PoppinsMedium' }}>
+                  Orders after <Text style={{ fontWeight: '600' }}>{CUTOFF_TIME}</Text>{' '}
+                  move to the next available day.
+                </Text>
+
+                {deliveryType === 'regular' && (
+                  <View style={{ marginTop: 12 }}>
+                    {deliverySlots.map((slot) => (
+                      <TouchableOpacity
+                        key={slot}
+                        style={[
+                          styles.slotItem,
+                          selectedSlot === slot && styles.slotItemSelected,
+                        ]}
+                        onPress={() => setSelectedSlot(slot)}
+                      >
+                        <Text style={styles.slotLabel}>{slot}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
               </View>
 
+              {/* ADDRESS */}
               <View style={styles.addressSection}>
                 <View style={styles.sectionHeaderRow}>
                   <Text style={styles.sectionHeading}>Deliver this order to</Text>
-                  <TouchableOpacity
-                    activeOpacity={0.7}
-                    onPress={() => setIsAddressModalVisible(true)}
-                  >
+
+                  <TouchableOpacity onPress={() => setIsAddressModalVisible(true)}>
                     <Text style={styles.linkText}>Change</Text>
                   </TouchableOpacity>
                 </View>
+
                 <Text style={styles.addressLabel}>
-                  {selectedAddress.type} ({selectedAddress.address})
+                  {selectedAddress.type}: {selectedAddress.line1}
                 </Text>
+                <Text style={styles.addressLabel}>{selectedAddress.line2}</Text>
               </View>
+
+              {/* TIP */}
               <View style={styles.tipsSection}>
-                <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.sectionHeading}>Add tip to Driver</Text>
-                  <View style={styles.tipInfoRow}>
-                    <Text style={styles.tipInfoText}>{tipSummary}</Text>
-                    <Ionicons name="information-circle-outline" size={16} color={colors.primaryDark} />
-                  </View>
-                </View>
+                <Text style={styles.sectionHeading}>Add tip for driver</Text>
+
                 <View style={styles.tipButtonsRow}>
-                  {[
-                    { id: '5', label: '5%' },
-                    { id: '10', label: '10%' },
-                    { id: '15', label: '15%' },
-                  ].map((option) => {
-                    const isActive = selectedTip === option.id;
-                    return (
-                      <TouchableOpacity
-                        key={option.id}
+                  {['10', '15', '20'].map((percent) => (
+                    <TouchableOpacity
+                      key={percent}
+                      onPress={() =>
+                        setSelectedTip(percent as '10' | '15' | '20')
+                      }
+                      style={[
+                        styles.tipButton,
+                        selectedTip === percent
+                          ? styles.tipButtonActive
+                          : styles.tipButtonIdle
+                      ]}
+                    >
+                      <Text
                         style={[
-                          styles.tipButton,
-                          isActive ? styles.tipButtonActive : styles.tipButtonIdle,
+                          styles.tipButtonLabel,
+                          selectedTip === percent && styles.tipButtonLabelActive
                         ]}
-                        activeOpacity={0.85}
-                        onPress={() => setSelectedTip(option.id as typeof selectedTip)}
                       >
-                        <Text
-                          style={[
-                            styles.tipButtonLabel,
-                            isActive && styles.tipButtonLabelActive,
-                          ]}
-                        >
-                          {option.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+                        {percent}%
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
+
+                {/* CUSTOM TIP */}
                 <View style={[styles.tipButtonsRow, { marginTop: 8, gap: 8 }]}>
                   <TouchableOpacity
+                    onPress={() => setSelectedTip('other')}
                     style={[
                       styles.tipButton,
-                      selectedTip === 'other' ? styles.tipButtonActive : styles.tipButtonIdle,
-                      { flex: 1, maxWidth: scale(95) }
+                      selectedTip === 'other'
+                        ? styles.tipButtonActive
+                        : styles.tipButtonIdle,
+                      { flex: 1, maxWidth: 100 }
                     ]}
-                    activeOpacity={0.85}
-                    onPress={() => setSelectedTip('other')}
                   >
                     <Text
                       style={[
                         styles.tipButtonLabel,
-                        selectedTip === 'other' && styles.tipButtonLabelActive,
+                        selectedTip === 'other' && styles.tipButtonLabelActive
                       ]}
                     >
-                      Others
+                      Other
                     </Text>
                   </TouchableOpacity>
+
                   {selectedTip === 'other' && (
                     <TextInput
                       value={customTip}
                       onChangeText={setCustomTip}
-                      placeholder="Enter amount"
-                      placeholderTextColor={colors.textPrimary}
                       keyboardType="decimal-pad"
+                      placeholder="Enter amount"
                       style={[styles.customTipInput, { flex: 1 }]}
                     />
                   )}
                 </View>
               </View>
 
+              {/* DELIVERY INSTRUCTIONS */}
               <View style={styles.commentsSection}>
-                <Text style={styles.sectionHeading}>Additional delivery comments</Text>
+                <Text style={styles.sectionHeading}>Delivery Instructions</Text>
                 <TextInput
                   multiline
                   numberOfLines={4}
-                  onChangeText={setAdditionalComments}
-                  placeholder="Add delivery instructions for the driver"
-                  placeholderTextColor={colors.textPrimary}
+                  value={deliveryInstructions}
+                  onChangeText={setDeliveryInstructions}
+                  placeholder="Add instructions for the driver"
+                  placeholderTextColor={colors.textSecondary}
                   style={styles.commentsInput}
-                  textAlignVertical="top"
                 />
               </View>
+
+              {/* PRICE SUMMARY */}
               <View style={styles.orderSummary}>
                 <Text style={styles.sectionPriceDetails}>Price Details</Text>
+
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>
-                    Products({activeSeller?.items.reduce((sum, item) => sum + item.quantity, 0) || 0} items)
+                    Products(
+                    {activeSeller?.items.reduce((sum, i) => sum + i.quantity, 0) || 0}{' '}
+                    items)
                   </Text>
-                  <Text style={styles.summaryValue}>
-                    ${subtotal.toFixed(2)}
-                  </Text>
+                  <Text style={styles.summaryValue}>${subtotal.toFixed(2)}</Text>
                 </View>
+
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Delivery Fee</Text>
                   <Text style={styles.summaryValue}>${deliveryFee.toFixed(2)}</Text>
                 </View>
+
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Tax</Text>
-                  <Text style={styles.summaryValue}>${taxAmount.toFixed(2)}</Text>
+                  <Text style={styles.summaryValue}>{taxAmount.toFixed(2)}</Text>
                 </View>
+
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Tip</Text>
-                  <Text style={styles.summaryValue}>${tipAmount.toFixed(2)}</Text>
+                  <Text style={styles.summaryValue}>{tipAmount.toFixed(2)}</Text>
                 </View>
+
                 <View style={[styles.summaryRow, styles.totalRow]}>
                   <Text style={styles.totalLabel}>Total</Text>
-                  <Text style={styles.totalValue}>${payableTotal.toFixed(2)}</Text>
+                  <Text style={styles.totalValue}>{payableTotal.toFixed(2)}</Text>
                 </View>
               </View>
 
+              {/* PLACE ORDER */}
               <TouchableOpacity
                 style={styles.placeOrderButton}
-                activeOpacity={0.9}
                 onPress={() => {
                   if (!isAuthenticated) {
                     router.push({
@@ -434,123 +494,137 @@ export default function Cart() {
             </>
           )}
         </ScrollView>
+
+        {/* PAYMENT MODAL */}
         <Modal
           visible={isPaymentModalVisible}
           transparent
           animationType="fade"
           onRequestClose={() => setIsPaymentModalVisible(false)}
         >
-          <View style={[styles.modalOverlay, { paddingBottom: Math.max(insets.bottom, verticalScale(1)) }]}>
+          <View style={styles.modalOverlay}>
             <TouchableOpacity
               style={styles.modalBackground}
-              activeOpacity={1}
               onPress={() => setIsPaymentModalVisible(false)}
-            >
-              <View style={styles.modalContainer}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Payment method</Text>
-                  <TouchableOpacity onPress={() => setIsPaymentModalVisible(false)}>
-                    <Ionicons name="close" size={20} color="#9E9970" />
-                  </TouchableOpacity>
-                </View>
-                {[
-                  { id: 'credit', label: 'Credit Card' },
-                  { id: 'debit', label: 'Debit Card' },
-                  { id: 'square', label: 'Marketplace Square Payment' },
-                ].map((method) => {
-                  const isActive = selectedPaymentMethod === method.id;
-                  return (
-                    <TouchableOpacity
-                      key={method.id}
-                      style={[
-                        styles.paymentOption,
-                        method.id === 'square' && styles.paymentOptionLast,
-                      ]}
-                      activeOpacity={0.85}
-                      onPress={() => setSelectedPaymentMethod(method.id as typeof selectedPaymentMethod)}
-                    >
-                      <View style={[styles.modalRadioOuter, isActive && styles.modalRadioOuterActive]}>
-                        {isActive && <View style={styles.modalRadioInner} />}
-                      </View>
-                      <Text style={[styles.paymentOptionLabel, isActive && styles.paymentOptionLabelActive]}>
-                        {method.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+            />
+
+            <View style={styles.modalContainer}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Payment Method</Text>
+                <TouchableOpacity onPress={() => setIsPaymentModalVisible(false)}>
+                  <Ionicons name="close" size={22} />
+                </TouchableOpacity>
               </View>
-            </TouchableOpacity>
+
+              {['credit', 'debit', 'square'].map((method) => (
+                <TouchableOpacity
+                  key={method}
+                  onPress={() =>
+                    setSelectedPaymentMethod(method as typeof selectedPaymentMethod)
+                  }
+                  style={[
+                    styles.paymentOption,
+                    method === 'square' && styles.paymentOptionLast
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.modalRadioOuter,
+                      selectedPaymentMethod === method &&
+                      styles.modalRadioOuterActive
+                    ]}
+                  >
+                    {selectedPaymentMethod === method && (
+                    <View style={styles.modalRadioInner}/>
+                  )}
+                  </View>
+                  <Text 
+                    style={[
+                      styles.paymentOptionLabel,
+                      selectedPaymentMethod === method &&
+                      styles.paymentOptionLabelActive
+                    ]}
+                  >
+                    {method === 'square'
+                      ? 'Marketplace Square Payment'
+                      : method === 'debit'
+                        ? 'Debit Card'
+                        : 'Credit Card'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             <TouchableOpacity
               style={styles.modalPrimaryButton}
-              activeOpacity={0.9}
               onPress={() => {
                 setIsPaymentModalVisible(false);
                 router.push('/(tabs)/Order');
               }}
             >
               <Text style={styles.modalPrimaryButtonText}>
-                Proceed to pay ${payableTotal.toFixed(2)}
+                Pay ${payableTotal.toFixed(2)}
               </Text>
             </TouchableOpacity>
           </View>
         </Modal>
+
+        {/* ADDRESS MODAL */}
         <Modal
           visible={isAddressModalVisible}
-          transparent={true}
+          transparent
           animationType="fade"
           onRequestClose={() => setIsAddressModalVisible(false)}
         >
-          <View style={[styles.modalOverlay, { paddingBottom: Math.max(insets.bottom, verticalScale(1)) }]}>
+          <View style={styles.modalOverlay}>
             <TouchableOpacity
               style={styles.modalBackground}
-              activeOpacity={1}
               onPress={() => setIsAddressModalVisible(false)}
-            >
-              <View style={[styles.modalContainer, { maxHeight: verticalScale(400) }]}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Select Delivery Address</Text>
-                  <TouchableOpacity onPress={() => setIsAddressModalVisible(false)}>
-                    <Ionicons name="close" size={20} color={colors.textPrimary} />
-                  </TouchableOpacity>
-                </View>
+            />
 
-                <ScrollView>
-                  {addresses.map((address) => (
-                    <TouchableOpacity
-                      key={address.id}
-                      style={[styles.addressOption, selectedAddress.id === address.id && styles.selectedAddress]}
-                      activeOpacity={0.85}
-                      onPress={() => {
-                        setSelectedAddress(address);
-                        setIsAddressModalVisible(false);
-                      }}
-                    >
-                      <View style={styles.addressItemContainer}>
-                        <View style={styles.addressDetails}>
-                          <View style={styles.addressTypeRow}>
-                            <Text style={styles.addressType}>{address.type}</Text>
-                          </View>
-                          <Text style={styles.addressText}>{address.address}</Text>
-                        </View>
-                        <TouchableOpacity
-                          style={styles.editButton}
-                          onPress={() => {
-                            // Handle edit address
-                            console.log('Edit address:', address.id);
-                          }}
-                        >
-                          <Ionicons name="create-outline" size={20} color={colors.textPrimary} />
-                        </TouchableOpacity>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+            <View style={[styles.modalContainer, { maxHeight: 400 }]}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Select Delivery Address</Text>
+                <TouchableOpacity onPress={() => setIsAddressModalVisible(false)}>
+                  <Ionicons name="close" size={22} />
+                </TouchableOpacity>
               </View>
-            </TouchableOpacity>
+
+              <ScrollView
+                contentContainerStyle={styles.scroll}
+                showsVerticalScrollIndicator={false}
+              >
+                {addresses.map((address) => (
+                  <TouchableOpacity
+                    key={address.id}
+                    onPress={() => {
+                      setSelectedAddress(address);
+                      setIsAddressModalVisible(false);
+                    }}
+                    style={[
+                      styles.addressOption,
+                      selectedAddress.id === address.id &&
+                      styles.selectedAddress
+                    ]}
+                  >
+                    <View style={styles.addressItemContainer}>
+                      <View style={styles.addressDetails}>
+                        <Text style={styles.addressType}>{address.type}</Text>
+                        <Text style={styles.addressText}>{address.line1}</Text>
+                        <Text style={styles.addressText}>{address.line2}</Text>
+                      </View>
+
+                      <TouchableOpacity style={styles.editButton}>
+                        <Ionicons name="create-outline" size={20} />
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
 
             <TouchableOpacity
-              style={[styles.modalPrimaryButton]}
-              activeOpacity={0.9}
+              style={styles.modalPrimaryButton}
               onPress={() => {
                 router.replace('/AddAddress');
                 setIsAddressModalVisible(false);
@@ -571,6 +645,7 @@ const styles = StyleSheet.create({
   },
   backgroundImage: {
     flex: 1,
+    backgroundColor: colors.white
   },
 
   scrollContent: {
@@ -578,6 +653,9 @@ const styles = StyleSheet.create({
     paddingBottom: verticalScale(100),
     paddingTop: verticalScale(16),
     gap: verticalScale(16),
+  },
+  scroll: {
+    paddingBottom: verticalScale(60),
   },
   pageHeader: {
     gap: verticalScale(6),
@@ -904,7 +982,7 @@ const styles = StyleSheet.create({
   },
   tipButtonActive: {
     borderColor: colors.primaryDark,
-    backgroundColor: '#FFE49A',
+    backgroundColor: colors.secondaryLight,
   },
   tipButtonLabel: {
     fontFamily: 'PoppinsMedium',
@@ -921,7 +999,6 @@ const styles = StyleSheet.create({
     paddingVertical: verticalScale(10),
     fontFamily: 'PoppinsMedium',
     fontSize: moderateScale(13),
-    color: '#2F2D1E',
   },
   commentsSection: {
     marginTop: verticalScale(10),
@@ -1057,7 +1134,7 @@ const styles = StyleSheet.create({
     marginRight: scale(12),
   },
   modalRadioOuterActive: {
-    borderColor: colors.primaryDark,
+    borderColor: colors.primaryDark, 
   },
   modalRadioInner: {
     width: scale(12),
@@ -1084,5 +1161,23 @@ const styles = StyleSheet.create({
     fontFamily: 'PoppinsSemi',
     fontSize: moderateScale(15),
     color: '#FFFFFF',
+  },
+  slotItem: {
+    paddingVertical: verticalScale(8),
+    paddingHorizontal: scale(12),
+    borderRadius: scale(8),
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D9D5BE',
+    marginBottom: verticalScale(6),
+  },
+  slotItemSelected: {
+    backgroundColor: colors.secondaryLight,
+    borderColor: colors.primaryDark,
+  },
+  slotLabel: {
+    fontFamily: 'PoppinsMedium',
+    fontSize: moderateScale(13),
+    color: '#2F2D1E',
   },
 });

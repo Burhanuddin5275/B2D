@@ -152,7 +152,7 @@ const Product = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ImageBackground
-        source={require('../assets/images/background2.png')}
+        source={require('../assets/images/background.png')}
         style={styles.backgroundImage}
       >
         <Header title="Product" showDefaultIcons={false} />
@@ -187,7 +187,7 @@ const Product = () => {
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text style={styles.priceText}>${product.price.toFixed(2)}</Text>
               <View style={styles.ratingRow}>
-                <Ionicons name="star" size={18} color="#F2B705" />
+                <Ionicons name="star" size={18} color={colors.primaryDark} />
                 <Text style={styles.ratingScore}>(4.4)</Text>
                 <Text style={styles.ratingCount}>1079 reviews</Text>
               </View>
@@ -299,7 +299,7 @@ const Product = () => {
               <View style={styles.reviewItem}>
                 <View style={styles.reviewHeader}>
                   <View style={styles.reviewRating}>
-                    <Ionicons name="star" size={16} color="#F2B705" />
+                    <Ionicons name="star" size={16} color={colors.primaryDark} />
                     <Text style={styles.reviewRatingText}>5.0</Text>
                   </View>
                   <Text style={styles.reviewerName}>John D.</Text>
@@ -315,7 +315,7 @@ const Product = () => {
               <View style={styles.reviewItem}>
                 <View style={styles.reviewHeader}>
                   <View style={styles.reviewRating}>
-                    <Ionicons name="star" size={16} color="#F2B705" />
+                    <Ionicons name="star" size={16} color={colors.primaryDark} />
                     <Text style={styles.reviewRatingText}>4.0</Text>
                   </View>
                   <Text style={styles.reviewerName}>Sarah M.</Text>
@@ -397,6 +397,7 @@ const styles = StyleSheet.create({
   },
   backgroundImage: {
     flex: 1,
+    backgroundColor: colors.white,
   },
   scrollContent: {
     paddingBottom: verticalScale(60),
@@ -424,7 +425,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E0E0E0',
   },
   dotActive: {
-    backgroundColor: '#F2B705',
+    backgroundColor: colors.primaryDark,
     width: 24,
   },
   addToCartContainer: {
@@ -475,7 +476,7 @@ const styles = StyleSheet.create({
     paddingVertical: verticalScale(14),
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: verticalScale(10), // Add some space for the quantity selector
+    marginTop: verticalScale(10), 
   },
   addedButton: {
     backgroundColor: colors.primaryDark,
@@ -551,7 +552,7 @@ const styles = StyleSheet.create({
     borderColor: colors.secondaryLight,
   }, 
   packOptionActive: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.secondaryLight,
     borderColor: colors.primaryDark,
   },
   packOptionTitle: {
