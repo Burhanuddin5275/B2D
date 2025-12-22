@@ -235,7 +235,7 @@ const Product = () => {
               </Text>
             </View>
             <Text style={styles.disclaimerNote}>
-              Note: Paid shipping for order weight above 40lb
+              Note: Paid shipping for order weight above 25lb
             </Text>
           </View>
 

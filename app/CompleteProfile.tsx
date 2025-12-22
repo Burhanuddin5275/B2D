@@ -48,7 +48,7 @@ export default function CompleteProfile() {
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
-        source={require('../assets/images/background2.png')}
+        source={require('../assets/images/background.png')}
         style={styles.backgroundImage}
       >
         <Header title="Complete profile" showDefaultIcons={false} />
@@ -141,6 +141,7 @@ const styles = StyleSheet.create({
   },
   backgroundImage: {
 flex: 1,
+backgroundColor:colors.white
   },
 
   content: {

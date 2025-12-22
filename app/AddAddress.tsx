@@ -26,7 +26,7 @@ const AddAddress = () => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <ImageBackground source={require('../assets/images/background2.png')} style={styles.background}>
+            <ImageBackground source={require('../assets/images/background.png')} style={styles.background}>
                 <Header title="Add Address" showDefaultIcons={false}  />
                 
                 <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -140,6 +140,7 @@ const styles = StyleSheet.create({
     },
     background: {
         flex: 1,
+        backgroundColor:colors.white
     },
     scrollView: {
         flex: 1,

@@ -22,19 +22,19 @@ const ManageAddress = () => {
         {
             id: '1',
             name: 'Home',
-            address: '123 Main St, Apt 4B, New York, NY 10001',
+            address: '123 Main St, Apt 4B\nNew York, Manhattan, NY 10001',
         },
         {
             id: '2',
             name: 'Work',
-            address: '456 Business Ave, Floor 2, New York, NY 10010',
+            address: '456 Business Ave, Floor 2\nNew York, Queens, NY 10010',
         },
     ]);
 
     return (
         <SafeAreaView style={styles.container}>
             <ImageBackground
-                source={require('../assets/images/background2.png')}
+                source={require('../assets/images/background.png')}
                 style={styles.background}
             >
                 <Header title="Manage Address" showDefaultIcons={false} />
@@ -46,8 +46,9 @@ const ManageAddress = () => {
                                     <Text style={styles.addressName}>{address.name}</Text>
                                 </View>
                             </View>
-                            <View style={{ flexDirection: 'row', width: scale(250) }}>
+                            <View style={styles.addressRow}>
                                 <Text style={styles.addressText}>{address.address}</Text>
+
                                 <TouchableOpacity
                                     style={styles.menuButton}
                                     onPress={() => {
@@ -58,6 +59,7 @@ const ManageAddress = () => {
                                     <Ionicons name="ellipsis-vertical" size={25} color={'gray'} />
                                 </TouchableOpacity>
                             </View>
+
                         </View>
                     ))}
                 </ScrollView>
@@ -136,6 +138,7 @@ const styles = StyleSheet.create({
     },
     background: {
         flex: 1,
+        backgroundColor:colors.white
     },
     scrollView: {
         flex: 1,
@@ -167,14 +170,22 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginRight: 8,
     },
-    menuButton: {
-        marginLeft: scale(15)
-    },
-    addressText: {
-        fontFamily: 'MontserratMedium',
-        fontWeight: '500',
-        fontSize: moderateScale(14),
-    },
+addressRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+},
+
+menuButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    alignSelf: 'flex-start',
+},
+addressText: {
+    fontFamily: 'MontserratMedium',
+    fontWeight: '500',
+    fontSize: moderateScale(14),
+},
 
     addButton: {
         height: verticalScale(68),

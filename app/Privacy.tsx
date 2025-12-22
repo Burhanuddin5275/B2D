@@ -1,4 +1,5 @@
 import Header from '@/components/Header';
+import { colors } from '@/theme/colors';
 import React from 'react';
 import { Image, ImageBackground, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,7 +10,7 @@ const Privacy = () => {
     return (
         <SafeAreaView style={{ flex: 1 }}>
             <ImageBackground
-                source={require('../assets/images/background2.png')}
+                source={require('../assets/images/background.png')}
                 style={styles.backgroundImage}
             >
                 <Header title="Privacy Policy" showDefaultIcons={false} />
@@ -35,6 +36,7 @@ export default Privacy
 const styles = StyleSheet.create({
     backgroundImage: {
         flex: 1,
+        backgroundColor:colors.white
     },
     scrollContent: {
         flexGrow: 1,

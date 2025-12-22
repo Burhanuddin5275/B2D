@@ -69,7 +69,7 @@ const handleAddToCart = (product: any) => {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <ImageBackground
-        source={require('../assets/images/background2.png')}
+        source={require('../assets/images/background.png')}
         style={styles.backgroundImage}
       >
       <Header title="Wishlist" showDefaultIcons={false}/>
@@ -139,6 +139,7 @@ const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
     width: '100%',
+    backgroundColor:colors.white
   },
  
   scrollContainer: {
