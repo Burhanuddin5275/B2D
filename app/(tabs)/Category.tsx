@@ -15,13 +15,21 @@ import { addToWishlist, removeFromWishlist, selectWishlistItems } from '../../st
 interface Product {
   id: number;
   name: string;
-  subtitle: string;
-  category: string;
-  price: number;
-  img: any;
-  seller: string;
+  description: string;
+  regular_price: string;
+  product_images: { id: number; image: string }[];
+  product_variations: {
+    id: number;
+    name: string;
+    price: string;
+    unit_quantity: string;
+    image: string;
+    stock: number;
+  }[];
+  image: string | null;
+  category_name: { name: string };
+  store_name: { name: string };
 }
-
 
 const Category = () => {
   const [selectedOption, setSelectedOption] = useState('Relevance');
@@ -65,9 +73,10 @@ const Category = () => {
 const [quantity, setQuantity] = useState(1);
   const existingCartItem = (productId: number) => 
     cartItems.find((item) => item.id === productId);
-  const handleAddToCart = (product: any) => {
+  const handleAddToCart = (product: Product) => {
     const currentQty = existingCartItem(product.id)?.quantity || 0;
     const newQuantity = currentQty + 1;
+    const price = parseFloat(product.product_variations?.[0]?.price || '0');
     
     if (currentQty > 0) {
       dispatch(updateQuantity({ id: product.id, quantity: newQuantity }));
@@ -76,9 +85,9 @@ const [quantity, setQuantity] = useState(1);
         addToCart({
           id: product.id,
           name: product.name,
-          price: product.price,
-          img: product.img,
-          seller: product.seller || 'Unknown Seller',
+          price: parseFloat(product.regular_price),
+          img: product.product_images?.[0]?.image || '',
+          seller: product.store_name?.name || 'Unknown Seller',
           quantity: 1,
         })
       );
@@ -132,7 +141,15 @@ const [quantity, setQuantity] = useState(1);
                       });
                     }}>
                     <View style={ProductStyle.productImage}>
-                      <Image source={product.img} style={ProductStyle.productPic} resizeMode="contain" />
+                      {product.product_images && product.product_images.length > 0 ? (
+                        <Image 
+                          source={{ uri: product.product_images[0].image }} 
+                          style={ProductStyle.productPic} 
+                          resizeMode="contain" 
+                        />
+                      ) : (
+                        <View style={[ProductStyle.productPic, {backgroundColor: '#f0f0f0'}]} />
+                      )}
                     </View>
                     <TouchableOpacity
                       style={[ProductStyle.favoriteButton, checkIsInWishlist(product.id) && ProductStyle.favoriteButtonActive]}
@@ -146,9 +163,12 @@ const [quantity, setQuantity] = useState(1);
                     </TouchableOpacity>
                     <View style={ProductStyle.productInfo}>
                       <Text style={ProductStyle.productName}>{product.name}</Text>
-                      <Text style={ProductStyle.productSubtitle}>{product.subtitle}</Text>
-
-                      <Text style={ProductStyle.priceText}>${product.price.toFixed(2)}</Text>
+                      <Text style={ProductStyle.productSubtitle} numberOfLines={2}>
+                        {product.category_name.name}
+                      </Text>
+                      <Text style={ProductStyle.priceText}>
+                        ${product.regular_price|| '0.00'}
+                      </Text>
                       <View style={ProductStyle.buttonContainer}>
                         {qty === 0 ? (
                           <TouchableOpacity

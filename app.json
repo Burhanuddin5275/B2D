@@ -16,7 +16,7 @@
         "foregroundImage": "./assets/images/M2d.png",
         "backgroundColor": "#FAFAFA"
       },
-      "edgeToEdgeEnabled": false, 
+      "edgeToEdgeEnabled": false,
       "predictiveBackGestureEnabled": false,
       "package": "com.hamza527522.B2D"
     },
@@ -47,8 +47,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "ca6dd9fb-1401-4ad9-afdf-871afcf3079e"
+        "projectId": "3914ef11-8b24-4ed0-b452-417b5017f20d"
       }
-    }
+    },
+    "owner": "burhanuddin4747"
   }
 }

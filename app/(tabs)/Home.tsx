@@ -1,5 +1,8 @@
+import { Category, fetchCategories } from '@/service/category';
+import { fetchProducts, Product } from '@/service/product';
 import { addToCart, removeFromCart, selectCartItems, updateQuantity } from '@/store/cartSlice';
 import { useAppDispatch, useAppSelector } from '@/store/useAuth';
+import { colors } from '@/theme/colors';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { ImageBackground } from 'expo-image';
@@ -11,17 +14,7 @@ import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 import { useSelector } from 'react-redux';
 import { ProductStyle } from '../../assets/css/style';
 import { addToWishlist, removeFromWishlist, selectWishlistItems } from '../../store/wishlistSlice';
-import { colors } from '@/theme/colors';
 const { width } = Dimensions.get('window');
-
-const categories = [
-  { id: 1, name: 'Snacks', icon: '🍿', color: '#a3b984ff' },
-  { id: 2, name: 'Spices Seasoning', icon: '🌶️', color: '#FFD4C4' },
-  { id: 3, name: 'Cooking Oil Ghee', icon: '🧴', color: '#C41E3A' },
-  { id: 4, name: 'Grains', icon: '🍚', color: '#FFE4A3' },
-  { id: 5, name: 'Lentils Beans', icon: '🥜', color: '#8B6F47' },
-  { id: 6, name: 'Pulses', icon: '🫘', color: '#4A90E2' },
-];
 
 const stores = [
   {
@@ -42,81 +35,7 @@ const stores = [
 
 ];
 
-const products = [
-  {
-    id: 1,
-    name: 'RITZ Fresh Stacks\nOriginal Crackers',
-    subtitle: 'Family Size, 17.8 oz',
-    category: 'Snacks',
-    seller: 'Fresh Mart',
-    price: 4.98,
-    img: require('../../assets/images/Ritz.png'),
-  },
-  {
-    id: 2,
-    name: 'Great Value Mini\nPretzel Twists',
-    subtitle: '16 oz',
-    category: 'Snacks',
-    seller: 'Lisa Mart',
-    price: 2.24,
-    img: require('../../assets/images/Mini.png'),
-  },
-  {
-    id: 3,
-    name: 'Loacker Classic Wafers Mix, Variety...',
-    subtitle: '45g/1.59oz, Pack of 6',
-    category: 'Snacks',
-    seller: 'Fresh Mart',
-    price: 10.19,
-    img: require('../../assets/images/loacker.png'),
-  },
-  {
-    id: 4,
-    name: 'LOVE CORN Variety Pack | Sea Salt, BBQ...',
-    subtitle: '0.7oz, 18 Bags',
-    category: 'Snacks',
-    seller: 'Lisa Mart',
-    price: 15.19,
-    img: require('../../assets/images/snack.png'),
-  },
-  {
-    id: 5,
-    name: 'Fresh Sweet\nCorn on the Cob',
-    subtitle: '1 each',
-    category: 'Fresh produce',
-    seller: 'Fresh Mart',
-    price: 4.98,
-    img: require('../../assets/images/corn.png'),
-  },
-  {
-    id: 6,
-    name: 'Fresh Strawberry',
-    subtitle: '12 pieces',
-    category: 'Fresh produce',
-    seller: 'Lisa Mart',
-    price: 2.24,
-    img: require('../../assets/images/strawberry.png'),
-  },
-  {
-    id: 7,
-    name: 'Fresh Roma Tomato',
-    subtitle: '1 pieces',
-    category: 'Fresh produce',
-    seller: 'Fresh Mart',
-    price: 10.19,
-    img: require('../../assets/images/tomatao.png'),
-  },
-  {
-    id: 8,
-    name: 'Fresh Hass Avocado',
-    subtitle: '1 pieces',
-    category: 'Fresh produce',
-    seller: 'Fresh Mart',
-    price: 15.19,
-    img: require('../../assets/images/avocados.png'),
-  },
 
-];
 
 export default function HomeScreen() {
   const navigation = useNavigation();
@@ -130,6 +49,9 @@ export default function HomeScreen() {
   const dispatch = useAppDispatch();
   const cartItems = useAppSelector(selectCartItems);
   const checkIsInWishlist = (productId: number) => wishlist.includes(productId);
+  const [category, setCategory] = useState<Category[]>([]);
+  const [Products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const handleScroll = (event: any) => {
     const offsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(offsetX / storeCardWidth);
@@ -155,6 +77,7 @@ export default function HomeScreen() {
   const handleAddToCart = (product: any) => {
     const currentQty = existingCartItem(product.id)?.quantity || 0;
     const newQuantity = currentQty + 1;
+    const productImage = product.product_images?.[0]?.image || product.image || '';
 
     if (currentQty > 0) {
       dispatch(updateQuantity({ id: product.id, quantity: newQuantity }));
@@ -163,9 +86,9 @@ export default function HomeScreen() {
         addToCart({
           id: product.id,
           name: product.name,
-          price: product.price,
-          img: product.img,
-          seller: product.seller || 'Unknown Seller',
+          price: product.regular_price,
+          img: productImage,
+           seller: product.store_name?.name || null,
           quantity: 1,
         })
       );
@@ -189,6 +112,30 @@ export default function HomeScreen() {
       dispatch(updateQuantity({ id: productId, quantity: newQuantity }));
     }
   };
+  useEffect(() => {
+    const loadCategory = async () => {
+      const data = await fetchCategories();
+      setCategory(data);
+      setLoading(false);
+    };
+
+    loadCategory();
+  })
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const data = await fetchProducts();
+        setProducts(data);
+      } catch (error) {
+        console.error('Failed to load products:', error);
+        // You can set an error state here to show to the user
+      } finally {
+        setLoading(false);
+      }
+    };
+    console.log("product", Products)
+    loadProducts();
+  }, []); // Add empty dependency array to run once on mount
   return (
     <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
       <ImageBackground
@@ -237,10 +184,10 @@ export default function HomeScreen() {
               showsHorizontalScrollIndicator={false}
               style={styles.categoriesScroll}
             >
-              {categories.map((category) => (
+              {category.slice(0, 6).map((category) => (
                 <TouchableOpacity key={category.id} style={styles.categoryCard} onPress={() => {
-                  const categoryProducts = products.filter(
-                    product => product.category.toLowerCase() === category.name.split('\n')[0].toLowerCase()
+                  const categoryProducts = Products.filter(
+                    product => product.category_name.name.toLowerCase() === category.name.split('\n')[0].toLowerCase()
                   );
 
                   router.push({
@@ -251,10 +198,14 @@ export default function HomeScreen() {
                     }
                   })
                 }}>
-                  <View style={[styles.categoryIcon, { backgroundColor: category.color }]}>
-                    <Text style={styles.categoryEmoji}>{category.icon}</Text>
+                  <View style={[styles.categoryIcon]}>
+                    <Image
+                      src={category.image || ''}
+                      style={styles.categoryEmoji}
+                      resizeMode="contain"
+                    />
+                    <Text style={styles.categoryName} numberOfLines={2}>{category.name}</Text>
                   </View>
-                  <Text style={styles.categoryName}>{category.name}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -292,8 +243,8 @@ export default function HomeScreen() {
                       x: index * storeCardWidth,
                       animated: true
                     });
-                    const storeProducts = products.filter(
-                      product => product.seller.toLowerCase() === store.name.split('\n')[0].toLowerCase()
+                    const storeProducts = Products.filter(
+                      product => product.store_name.name.toLowerCase() === store.name.split('\n')[0].toLowerCase()
                     );
 
                     router.push({
@@ -325,19 +276,41 @@ export default function HomeScreen() {
           {/* Products Section */}
           <View style={ProductStyle.productsSection}>
             <View style={ProductStyle.productsGrid}>
-              {products.map((product) => {
+              {Products.slice(76).map((product) => {
                 const qty = existingCartItem(product.id)?.quantity || 0;
                 return (
-                  <TouchableOpacity key={product.id} style={ProductStyle.productCard} onPress={() => {
-                    router.push({
-                      pathname: '/Product',
-                      params: {
-                        product: JSON.stringify(product)
-                      }
-                    });
-                  }}>
+                  <TouchableOpacity
+                    key={product.id}
+                    style={ProductStyle.productCard}
+                    onPress={() => {
+                      router.push({
+                        pathname: '/Product',
+                        params: {
+                          product: JSON.stringify({
+                            id: product.id,
+                            name: product.name,
+                            description: product.description || '',
+                            price: product.regular_price,
+                            // product_images: product.product_images || [],
+                            images: product.product_images?.map((img) => img.image) || [],
+                            variations: product.product_variations?.map((variation) => ({
+                              name: variation.name,
+                              price: variation.price,
+                              unit_quantity: variation.unit_quantity,
+                              stock: variation.stock,
+                            })) || [],
+                            category: product.category_name?.name || '',
+                            seller: product.store_name?.name || 'Fresh Mart'
+                          })
+                        }
+                      });
+                    }}>
                     <View style={ProductStyle.productImage}>
-                      <Image source={product.img} style={ProductStyle.productPic} resizeMode="contain" />
+                      <Image
+                        src={product.product_images?.[0]?.image || ''}
+                        style={ProductStyle.productPic}
+                        resizeMode="contain"
+                      />
                     </View>
                     <TouchableOpacity
                       style={[ProductStyle.favoriteButton, checkIsInWishlist(product.id) && ProductStyle.favoriteButtonActive]}
@@ -350,10 +323,10 @@ export default function HomeScreen() {
                       />
                     </TouchableOpacity>
                     <View style={ProductStyle.productInfo}>
-                      <Text style={ProductStyle.productName}>{product.name}</Text>
-                      <Text style={ProductStyle.productSubtitle}>{product.subtitle}</Text>
+                      <Text style={ProductStyle.productName} numberOfLines={2}>{product.name}</Text>
+                      <Text style={ProductStyle.productSubtitle}>{product.category_name?.name || ''}</Text>
 
-                      <Text style={ProductStyle.priceText}>${product.price.toFixed(2)}</Text>
+                      <Text style={ProductStyle.priceText}>${product.regular_price}</Text>
                       <View style={ProductStyle.buttonContainer}>
                         {qty === 0 ? (
                           <TouchableOpacity
@@ -489,20 +462,21 @@ const styles = StyleSheet.create({
     width: scale(80),
   },
   categoryIcon: {
-    width: 80,
-    height: 80,
+    width: scale(80),
+    height: verticalScale(75),
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
   },
   categoryEmoji: {
-    fontSize: moderateScale(36),
+    width: '100%',
+    height: verticalScale(40)
   },
   categoryName: {
     fontFamily: 'MontserratMedium',
     fontWeight: '500',
-    fontSize: moderateScale(12),
+    fontSize: moderateScale(10),
     textAlign: 'center',
   },
   storesScroll: {

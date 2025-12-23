@@ -4,8 +4,10 @@ import { useAppDispatch, useAppSelector } from '@/store/useAuth';
 import { colors } from '@/theme/colors';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Dimensions,
+  FlatList,
   Image,
   ImageBackground,
   ScrollView,
@@ -17,20 +19,24 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 
+interface ProductVariant {
+  name: string;
+  price: number | string;
+  unit_quantity?: string;
+  stock?: number;
+}
+
 interface Product {
   id: number;
   name: string;
   subtitle: string;
   category: string;
   price: number;
-  img: any;
+  image: any;
   seller: string;
+  images?: string[];
+  variations?: ProductVariant[];
 }
-
-const PACK_OPTIONS = [
-  { id: 'single', title: 'Single', price: '$3.88' },
-  { id: 'pack6', title: 'Pack of 6', price: '$24.70' },
-];
 
 const HIGHLIGHTS = [
   {
@@ -64,46 +70,33 @@ const RATING_BREAKDOWN = [
   { id: '1', count: 126 },
 ];
 
-const DEFAULT_PRODUCT: Product = {
-  id: 1,
-  name: 'RITZ Fresh Stacks Original Crackers,\nFamily Size, 17.8 oz',
-  subtitle: '',
-  category: '',
-  price: 3.88,
-  img: require('../assets/images/Ritz.png'),
-  seller: 'Fresh Mart',
-};
+
 
 const Product = () => {
-  const { product: productParam } = useLocalSearchParams();
+  const { product } = useLocalSearchParams();
   const dispatch = useAppDispatch();
   const cartItems = useAppSelector(selectCartItems);
-  const productString = Array.isArray(productParam) ? productParam[0] : productParam;
 
-  const product: Product = useMemo(() => {
-    if (!productString) {
-      return DEFAULT_PRODUCT;
-    }
-
+  const parsedProduct: Product = useMemo(() => {
     try {
-      const parsed = JSON.parse(productString as string);
-      return {
-        ...DEFAULT_PRODUCT,
-        ...parsed,
-      };
-    } catch (error) {
-      console.warn('Failed to parse product param', error);
-      return DEFAULT_PRODUCT;
+      return JSON.parse(
+        Array.isArray(product) ? product[0] : product
+      );
+    } catch {
+      return null;
     }
-  }, [productString]);
+  }, [product]);
 
-  const [selectedPack, setSelectedPack] = useState('single');
+  const [selectedVariant, setSelectedVariant] = useState<number>(0);
   const [quantity, setQuantity] = useState(1);
   const [showQuantitySelector, setShowQuantitySelector] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const flatListRef = useRef<FlatList>(null);
+  const { width: screenWidth } = Dimensions.get('window');
 
   const existingCartItem = useMemo(
-    () => cartItems.find((item) => item.id === product.id),
-    [cartItems, product.id]
+    () => cartItems.find((item) => item.id === parsedProduct.id),
+    [cartItems, parsedProduct.id]
   );
 
   useEffect(() => {
@@ -119,12 +112,12 @@ const Product = () => {
   const handleAddToCart = () => {
     dispatch(
       addToCart({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        img: product.img,
-        seller: product.seller,
-        quantity: 1, 
+        id: parsedProduct.id,
+        name: parsedProduct.name,
+        price: parsedProduct.price,
+        img: parsedProduct.image,
+        seller: parsedProduct.seller,
+        quantity: 1,
       })
     );
     setQuantity(1);
@@ -134,21 +127,22 @@ const Product = () => {
   const incrementQuantity = () => {
     const newQuantity = quantity + 1;
     setQuantity(newQuantity);
-    dispatch(updateQuantity({ id: product.id, quantity: newQuantity }));
+    dispatch(updateQuantity({ id: parsedProduct.id, quantity: newQuantity }));
   };
 
   const decrementQuantity = () => {
     const newQuantity = quantity - 1;
     if (newQuantity <= 0) {
-      dispatch(removeFromCart(product.id));
+      dispatch(removeFromCart(parsedProduct.id));
       setQuantity(1);
       setShowQuantitySelector(false);
       return;
     }
 
     setQuantity(newQuantity);
-    dispatch(updateQuantity({ id: product.id, quantity: newQuantity }));
+    dispatch(updateQuantity({ id: parsedProduct.id, quantity: newQuantity }));
   };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ImageBackground
@@ -161,31 +155,60 @@ const Product = () => {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.imageContainer}>
-            <Image
-              source={product?.img || require('../assets/images/Ritz.png')}
-              style={styles.productImage}
-              resizeMode="contain"
+            <FlatList
+              ref={flatListRef}
+              data={parsedProduct.images || []} // 
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(event) => {
+                const newIndex = Math.round(
+                  event.nativeEvent.contentOffset.x / screenWidth
+                );
+                setCurrentImageIndex(newIndex);
+              }}
+              keyExtractor={(_, index) => index.toString()}
+              renderItem={({ item }) => (
+                <View style={{ width: screenWidth, height: 300 }}>
+                  <Image
+                    src={item}
+                    style={styles.productImage}
+                    resizeMode="contain"
+                  />
+                </View>
+              )}
             />
+
             <View style={styles.carouselDots}>
-              {[0, 1, 2, 3, 4].map((dot) => (
-                <View
-                  key={dot}
-                  style={[styles.dot, dot === 1 ? styles.dotActive : undefined]}
-                />
+              {(parsedProduct.images || []).map((_, index) => (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => {
+                    flatListRef.current?.scrollToIndex({ index, animated: true });
+                    setCurrentImageIndex(index);
+                  }}
+                >
+                  <View
+                    style={[
+                      styles.dot,
+                      index === currentImageIndex && styles.dotActive,
+                    ]}
+                  />
+                </TouchableOpacity>
               ))}
             </View>
           </View>
           <View style={styles.infoCard}>
             <Text style={styles.productTitle}>
-              {product.name}
+              {parsedProduct.name}
             </Text>
-            {!!product.subtitle && (
+            {/* {!!product.subtitle && (
               <Text style={styles.productSubtitle}>{product.subtitle}</Text>
-            )}
-            <Text style={styles.sellerText}>Sold by {product.seller}</Text>
+            )} */}
+            <Text style={styles.sellerText}>Sold by {parsedProduct.seller}</Text>
 
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={styles.priceText}>${product.price.toFixed(2)}</Text>
+              <Text style={styles.priceText}>${parsedProduct.price}</Text>
               <View style={styles.ratingRow}>
                 <Ionicons name="star" size={18} color={colors.primaryDark} />
                 <Text style={styles.ratingScore}>(4.4)</Text>
@@ -193,40 +216,49 @@ const Product = () => {
               </View>
             </View>
 
-            <Text style={styles.packLabel}>Pack Size: Single</Text>
-            <View style={styles.packOptionsRow}>
-              {PACK_OPTIONS.map((option) => {
-                const isActive = option.id === selectedPack;
-                return (
-                  <TouchableOpacity
-                    key={option.id}
-                    style={[
-                      styles.packOption,
-                      isActive ? styles.packOptionActive : styles.packOptionIdle,
-                    ]}
-                    activeOpacity={0.85}
-                    onPress={() => setSelectedPack(option.id)}
-                  >
-                    <Text
-                      style={[
-                        styles.packOptionTitle,
-                        isActive && styles.packOptionTitleActive,
-                      ]}
-                    >
-                      {option.title}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.packOptionPrice,
-                        isActive && styles.packOptionPriceActive,
-                      ]}
-                    >
-                      {option.price}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            {parsedProduct.variations && parsedProduct.variations.length > 0 && (
+              <>
+                <Text style={styles.packLabel}>Available Variants</Text>
+                <View style={styles.packOptionsRow}>
+                  {parsedProduct.variations.map((variant, index) => {
+                    const isActive = index === selectedVariant;
+                    const price = typeof variant.price === 'number' 
+                      ? `$${variant.price.toFixed(2)}` 
+                      : variant.price;
+                    
+                    return (
+                      <TouchableOpacity
+                        key={index}
+                        style={[
+                          styles.packOption,
+                          isActive ? styles.packOptionActive : styles.packOptionIdle,
+                        ]}
+                        activeOpacity={0.85}
+                        onPress={() => setSelectedVariant(index)}
+                      >
+                        <Text
+                          style={[
+                            styles.packOptionTitle,
+                            isActive && styles.packOptionTitleActive,
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {variant.name}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.packOptionPrice,
+                            isActive && styles.packOptionPriceActive,
+                          ]}
+                        >
+                          {price}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </>
+            )}
 
             <View style={styles.disclaimerBadge}>
               <Text style={styles.disclaimerTitle}>
@@ -349,7 +381,7 @@ const Product = () => {
                 Add to Cart
               </Text>
             </TouchableOpacity>
-            
+
             {showQuantitySelector && (
               <View style={styles.quantitySelector}>
                 <TouchableOpacity
@@ -403,36 +435,48 @@ const styles = StyleSheet.create({
     paddingBottom: verticalScale(60),
   },
   imageContainer: {
-    borderRadius: 18,
-    padding: 20,
-    alignItems: 'center',
+    width: '100%',
+    height: 300,
+    backgroundColor: '#fff',
+    marginBottom: 16,
+    position: 'relative',
   },
   productImage: {
-    width: scale(200),
-    height: verticalScale(250),
-    resizeMode: 'contain',
+    width: '100%',
+    height: '100%',
   },
   carouselDots: {
+    position: 'absolute',
+    bottom: 20,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginHorizontal: '25%',
   },
   dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    marginHorizontal: 4,
+
   },
   dotActive: {
     backgroundColor: colors.primaryDark,
-    width: 24,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
   addToCartContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
-    right: 0, 
+    right: 0,
     paddingHorizontal: scale(20),
     paddingVertical: verticalScale(16),
     borderTopLeftRadius: 20,
@@ -476,7 +520,7 @@ const styles = StyleSheet.create({
     paddingVertical: verticalScale(14),
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: verticalScale(10), 
+    marginTop: verticalScale(10),
   },
   addedButton: {
     backgroundColor: colors.primaryDark,
@@ -493,14 +537,14 @@ const styles = StyleSheet.create({
   },
   productTitle: {
     fontFamily: 'Montserrat',
-    fontWeight:600,
+    fontWeight: 600,
     fontSize: moderateScale(16),
     lineHeight: 22,
   },
   productSubtitle: {
     marginTop: verticalScale(6),
     fontFamily: 'Montserrat',
-    fontWeight:500,
+    fontWeight: 500,
     fontSize: moderateScale(13),
     lineHeight: 20,
   },
@@ -508,9 +552,9 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(16),
     marginBottom: verticalScale(16),
     fontFamily: 'Montserrat',
-    fontWeight:600,
+    fontWeight: 600,
   },
-  sellerText: { 
+  sellerText: {
     marginTop: verticalScale(8),
     fontFamily: ' MontserratMedium',
     fontSize: moderateScale(13),
@@ -531,7 +575,7 @@ const styles = StyleSheet.create({
     fontFamily: 'InterRegular',
     fontSize: moderateScale(13),
     color: colors.textPrimary,
-    },
+  },
   packLabel: {
     fontFamily: 'Montserrat',
     fontSize: moderateScale(14),
@@ -550,7 +594,7 @@ const styles = StyleSheet.create({
   },
   packOptionIdle: {
     borderColor: colors.secondaryLight,
-  }, 
+  },
   packOptionActive: {
     backgroundColor: colors.secondaryLight,
     borderColor: colors.primaryDark,
@@ -631,7 +675,7 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(12),
   },
   sectionDivider: {
-    height:1,
+    height: 1,
     backgroundColor: 'rgba(0,0,0,0.16)',
     marginVertical: verticalScale(18),
   },

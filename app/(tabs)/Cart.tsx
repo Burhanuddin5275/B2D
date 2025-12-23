@@ -35,6 +35,11 @@ type SellerGroup = {
 export default function Cart() {
   const dispatch = useAppDispatch();
   const cartItems = useAppSelector(selectCartItems);
+  
+  useEffect(() => {
+    console.log('Cart Items:', JSON.stringify(cartItems, null, 2));
+  }, [cartItems]);
+
   const cartTotalPrice = useAppSelector(selectCartTotalPrice);
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
   const insets = useSafeAreaInsets();
@@ -230,7 +235,11 @@ export default function Cart() {
                               styles.cartItemDivider
                             ]}
                           >
-                            <Image source={item.img} style={styles.itemImage} />
+                            <Image 
+                              source={typeof item.img === 'string' ? { uri: item.img } : item.img} 
+                              style={styles.itemImage} 
+                              resizeMode="contain"
+                            />
 
                             <View style={styles.itemDetails}>
                               <Text style={styles.itemName}>{item.name}</Text>

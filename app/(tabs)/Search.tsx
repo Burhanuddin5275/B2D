@@ -3,129 +3,29 @@ import { addToWishlist, removeFromWishlist, selectWishlistItems } from '@/store/
 import Ionicons from '@expo/vector-icons/Ionicons'
 import { useNavigation } from '@react-navigation/native'
 import { ImageBackground } from 'expo-image'
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
-import { moderateScale, scale, verticalScale } from 'react-native-size-matters'
-import { useAppDispatch, useAppSelector } from '@/store/useAuth'
-import { router } from 'expo-router'
 import { ProductStyle } from '@/assets/css/style'
+import { Category, fetchCategories } from '@/service/category'
+import { fetchProducts, Product } from '@/service/product'
+import { useAppDispatch, useAppSelector } from '@/store/useAuth'
 import { colors } from '@/theme/colors'
+import { router } from 'expo-router'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
+import { moderateScale, verticalScale } from 'react-native-size-matters'
 
 const { width } = Dimensions.get('window')
 
-type Suggestion = {
-  id: string | number
-  title: string
-  subtitle: string
-  image?: any
-  emoji?: string
-  bgColor?: string
-  type: 'category' | 'product'
-  price?: string
-  unit?: string
-  seller?: string
-}
-
-const CATEGORIES: Suggestion[] = [
-  {
-    id: 'cat-spices',
-    title: 'Spices & Seasoning',
-    subtitle: 'in Food Category',
-    emoji: '🌶️',
-    bgColor: '#FFD4C4',
-    type: 'category'
-  },
-  {
-    id: 'cat-biscuits',
-    title: 'Biscuits',
-    subtitle: 'Category',
-    image: require('../../assets/images/Ritz.png'),
-    type: 'category'
-  },
-]
-const PRODUCTS: Suggestion[] = [
-  {
-    id: 1,
-    title: 'RITZ Fresh Stacks\nOriginal Crackers',
-    subtitle: 'Family Size, 17.8 oz',
-    price: '4.98',
-    image: require('../../assets/images/Ritz.png'),
-    type: 'product',
-    seller: 'Fresh Mart',
-  },
-  {
-    id: 2,
-    title: 'Great Value Mini\nPretzel Twists',
-    subtitle: '16 oz',
-    price: '2.24',
-    image: require('../../assets/images/Mini.png'),
-    type: 'product',
-    seller: 'Fresh Mart',
-  },
-  {
-    id: 3,
-    title: 'Loacker Classic Wafers Mix, Variety...',
-    subtitle: '45g/1.59oz, Pack of 6',
-    price: '10.19',
-    image: require('../../assets/images/loacker.png'),
-    type: 'product',
-    seller: 'Fresh Mart',
-  },
-  {
-    id: 4,
-    title: 'LOVE CORN Variety Pack | Sea Salt, BBQ...',
-    subtitle: '0.7oz, 18 Bags',
-    price: '15.19',
-    image: require('../../assets/images/snack.png'),
-    type: 'product',
-    seller: 'Fresh Mart',
-  },
-  {
-    id: 5,
-    title: 'Fresh Sweet\nCorn on the Cob',
-    subtitle: '1 each',
-    price: '4.98',
-    image: require('../../assets/images/corn.png'),
-    type: 'product',
-    seller: 'Lisa Mart',
-  },
-  {
-    id: 6,
-    title: 'Fresh Strawberry',
-    subtitle: '12 pieces',
-    price: '2.24',
-    image: require('../../assets/images/strawberry.png'),
-    type: 'product',
-    seller: 'Lisa Mart',
-  },
-  {
-    id: 7,
-    title: 'Fresh Roma Tomato',
-    subtitle: '1 pieces',
-    price: '10.19',
-    image: require('../../assets/images/tomatao.png'),
-    type: 'product',
-    seller: 'Lisa Mart',
-  },
-  {
-    id: 8,
-    title: 'Fresh Hass Avocado',
-    subtitle: '1 pieces',
-    price: '15.19',
-    image: require('../../assets/images/avocados.png'),
-    type: 'product',
-    seller: 'Lisa Mart',
-  },
-
-];
 const Search = () => {
   const navigation = useNavigation()
   const [query, setQuery] = useState('')
   const dispatch = useAppDispatch();
   const wishlistItems = useAppSelector(selectWishlistItems);
   const cartItems = useAppSelector(selectCartItems);
+  const [apiProducts, setApiProducts] = useState<Product[]>([]);
+  const [apiCategories, setApiCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const wishlistIds = useMemo(() => wishlistItems.map(item => item.id), [wishlistItems]);
   const checkIsInWishlist = (productId: number) => wishlistIds.includes(productId);
   const insets = useSafeAreaInsets();
@@ -150,15 +50,37 @@ const Search = () => {
     const q = query.trim().toLowerCase()
     if (!q) return { categories: [], products: [] }
 
+    // Map API categories to Suggestion format with all required properties
+    const mappedCategories = apiCategories.map(category => ({
+      id: `cat-${category.id}`,
+      title: category.name,
+      type: 'category' as const,
+      image: category.image ? { uri: category.image } : null, // No image fallback - will use emoji
+      bgColor: '#EEE',
+      emoji: '🛒',
+      subtitle: ''
+    }));
+
+    // Map API products to Suggestion format
+    const mappedProducts = apiProducts.map(product => ({
+      id: product.id,
+      title: product.name,
+      subtitle: typeof product.category_name === 'object' ? product.category_name.name : 'Product',
+      price: product.regular_price || '0.00',
+      image: product.product_images?.[0]?.image ? { uri: product.product_images[0].image } : null, // No image fallback
+      type: 'product' as const,
+      seller: product.store_name?.name || 'Marketplace',
+    }));
+
     return {
-      categories: CATEGORIES.filter(s =>
+      categories: mappedCategories.filter(s =>
         s.title.toLowerCase().includes(q) || s.subtitle.toLowerCase().includes(q)
       ),
-      products: PRODUCTS.filter(s =>
-        s.title.toLowerCase().includes(q) || s.subtitle.toLowerCase().includes(q)
+      products: mappedProducts.filter(s => 
+        s.title.toLowerCase().includes(q) || s.title.toLowerCase().includes(q)
       )
     }
-  }, [query])
+  }, [query, apiProducts, apiCategories])
 
   const existingCartItem = (productId: number) =>
     cartItems.find((item) => item.id === productId);
@@ -200,6 +122,29 @@ const Search = () => {
     }
   };
 
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        // Load products and categories in parallel
+        const [productsData, categoriesData] = await Promise.all([
+          fetchProducts(),
+          fetchCategories()
+        ]);
+
+        setApiProducts(productsData);
+        setApiCategories(categoriesData);
+      } catch (error) {
+        console.error('Failed to load data:', error);
+        // You can set an error state here to show to the user
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
   return (
     <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
       <ImageBackground
@@ -238,19 +183,25 @@ const Search = () => {
           </View>
         ) : (
           <View style={styles.resultsWrap}>
-            {categories.length > 0 && (
+            {products.length > 0 && (
               <>
                 <Text style={styles.sectionTitle}>Category</Text>
                 <FlatList
-                  data={categories}
+                  data={products}
                   keyExtractor={(item) => String(item.id)}
                   renderItem={({ item }) => (
                     <View style={styles.row}>
-                      {item.image ? (
-                        <Image source={item.image} style={styles.thumbImage} />
+                      {item.type === 'product' ? (
+                        <View style={[styles.emojiWrap, { backgroundColor: '#EEE' }]}>
+                          <Image style={styles.emoji} src={item.image?.uri} />
+                        </View>
+                      ) : item.image ? (
+                        <View style={[styles.emojiWrap, { backgroundColor: '#EEE' }]}>
+                            <Image style={styles.emoji} src={item.image?.uri} />
+                        </View>
                       ) : (
-                        <View style={[styles.emojiWrap, { backgroundColor: item.bgColor || '#EEE' }]}>
-                          <Text style={styles.emoji}>{item.emoji || '🛒'}</Text>
+                        <View style={[styles.emojiWrap, { backgroundColor: '#EEE' }]}>
+                          <Text style={styles.emoji}>{'🛒'}</Text>
                         </View>
                       )}
                       <View style={styles.rowText}>
@@ -298,7 +249,13 @@ const Search = () => {
                           }}
                         >
                           <View style={ProductStyle.productImage}>
-                            <Image source={item.image} style={ProductStyle.productPic} resizeMode="contain" />
+                            {item.image ? (
+                              <Image source={item.image} style={ProductStyle.productPic} resizeMode="contain" />
+                            ) : (
+                              <View style={[ProductStyle.productPic, { backgroundColor: '#EEE', justifyContent: 'center', alignItems: 'center' }]}>
+                                <Text style={{ fontSize: 24 }}>🛒</Text>
+                              </View>
+                            )}
                           </View>
                           <TouchableOpacity
                             style={[ProductStyle.favoriteButton, checkIsInWishlist(productId) && ProductStyle.favoriteButtonActive]}
@@ -457,7 +414,9 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   emoji: {
-    fontSize: 26,
+    width: 48,
+    height: 48,
+    resizeMode: 'contain',
   },
   thumbImage: {
     width: 56,
