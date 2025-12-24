@@ -1,9 +1,12 @@
+import Header from '@/components/Header';
+import { colors } from '@/theme/colors';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   Alert, Image,
   ImageBackground,
-  KeyboardAvoidingView, Linking, Platform,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,16 +18,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 import { loginSuccess } from '../store/authSlice';
 import { useAppDispatch } from '../store/useAuth';
-import Header from '@/components/Header';
-import { colors } from '@/theme/colors';
 
 const VerifyNumber = () => {
   const { phone } = useLocalSearchParams();
   const [code, setCode] = useState(['', '', '', '']);
-  const [verificationCode, setVerificationCode] = useState('');
   const [countdown, setCountdown] = useState(15);
   const [isCountdownActive, setIsCountdownActive] = useState(true);
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const validPhoneNumbers = [
     '+11234567890',
     '+19876543210',
@@ -37,7 +37,7 @@ const VerifyNumber = () => {
     setCode(newCode);
 
     // Auto focus next input
-    if (text && index < 3) {
+    if (text && index < 5) {
       // @ts-ignore - refs are handled by React Native
       const nextInput = inputs.current[index + 1];
       nextInput?.focus();
@@ -49,49 +49,73 @@ const VerifyNumber = () => {
   const dispatch = useAppDispatch();
   const router = useRouter();
 
-  const handleVerify = () => {
-    const enteredCode = code.join('');
+  const handleVerify = async () => {
+    try {
+      const enteredCode = code.join('');
 
-    if (enteredCode === verificationCode) {
-      // Check if phone number is in validPhoneNumbers array
-      if (validPhoneNumbers.includes(phone as string)) {
-        // If valid phone number, login and navigate to profile
+      if (enteredCode.length !== 6) {
+        Alert.alert('Invalid Code', 'Please enter a 6-digit code.');
+        return;
+      }
+      setIsSubmitting(true);
+      const response = await fetch('https://mart2door.com/customer-api/auth/validate_token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone_number: phone,
+          otp: enteredCode
+        })
+      });
+      const contentType = response.headers.get('content-type');
+      let responseData;
+      if (contentType && contentType.includes('application/json')) {
+        responseData = await response.json();
+        console.log('Response data:', responseData.token);
+      } else {
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+        throw new Error('Server returned an invalid response');
+      }
+
+      if (!response.ok) {
+        // Handle API errors
+        const errorMessage = responseData.message || 'Failed to verify code';
+        throw new Error(errorMessage);
+      }
+
+      // Make sure the response contains a token
+      if (responseData.has_profile === true) {
         dispatch(loginSuccess({
           phone: phone as string,
-          // Add other user data as needed
+          token: responseData.token
         }));
-        router.replace('/(tabs)/Profile'); // Replace with your profile route
-      } else {
-        router.replace(`/CompleteProfile?phone=${encodeURIComponent(phone as string)}`);
+        router.replace({
+          pathname: '/(tabs)/Profile',
+          params: {
+            phone: phone as string,
+            token: responseData.token
+          }
+        });
       }
-    } else {
-      Alert.alert('Invalid Code', 'The verification code you entered is incorrect.');
+      else {
+        router.replace({
+          pathname: '/CompleteProfile',
+          params: {
+            phone: phone as string,
+            Token: responseData.token
+          }
+        })
+      }
+
+    } catch (error) {
+      console.error('Verification error:', error);
+      Alert.alert('An error occurred during verification');
     }
-  };
-
-  const generateNewCode = () => {
-    const newCode = Math.floor(1000 + Math.random() * 9000).toString();
-    setVerificationCode(newCode);
-    return newCode;
-  };
-
-  const sendOtpEmail = (code: string) => {
-    console.log('Preparing to send verification code...');
-
-    setTimeout(async () => {
-      const emailAddress = 'bhamza4747@gmail.com';
-      const emailSubject = 'Your New Verification Code';
-      const emailBody = `Your new verification code is: ${code}\n\nPlease use this code to verify your account.`;
-      const emailUrl = `mailto:${emailAddress}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
-
-      try {
-        await Linking.openURL(emailUrl);
-        console.log('New verification code email sent');
-        Alert.alert('Code Sent', 'A new verification code has been sent to your email.');
-      } catch (error) {
-        console.error('Error sending verification email:', error);
-      }
-    }, 2000); // 2000 milliseconds = 2 seconds
+    finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Countdown effect
@@ -106,16 +130,6 @@ const VerifyNumber = () => {
 
     return () => clearTimeout(timer);
   }, [countdown, isCountdownActive]);
-
-  // Send verification code when component mounts
-  useEffect(() => {
-    const code = generateNewCode();
-    sendOtpEmail(code);
-
-    // Reset countdown when component mounts
-    setCountdown(15);
-    setIsCountdownActive(true);
-  }, []);
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -137,19 +151,19 @@ const VerifyNumber = () => {
         >
           <SafeAreaView style={styles.safeArea}>
             <ScrollView
-              contentContainerStyle={{paddingBottom: verticalScale(50) }}
+              contentContainerStyle={{ paddingBottom: verticalScale(50) }}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
-                    <View style={styles.header}>
-              <Text style={styles.title}>Verify phone number!</Text>
-              <Text style={styles.subtitle}>
-                Please enter the code that we've
-                sent to <Text style={{ color: colors.primaryDark }}>{phone || '+1 234 567 890'}</Text>
-              </Text>
-            </View>
+              <View style={styles.header}>
+                <Text style={styles.title}>Verify phone number!</Text>
+                <Text style={styles.subtitle}>
+                  Please enter the code that we've
+                  sent to <Text style={{ color: colors.primaryDark }}>{phone || '+1 234 567 890'}</Text>
+                </Text>
+              </View>
               <View style={styles.codeContainer}>
-                {[0, 1, 2, 3].map((index) => (
+                {[0, 1, 2, 3, 4, 5].map((index) => (
                   <TextInput
                     key={index}
                     ref={(ref) => {
@@ -175,29 +189,33 @@ const VerifyNumber = () => {
                 ))}
               </View>
               <TouchableOpacity
-                style={[styles.verifyButton, { opacity: code.every(c => c) ? 1 : 0.5 }]}
+                style={[styles.verifyButton, {
+                  opacity: code.every(c => c) && !isSubmitting ? 1 : 0.5
+                }]}
                 onPress={handleVerify}
-                disabled={!code.every(c => c)}
+                disabled={!code.every(c => c) || isSubmitting}
               >
-                <Text style={styles.verifyButtonText}>Verify & proceed</Text>
+                <Text style={styles.verifyButtonText}>
+                  {isSubmitting ? 'Verifying...' : 'Verify & proceed'}
+                </Text>
               </TouchableOpacity>
-                    <View style={styles.resendContainer}>
-              <Text style={styles.resendText}>
-                {isCountdownActive
-                  ? `Resend code in ${countdown}s`
-                  : "Didn't receive the code?"}
-              </Text>
-              {!isCountdownActive && (
-                <TouchableOpacity onPress={() => {
-                  const newCode = generateNewCode();
-                  sendOtpEmail(newCode);
-                  setCountdown(15);
-                  setIsCountdownActive(true);
-                }}>
-                  <Text style={styles.resendButton}>Resend Code</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+              <View style={styles.resendContainer}>
+                <Text style={styles.resendText}>
+                  {isCountdownActive
+                    ? `Resend code in ${countdown}s`
+                    : "Didn't receive the code?"}
+                </Text>
+                {!isCountdownActive && (
+                  <TouchableOpacity onPress={() => {
+                    // Reset countdown for resend
+                    setCode(['', '', '', '', '', '']);
+                    setCountdown(15);
+                    setIsCountdownActive(true);
+                  }}>
+                    <Text style={styles.resendButton}>Resend Code</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </ScrollView>
           </SafeAreaView>
         </KeyboardAvoidingView>
@@ -249,8 +267,8 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(24),
   },
   codeInput: {
-    width: scale(60),
-    height: scale(60),
+    width: scale(45),
+    height: scale(45),
     borderWidth: 1.5,
     borderColor: colors.primaryDark,
     borderRadius: 12,

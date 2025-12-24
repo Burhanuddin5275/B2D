@@ -1,5 +1,6 @@
 import { Category, fetchCategories } from '@/service/category';
 import { fetchProducts, Product } from '@/service/product';
+import { fetchStores, Store } from '@/service/store';
 import { addToCart, removeFromCart, selectCartItems, updateQuantity } from '@/store/cartSlice';
 import { useAppDispatch, useAppSelector } from '@/store/useAuth';
 import { colors } from '@/theme/colors';
@@ -16,27 +17,6 @@ import { ProductStyle } from '../../assets/css/style';
 import { addToWishlist, removeFromWishlist, selectWishlistItems } from '../../store/wishlistSlice';
 const { width } = Dimensions.get('window');
 
-const stores = [
-  {
-    id: 1,
-    name: 'Lisa Mart',
-    image: require('../../assets/images/store1.png'),
-  },
-  {
-    id: 2,
-    name: 'Fresh',
-    image: require('../../assets/images/store2.png'),
-  },
-  {
-    id: 3,
-    name: 'Fresh Mart',
-    image: require('../../assets/images/store3.png'),
-  },
-
-];
-
-
-
 export default function HomeScreen() {
   const navigation = useNavigation();
   const [quantities, setQuantities] = useState<Record<number, number>>({});
@@ -50,12 +30,13 @@ export default function HomeScreen() {
   const cartItems = useAppSelector(selectCartItems);
   const checkIsInWishlist = (productId: number) => wishlist.includes(productId);
   const [category, setCategory] = useState<Category[]>([]);
+   const [store, setStore] = useState<Store[]>([]);
   const [Products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const handleScroll = (event: any) => {
     const offsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(offsetX / storeCardWidth);
-    if (index >= 0 && index < stores.length) {
+    if (index >= 0 && index < store.length) {
       setActiveStoreIndex(index);
     }
   };
@@ -120,6 +101,15 @@ export default function HomeScreen() {
     };
 
     loadCategory();
+  })
+    useEffect(() => {
+    const loadStore = async () => {
+      const data = await fetchStores();
+      setStore(data);
+      setLoading(false);
+    };
+
+    loadStore();
   })
   useEffect(() => {
     const loadProducts = async () => {
@@ -232,7 +222,7 @@ export default function HomeScreen() {
               decelerationRate="fast"
               contentContainerStyle={{ paddingRight: scale(10) }} // Add right padding to last item
             >
-              {stores.map((store, index) => (
+              {store.slice(0, 6).map((store, index) => (
                 <TouchableOpacity
                   key={store.id}
                   style={[styles.storeCard, { width: storeCardWidth }]}
@@ -244,24 +234,28 @@ export default function HomeScreen() {
                       animated: true
                     });
                     const storeProducts = Products.filter(
-                      product => product.store_name.name.toLowerCase() === store.name.split('\n')[0].toLowerCase()
+                      product => product.store_name?.name?.toLowerCase() === store.name?.split('\n')[0]?.toLowerCase()
                     );
 
                     router.push({
                       pathname: '/Store',
                       params: {
-                        StoreName: store.name,
+                        StoreName: store.name || 'Store',
                         products: JSON.stringify(storeProducts)
                       }
                     })
                   }}
                 >
-                  <Image source={store.image} style={styles.storeImage} />
+                  <Image 
+                    src={store.images?.store_logo } 
+                    style={styles.storeImage} 
+                    resizeMode="contain"
+                  />
                 </TouchableOpacity>
               ))}
             </ScrollView>
-            <View style={styles.pagination}>
-              {stores.map((_, index) => (
+            <View style={styles.pagination}> 
+              {store.slice(0, 6).map((_, index) => (
                 <View
                   key={index}
                   style={[
@@ -276,7 +270,7 @@ export default function HomeScreen() {
           {/* Products Section */}
           <View style={ProductStyle.productsSection}>
             <View style={ProductStyle.productsGrid}>
-              {Products.slice(76).map((product) => {
+              {Products.slice(70).map((product) => {
                 const qty = existingCartItem(product.id)?.quantity || 0;
                 return (
                   <TouchableOpacity

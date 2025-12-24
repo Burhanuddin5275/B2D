@@ -1,7 +1,7 @@
 import Header from '@/components/Header';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ImageBackground, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
@@ -12,13 +12,50 @@ import { colors } from '@/theme/colors';
 
 export default function Profile() {
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
+  const token = useAppSelector((s) => s.auth.token);
+  const phone = useAppSelector((s) => s.auth.phone);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const dispatch = useAppDispatch();
   const insets = useSafeAreaInsets();
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const handleLogout = () => {
+  useEffect(() => {
+    console.log('Profile - Token:', token);
+    console.log('Profile - Phone:', phone);
+  }, [token, phone]);
+const handleLogout = async () => {
+  try {
+    // Make the logout API call
+    const response = await fetch('https://mart2door.com/customer-api/auth/logout', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `token ${token}`
+      }
+    });
+
+    // Clear local state regardless of API response
     dispatch(logout());
-  };
+    
+    // Clear navigation state and redirect to login
+    router.replace({
+      pathname: '/Login',
+      params: { 
+        // Clear any params that might contain sensitive data
+        token: undefined,
+        phone: undefined
+      }
+    });
+    
+    // Force a hard reset of the navigation state
+    router.navigate('/Login');
+    
+  } catch (error) {
+    console.error('Error during logout:', error);
+    // Still clear local state even if API call fails
+    dispatch(logout());
+    router.replace('/Login');
+  }
+};
 
   return (
     <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>

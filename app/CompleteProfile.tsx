@@ -1,40 +1,133 @@
 import Header from '@/components/Header';
+import { colors } from '@/theme/colors';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
-import { useLocalSearchParams } from 'expo-router';
-import React, { useState } from 'react';
-import { Image, ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { router, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  Image,
+  ImageBackground,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
-import { useAppSelector } from '../store/useAuth';
-import { colors } from '@/theme/colors';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppDispatch, useAppSelector } from '../store/useAuth';
 
 export default function CompleteProfile() {
-  const { phone: urlPhone } = useLocalSearchParams();
-  const reduxPhone = useAppSelector((s) => s.auth.phone);
-  const phone = (urlPhone as string) || reduxPhone || '+1';
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [email, setEmail] = useState('')
-  const [image, setImage] = useState<string | null>(null)
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [image, setImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const insets = useSafeAreaInsets();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const insets = useSafeAreaInsets();
+  const dispatch = useAppDispatch();
+
+  // ================= PARAMS =================
+  const { phone: urlPhone, Token } = useLocalSearchParams<{
+    phone: string;
+    Token: string;
+  }>();
+
+  // ================= REDUX =================
+  const auth = useAppSelector((s) => s.auth);
+  const reduxPhone = auth.phone;
+  const reduxToken = auth.token;
+
+  // ================= RESOLVED VALUES =================
+  const resolvedPhone =
+    typeof urlPhone === 'string' && urlPhone.length > 0
+      ? urlPhone
+      : reduxPhone;
+
+  const resolvedToken =
+    typeof Token === 'string' && Token.length > 0
+      ? Token
+      : reduxToken;
+
+  const phone = resolvedPhone || '+1';
+
+  // ================= DEBUG =================
+  useEffect(() => {
+    console.log('CompleteProfile - Phone:', phone);
+    console.log('CompleteProfile - Token:', resolvedToken);
+  }, [phone, resolvedToken]);
+
+  // ================= FETCH PROFILE =================
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadProfile = async () => {
+
+      try {
+        console.log('Fetching profile with token:', resolvedToken);
+
+        const response = await fetch(
+          'https://mart2door.com/customer-api/auth/profile',
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `token ${resolvedToken}`,
+              Accept: 'application/json',
+            },
+          }
+        );
+
+        console.log('Response status:', response.status);
+
+        const data = await response.json();
+        console.log('Profile data:', data);
+        if (!response.ok) {
+          throw new Error(data?.detail || 'Failed to fetch profile');
+        }
+
+        if (isMounted) {
+          setFirstName(data.data.first_name || '');
+          setLastName(data.data.last_name || '');
+          setEmail(data.data.email || '');
+          if (data.data.avatar) {
+            setImage(data.data.avatar);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        if (isMounted) {
+          Alert.alert('Error', 'Failed to load profile data');
+        }
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    loadProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [resolvedToken]);
+
+  // ================= IMAGE PICKER =================
   const pickImage = async () => {
-     try {
+    try {
       setIsLoading(true);
-      const image = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images', 'videos'],
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [4, 3],
         quality: 1,
       });
 
-      console.log('Selected image:', image);
+      console.log('Selected image:', result);
 
-      if (image && !image.canceled && image.assets && image.assets[0]) {
-        setImage(image.assets[0].uri);
+      if (!result.canceled && result.assets && result.assets[0]) {
+        setImage(result.assets[0].uri);
       }
     } catch (error) {
       console.error('Error picking image:', error);
@@ -43,8 +136,65 @@ export default function CompleteProfile() {
     }
   };
 
-  const isValid = firstName.trim() && lastName.trim() && email.trim()
+  // ================= SUBMIT =================
+  const isValid = firstName.trim() && lastName.trim() && email.trim();
 
+  const handleSubmit = async () => {
+    if (!isValid || isSubmitting) return;
+
+    try {
+      setIsSubmitting(true);
+
+      const formData = new FormData();
+      formData.append('first_name', firstName.trim());
+      formData.append('last_name', lastName.trim());
+      formData.append('email', email.trim());
+
+      if (image) {
+        const fileExt = image.split('.').pop() || 'jpg';
+        formData.append('avatar', {
+          uri: image,
+          name: `avatar.${fileExt}`,
+          type: `image/${fileExt}`,
+        } as any);
+      }
+
+      const response = await fetch(
+        'https://mart2door.com/customer-api/auth/profile',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `token ${resolvedToken}`, // <-- fixed
+          }, 
+          body: formData,
+        }
+      );
+
+      const contentType = response.headers.get('content-type');
+      let data: any = null;
+
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.message || 'Profile update failed');
+      }
+
+      Alert.alert('Success', 'Profile updated successfully');
+      router.replace('/(tabs)/Home');
+    } catch (error: any) {
+      console.error('Profile update error:', error);
+      Alert.alert('Error', error?.message || 'Failed to update profile');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ================= UI =================
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
@@ -52,23 +202,23 @@ export default function CompleteProfile() {
         style={styles.backgroundImage}
       >
         <Header title="Complete profile" showDefaultIcons={false} />
-        <ScrollView
-        contentContainerStyle={{paddingBottom: verticalScale(100) }}
-        >
+
+        <ScrollView contentContainerStyle={{ paddingBottom: verticalScale(100) }}>
           <View style={styles.content}>
-            <TouchableOpacity 
-              style={styles.photoWrap} 
+            <TouchableOpacity
+              style={styles.photoWrap}
               activeOpacity={0.8}
               onPress={pickImage}
             >
               <View style={styles.photoCircle}>
                 {image ? (
-                  <Image 
-                    source={{ uri: image }} 
-                    style={styles.profileImage} 
-                  />
+                  <Image source={{ uri: image }} style={styles.profileImage} />
                 ) : (
-                  <Ionicons name="add" size={moderateScale(36)} color={colors.primaryDark} />
+                  <Ionicons
+                    name="add"
+                    size={moderateScale(36)}
+                    color={colors.primaryDark}
+                  />
                 )}
               </View>
               <Text style={styles.uploadHint}>
@@ -80,8 +230,8 @@ export default function CompleteProfile() {
               <Text style={styles.label}>First name*</Text>
               <TextInput
                 style={styles.input}
+                placeholderTextColor={'black'}
                 placeholder="Type here"
-                placeholderTextColor="#A1A1A1"
                 value={firstName}
                 onChangeText={setFirstName}
               />
@@ -91,8 +241,8 @@ export default function CompleteProfile() {
               <Text style={styles.label}>Last name*</Text>
               <TextInput
                 style={styles.input}
+                placeholderTextColor={'black'}
                 placeholder="Type here"
-                placeholderTextColor="#A1A1A1"
                 value={lastName}
                 onChangeText={setLastName}
               />
@@ -103,11 +253,11 @@ export default function CompleteProfile() {
               <TextInput
                 style={styles.input}
                 placeholder="Type here"
-                placeholderTextColor="#A1A1A1"
-                value={email}
-                onChangeText={setEmail}
+                placeholderTextColor={'black'}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
               />
             </View>
 
@@ -116,137 +266,89 @@ export default function CompleteProfile() {
                 <Text style={styles.label}>Phone number*</Text>
                 <Text style={styles.notEditable}>Not editable</Text>
               </View>
+
               <View style={styles.phoneInputWrap}>
-                <View style={styles.flagBox}>
-                  <Image source={require('../assets/images/flag.png')} style={{ width: scale(24) }} resizeMode="contain" />
-                </View>
                 <Text style={styles.prefix}>+1</Text>
-                <TextInput style={styles.phoneInput} value={(phone.startsWith('+1') ? phone.slice(2) : phone)} editable={false} />
+                <TextInput
+                  style={styles.phoneInput}
+                  value={phone.startsWith('+1') ? phone.slice(2) : phone}
+                  editable={false}
+                />
               </View>
             </View>
 
-            <TouchableOpacity activeOpacity={1} style={[styles.submitBtn, !isValid && styles.disabledBtn]} disabled={!isValid}>
-              <Text style={styles.submitText}>Submit</Text>
+            <TouchableOpacity
+              style={[
+                styles.submitBtn,
+                (!isValid || isSubmitting) && styles.disabledBtn,
+              ]}
+              disabled={!isValid || isSubmitting}
+              onPress={handleSubmit}
+            >
+              <Text style={styles.submitText}>
+                {isSubmitting ? 'Updating...' : 'Submit'}
+              </Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
       </ImageBackground>
     </SafeAreaView>
-  )
+  );
 }
 
+// ================= STYLES =================
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  backgroundImage: {
-flex: 1,
-backgroundColor:colors.white
-  },
+  container: { flex: 1 },
+  backgroundImage: { flex: 1, backgroundColor: colors.white },
+  content: { paddingHorizontal: scale(20), paddingTop: verticalScale(12) },
 
-  content: {
-    paddingHorizontal: scale(20),
-    paddingTop: verticalScale(12),
-  },
-  photoWrap: {
-    alignItems: 'center',
-    marginTop: verticalScale(8),
-    marginBottom: verticalScale(8),
-  },
+  photoWrap: { alignItems: 'center', marginVertical: verticalScale(8) },
   photoCircle: {
     width: scale(120),
     height: scale(120),
     borderRadius: scale(60),
-    backgroundColor: '#F5F5F5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: verticalScale(10),
     borderWidth: 1,
     borderColor: colors.primaryDark,
+    justifyContent: 'center',
+    alignItems: 'center',
     overflow: 'hidden',
   },
-  profileImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  uploadHint: {
-    marginTop: verticalScale(10), 
-    fontSize: moderateScale(15),
-    fontFamily: 'Montserrat',
-  },
-  formGroup: {
-    marginTop: verticalScale(14), 
-  },
-  label: {
-    marginBottom: verticalScale(6),
-    fontFamily: 'MontserratMedium',
-    fontWeight:500,
-    fontSize:moderateScale(15)
-  },
+  profileImage: { width: '100%', height: '100%' },
+  uploadHint: { marginTop: 10, fontSize: moderateScale(15) },
+
+  formGroup: { marginTop: verticalScale(14) },
+  label: { marginBottom: 6, fontSize: moderateScale(15), fontWeight: '500' },
   input: {
     height: verticalScale(54),
     borderRadius: 10,
     borderWidth: 1,
-    fontWeight:400, 
     borderColor: colors.primaryDark,
     paddingHorizontal: scale(14),
-    backgroundColor: colors.white,
   },
+
   phoneRowHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: verticalScale(6),
   },
-  notEditable: {
-    color: colors.textPrimary,
-    fontFamily: 'Montserrat',
-    fontSize:moderateScale(14)
-  },
+  notEditable: { color: colors.textPrimary },
   phoneInputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.primaryDark,
     borderRadius: 10,
-    paddingHorizontal: scale(15),
     height: verticalScale(54),
-    backgroundColor: colors.white,
+    paddingHorizontal: scale(15),
+    borderColor: colors.primaryDark,
   },
-  flagBox: {
-    width: scale(28),
-    height: scale(20),
-    borderRadius: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  prefix: {
-    fontSize: moderateScale(14),
-    fontFamily: 'MontserratMedium',
-    marginLeft: scale(8), 
-    marginRight: scale(8),
-  },
-  phoneInput: {
-    flex: 1,
-    fontSize: moderateScale(14),
-    fontFamily: 'MontserratMedium',
-    color: colors.textPrimary,
-  },
+  prefix: { marginRight: 8 },
+  phoneInput: { flex: 1 },
+
   submitBtn: {
     backgroundColor: colors.primaryDark,
-    paddingVertical: verticalScale(14), 
-    borderRadius: moderateScale(8),
+    paddingVertical: verticalScale(14),
+    borderRadius: 8,
     marginTop: verticalScale(24),
-    marginBottom: verticalScale(28),
   },
-  disabledBtn: {
-    backgroundColor: colors.textSecondary,
-  },
-  submitText: { 
-    color: '#fff',
-    fontSize: moderateScale(14),
-    fontFamily: 'Montserrat',
-    textAlign: 'center',
-  },
-})
+  disabledBtn: { backgroundColor: colors.textSecondary },
+  submitText: { color: '#fff', textAlign: 'center' },
+});
