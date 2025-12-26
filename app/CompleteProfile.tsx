@@ -18,7 +18,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 import { useAppDispatch, useAppSelector } from '../store/useAuth';
-
+import { getProfile, updateProfile } from '@/service/profile';
 export default function CompleteProfile() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -61,57 +61,34 @@ export default function CompleteProfile() {
   }, [phone, resolvedToken]);
 
   // ================= FETCH PROFILE =================
-  useEffect(() => {
-    let isMounted = true;
+useEffect(() => {
+  let isMounted = true;
 
-    const loadProfile = async () => {
+  const loadProfile = async () => {
+    try {
+      console.log('Fetching profile with token:', resolvedToken);
+      const data = await getProfile(resolvedToken||'');
 
-      try {
-        console.log('Fetching profile with token:', resolvedToken);
-
-        const response = await fetch(
-          'https://mart2door.com/customer-api/auth/profile',
-          {
-            method: 'GET',
-            headers: {
-              Authorization: `token ${resolvedToken}`,
-              Accept: 'application/json',
-            },
-          }
-        );
-
-        console.log('Response status:', response.status);
-
-        const data = await response.json();
-        console.log('Profile data:', data);
-        if (!response.ok) {
-          throw new Error(data?.detail || 'Failed to fetch profile');
-        }
-
-        if (isMounted) {
-          setFirstName(data.data.first_name || '');
-          setLastName(data.data.last_name || '');
-          setEmail(data.data.email || '');
-          if (data.data.avatar) {
-            setImage(data.data.avatar);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-        if (isMounted) {
-          Alert.alert('Error', 'Failed to load profile data');
-        }
-      } finally {
-        if (isMounted) setIsLoading(false);
+      if (isMounted) {
+        setFirstName(data.first_name || '');
+        setLastName(data.last_name || '');
+        setEmail(data.email || '');
+        if (data.avatar) setImage(data.avatar);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      if (isMounted) Alert.alert('Error', 'Failed to load profile data');
+    } finally {
+      if (isMounted) setIsLoading(false);
+    }
+  };
 
-    loadProfile();
+  loadProfile();
 
-    return () => {
-      isMounted = false;
-    };
-  }, [resolvedToken]);
+  return () => {
+    isMounted = false;
+  };
+}, [resolvedToken]);
 
   // ================= IMAGE PICKER =================
   const pickImage = async () => {
@@ -139,61 +116,28 @@ export default function CompleteProfile() {
   // ================= SUBMIT =================
   const isValid = firstName.trim() && lastName.trim() && email.trim();
 
-  const handleSubmit = async () => {
-    if (!isValid || isSubmitting) return;
+const handleSubmit = async () => {
+  if (!isValid || isSubmitting) return;
 
-    try {
-      setIsSubmitting(true);
+  try {
+    setIsSubmitting(true);
 
-      const formData = new FormData();
-      formData.append('first_name', firstName.trim());
-      formData.append('last_name', lastName.trim());
-      formData.append('email', email.trim());
+    await updateProfile(resolvedToken||'', {
+      first_name: firstName.trim(),
+      last_name: lastName.trim(),
+      email: email.trim(), 
+      avatar: image || null,
+    });
 
-      if (image) {
-        const fileExt = image.split('.').pop() || 'jpg';
-        formData.append('avatar', {
-          uri: image,
-          name: `avatar.${fileExt}`,
-          type: `image/${fileExt}`,
-        } as any);
-      }
-
-      const response = await fetch(
-        'https://mart2door.com/customer-api/auth/profile',
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `token ${resolvedToken}`, // <-- fixed
-          }, 
-          body: formData,
-        }
-      );
-
-      const contentType = response.headers.get('content-type');
-      let data: any = null;
-
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
-        console.error('Non-JSON response:', text);
-      }
-
-      if (!response.ok) {
-        throw new Error(data?.message || 'Profile update failed');
-      }
-
-      Alert.alert('Success', 'Profile updated successfully');
-      router.replace('/(tabs)/Home');
-    } catch (error: any) {
-      console.error('Profile update error:', error);
-      Alert.alert('Error', error?.message || 'Failed to update profile');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
+    Alert.alert('Success', 'Profile updated successfully');
+    router.replace('/(tabs)/Home');
+  } catch (error: any) {
+    console.error('Profile update error:', error);
+    Alert.alert('Error', error?.message || 'Failed to update profile');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
   // ================= UI =================
   return (
     <SafeAreaView style={styles.container}>
