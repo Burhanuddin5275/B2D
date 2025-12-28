@@ -288,6 +288,7 @@ export default function HomeScreen() {
                             // product_images: product.product_images || [],
                             images: product.product_images?.map((img) => img.image) || [],
                             variations: product.product_variations?.map((variation) => ({
+                              id: variation.id,
                               name: variation.name,
                               price: variation.price,
                               unit_quantity: variation.unit_quantity,
