@@ -1,12 +1,6 @@
 import Header from '@/components/Header';
-import {
-  CartItem,
-  removeFromCart,
-  selectCartItems,
-  selectCartTotalPrice,
-  updateQuantity
-} from '@/store/cartSlice';
-import { useAppDispatch, useAppSelector } from '@/store/useAuth';
+import { fetchCart } from '@/service/cart';
+import { useAppSelector } from '@/store/useAuth';
 import { colors } from '@/theme/colors';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
@@ -24,63 +18,104 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
-
+interface CartItem {
+  id: number;
+  quantity: number;
+  price: number;
+  store: {
+    id: number;
+    name: string;
+  };
+  product: {
+    id: number;
+    name: string;
+    slug: string;
+    product_images: {
+      id: number;
+      image: string;
+    }[];
+  };
+  variation: {
+    id: number;
+    name: string;
+    image: string;
+  } | null;
+}
 type SellerGroup = {
   seller: string;
   items: CartItem[];
   totalQuantity: number;
   totalPrice: number;
 };
-
 export default function Cart() {
-  const dispatch = useAppDispatch();
-  const cartItems = useAppSelector(selectCartItems);
-  
-  useEffect(() => {
-    console.log('Cart Items:', JSON.stringify(cartItems, null, 2));
-  }, [cartItems]);
-
-  const cartTotalPrice = useAppSelector(selectCartTotalPrice);
-  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const auth = useAppSelector((s) => s.auth);
+  const token = auth.token;
   const insets = useSafeAreaInsets();
   const [deliveryType, setDeliveryType] = useState<'express' | 'regular'>('express');
   const [deliverySlots, setDeliverySlots] = useState<string[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const CUTOFF_TIME = "6:00 PM";
-
   const [selectedTip, setSelectedTip] = useState<'10' | '15' | '20' | 'other'>('10');
   const [customTip, setCustomTip] = useState('');
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState<'credit' | 'debit' | 'square'>('credit');
-
-
+  useEffect(() => {
+    const loadCart = async () => {
+      try {
+        setIsLoading(true);
+        if (token) {
+          const data = await fetchCart(token);
+          setCartItems(data);
+        }
+      } catch (error) {
+        console.error('Failed to load cart:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadCart();
+  }, [token]);
+  const updateQuantity = (itemId: number, newQuantity: number) => {
+    setCartItems(prevItems =>
+      prevItems.map(item =>
+        item.id === itemId ? { ...item, quantity: newQuantity } : item
+      )
+    );
+  };
+  const removeFromCart = (itemId: number) => {
+    setCartItems(prevItems => prevItems.filter(item => item.id !== itemId));
+  };
+  const cartTotalPrice = useMemo(() =>
+    cartItems.reduce((total, item) => total + (item.price * item.quantity), 0),
+    [cartItems]
+  );
+  const isAuthenticated = !!auth?.token;
   const sellerGroups = useMemo<SellerGroup[]>(() => {
     const map = new Map<string, SellerGroup>();
-
     cartItems.forEach((item) => {
-      if (!map.has(item.seller)) {
-        map.set(item.seller, {
-          seller: item.seller,
+      const sellerName = item.store?.name || 'Unknown Seller';
+      if (!map.has(sellerName)) {
+        map.set(sellerName, {
+          seller: sellerName,
           items: [],
           totalQuantity: 0,
           totalPrice: 0
         });
       }
-      const group = map.get(item.seller)!;
+      const group = map.get(sellerName)!;
       group.items.push(item);
       group.totalQuantity += item.quantity;
       group.totalPrice += item.price * item.quantity;
     });
-
     return Array.from(map.values());
   }, [cartItems]);
-
   const [activeSellerId, setActiveSellerId] = useState<string>(
     sellerGroups[0]?.seller ?? ''
   );
-
   useEffect(() => {
     if (sellerGroups.length === 0) {
       setActiveSellerId('');
@@ -90,19 +125,16 @@ export default function Cart() {
       setActiveSellerId(sellerGroups[0].seller);
     }
   }, [sellerGroups, activeSellerId]);
-
   const cartIsEmpty = cartItems.length === 0;
   const handleSelectSeller = (sellerId: string) => setActiveSellerId(sellerId);
-
   const handleAdjustQuantity = (item: CartItem, delta: number) => {
     const nextQuantity = item.quantity + delta;
     if (nextQuantity <= 0) {
-      dispatch(removeFromCart(item.id));
+      removeFromCart(item.id);
     } else {
-      dispatch(updateQuantity({ id: item.id, quantity: nextQuantity }));
+      updateQuantity(item.id, nextQuantity);
     }
   };
-
   useEffect(() => {
     if (deliveryType === 'regular') {
       const slots = [];
@@ -117,10 +149,8 @@ export default function Cart() {
       setDeliverySlots([]); // same-day only
     }
   }, [deliveryType]);
-
   const activeSeller = sellerGroups.find((g) => g.seller === activeSellerId);
   const subtotal = activeSeller?.totalPrice ?? 0;
-
   const deliveryFee = deliveryType === 'express' ? 20 : 12;
   const tipAmount =
     selectedTip === 'other'
@@ -128,7 +158,6 @@ export default function Cart() {
       : subtotal * (parseInt(selectedTip, 10) / 100);
   const taxAmount = subtotal * 0.18;
   const payableTotal = subtotal + deliveryFee + tipAmount + taxAmount;
-
   const addresses = [
     {
       id: '1',
@@ -149,31 +178,103 @@ export default function Cart() {
       line2: 'Houston, Texas 90025'
     }
   ];
-
   const [isAddressModalVisible, setIsAddressModalVisible] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState(addresses[0]);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
 
+  const handlePlaceOrder = async () => {
+    if (isPlacingOrder) return; // Prevent multiple submissions
+    
+    setIsPlacingOrder(true);
+    setOrderError(null);
+    // Get current date and time for schedule_order
+    const now = new Date();
+    const scheduleDate = new Date(now);
+    
+    // If it's regular delivery and a slot is selected, use that date
+    if (deliveryType === 'regular' && selectedSlot) {
+      const slotDate = new Date(selectedSlot);
+      // // Set to 10:30 AM of the selected date
+      // slotDate.setHours(10, 30, 0, 0);
+      scheduleDate.setTime(slotDate.getTime());
+    } else {
+      // For express delivery or no slot selected, use current time + 1 hour
+      scheduleDate.setHours(now.getHours() + 1);
+    }
 
+    // Format the date to ISO string
+    const formattedDate = scheduleDate.toISOString();
+
+    // Prepare the order data
+    const orderData = {
+      cart_ids: activeSeller?.items.map(item => item.id) || [],
+      delivery_type: deliveryType,
+      schedule_order: formattedDate,
+      address_id: parseInt(selectedAddress.id),
+      driver_tip: selectedTip === 'other' ? customTip : `${selectedTip}%`,
+      delivery_instructions: deliveryInstructions,
+      payment_type: 
+        selectedPaymentMethod === 'credit' ? 'Credit Card' :
+        selectedPaymentMethod === 'debit' ? 'Debit Card' : 'Marketplace Square Payment'
+    };
+
+    try {
+      const response = await fetch('https://mart2door.com/customer-api/place-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `token ${token}`,
+        },
+        body: JSON.stringify(orderData),
+      });
+      console.log('send order data:', orderData);
+      const responseData = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(responseData.message || 'Failed to place order');
+      }
+      
+      // Order placed successfully
+      console.log('Order placed successfully:', responseData);
+      
+      // Close the payment modal
+      setIsPaymentModalVisible(false);
+      
+      // Navigate to order screen with success state
+      router.push({
+        pathname: '/(tabs)/Order',
+        params: { 
+          orderPlaced: 'true', 
+          orderId: responseData.order_id?.toString() || '' 
+        }
+      });
+    } catch (error: any) {
+      console.error('Error placing order:', error);
+      setOrderError(error?.message || 'Failed to place order. Please try again.');
+      return; // Don't close modal on error
+    } finally {
+      setIsPlacingOrder(false);
+    }
+  };
   return (
-    <SafeAreaView style={[styles.safeArea]}>
+    <SafeAreaView style={[styles.safeArea, { paddingBottom: insets.bottom }]}>
       <ImageBackground
         source={require('../../assets/images/background.png')}
         style={styles.backgroundImage}
       >
         <Header title="Cart" showDefaultIcons={false} />
-
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           {/* HEADER */}
           <View style={styles.pageHeader}>
-            <Text style={styles.headline}>Multiple sellers&apos; items in cart.</Text>
+            <Text style={styles.headline}>Multiple sellers' items in cart.</Text>
             <Text style={styles.subHeadline}>
               Checkout is limited to one seller at a time.
             </Text>
           </View>
-
           {/* EMPTY STATE */}
           {cartIsEmpty ? (
             <View style={styles.emptyState}>
@@ -202,12 +303,9 @@ export default function Cart() {
                         <View
                           style={[styles.radioOuter, isActive && styles.radioOuterActive]}
                         >
-                          <View
-                            style={[styles.radioInner, isActive && styles.radioInnerActive]}
-                          />
+                          {isActive && <View style={styles.radioInner} />}
                         </View>
                       </View>
-
                       <View style={styles.sellerInfo}>
                         <Text style={styles.sellerName}>{seller.seller}</Text>
                         {!isActive && (
@@ -216,14 +314,12 @@ export default function Cart() {
                           </Text>
                         )}
                       </View>
-
                       <Ionicons
                         name={isActive ? 'chevron-up' : 'chevron-down'}
                         size={18}
                         color="#7C7754"
                       />
                     </View>
-
                     {isActive && (
                       <View style={styles.itemsContainer}>
                         {seller.items.map((item, index) => (
@@ -231,23 +327,20 @@ export default function Cart() {
                             key={item.id}
                             style={[
                               styles.cartItem,
-                              index !== seller.items.length - 1 &&
-                              styles.cartItemDivider
+                              index !== seller.items.length - 1 && styles.cartItemDivider
                             ]}
                           >
-                            <Image 
-                              source={typeof item.img === 'string' ? { uri: item.img } : item.img} 
-                              style={styles.itemImage} 
+                            <Image
+                              source={{ uri: item.product?.product_images?.[0]?.image || '' }}
+                              style={styles.itemImage}
                               resizeMode="contain"
                             />
-
                             <View style={styles.itemDetails}>
-                              <Text style={styles.itemName}>{item.name}</Text>
+                              <Text style={styles.itemName} numberOfLines={2}>{item.product?.name}</Text>
                               <Text style={styles.itemPrice}>
                                 ${(item.price * item.quantity).toFixed(2)}
                               </Text>
                             </View>
-
                             <View style={styles.quantityControls}>
                               <TouchableOpacity
                                 style={styles.quantityButton}
@@ -255,13 +348,11 @@ export default function Cart() {
                               >
                                 <Text style={styles.quantityButtonText}>-</Text>
                               </TouchableOpacity>
-
                               <View style={styles.quantityValueWrapper}>
                                 <Text style={styles.quantityValue}>
                                   {item.quantity.toString().padStart(2, '0')}
                                 </Text>
                               </View>
-
                               <TouchableOpacity
                                 style={styles.quantityButton}
                                 onPress={() => handleAdjustQuantity(item, 1)}
@@ -544,10 +635,10 @@ export default function Cart() {
                     ]}
                   >
                     {selectedPaymentMethod === method && (
-                    <View style={styles.modalRadioInner}/>
-                  )}
+                      <View style={styles.modalRadioInner} />
+                    )}
                   </View>
-                  <Text 
+                  <Text
                     style={[
                       styles.paymentOptionLabel,
                       selectedPaymentMethod === method &&
@@ -564,15 +655,21 @@ export default function Cart() {
               ))}
             </View>
 
+            {orderError && (
+              <Text style={styles.errorText}>
+                {orderError}
+              </Text>
+            )}
             <TouchableOpacity
-              style={styles.modalPrimaryButton}
-              onPress={() => {
-                setIsPaymentModalVisible(false);
-                router.push('/(tabs)/Order');
-              }}
+              style={[
+                styles.modalPrimaryButton,
+                isPlacingOrder && styles.disabledButton
+              ]}
+              onPress={handlePlaceOrder}
+              disabled={isPlacingOrder}
             >
               <Text style={styles.modalPrimaryButtonText}>
-                Pay ${payableTotal.toFixed(2)}
+                {isPlacingOrder ? 'Processing...' : `Pay $${payableTotal.toFixed(2)}`}
               </Text>
             </TouchableOpacity>
           </View>
@@ -649,6 +746,15 @@ export default function Cart() {
 }
 
 const styles = StyleSheet.create({
+  disabledButton: {
+    opacity: 0.5,
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 14,
+    marginTop: 8,
+    fontFamily: 'PoppinsRegular',
+  },
   safeArea: {
     flex: 1,
   },
@@ -1143,7 +1249,7 @@ const styles = StyleSheet.create({
     marginRight: scale(12),
   },
   modalRadioOuterActive: {
-    borderColor: colors.primaryDark, 
+    borderColor: colors.primaryDark,
   },
   modalRadioInner: {
     width: scale(12),
@@ -1190,3 +1296,5 @@ const styles = StyleSheet.create({
     color: '#2F2D1E',
   },
 });
+
+

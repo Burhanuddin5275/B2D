@@ -1,54 +1,61 @@
 export interface Country {
   country: string;
 }
+export interface StateItem {
+  state: string;
+  country: string;
+}
+
 export interface CityItem {
   city: string;
+  state: string;
 }
+export interface Address {
+  id: number;
+  address_name: string;
+  address_line1: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  country: string;
+  latitude: string;
+  longitude: string;
+  is_default: boolean;
+}
+
 export const fetchCountries = async (
   token?: string
 ): Promise<Country[]> => {
-  try {
-    const headers: any = {
-      'Content-Type': 'application/json',
-    };
-
-    if (token) {
-      headers.Authorization = `token ${token}`; // ✅ your backend format
-    }
 
     const response = await fetch(
       'https://mart2door.com/api/get-locations/country',
       {
         method: 'GET',
-        headers,
+        headers: {
+          Authorization: `token ${token}`,
+          Accept: 'application/json',
+        },
       }
     );
 
     const json = await response.json();
     console.log('Country API response:', json);
 
-    return Array.isArray(json.data) ? json.data : [];
-  } catch (error) {
-    console.error('Country API error:', error);
-    return [];
-  }
+    return json.data;
 };
-export interface StateItem {
-  state: string;
-}
 
 export const fetchStates = async (
   token: string,
   country: string
 ): Promise<StateItem[]> => {
-  try {
+
     const response = await fetch(
       'https://mart2door.com/api/get-locations/state',
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `token ${token}`, // ✅ as per your backend
+          Authorization: `token ${token}`, 
         },
         body: JSON.stringify({
           country: country,
@@ -58,30 +65,62 @@ export const fetchStates = async (
 
     const json = await response.json();
     console.log('State API response:', json);
-
-    return Array.isArray(json.data) ? json.data : [];
-  } catch (error) {
-    console.error('State API error:', error);
-    return [];
-  }
+    return json.data;
 };
+
+
 export const fetchCities = async (token: string, state: string): Promise<CityItem[]> => {
-  try {
     const response = await fetch('https://mart2door.com/api/get-locations/city', {
       method: 'POST',
       headers: {
-     'Content-Type': 'application/json',
-      Authorization: `token ${token}` 
-    },
+        'Content-Type': 'application/json',
+        Authorization: `token ${token}`
+      },
       body: JSON.stringify({
-         state 
-        }),
+        state
+      }),
     });
     const json = await response.json();
     console.log('City API response:', json);
-    return Array.isArray(json.data) ? json.data : [];
+   return json.data;
+};
+
+// service/address.ts
+export const fetchAddresses = async (token: string) => {
+  const response = await fetch(
+    'https://mart2door.com/customer-api/addresses',
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Token ${token}`,
+        Accept: 'application/json',
+      },
+    }
+  );
+
+  const result = await response.json();
+  return result;
+};
+export const deleteAddress = async (token: string, addressId: number): Promise<{ success: boolean }> => {
+  try {
+    const response = await fetch(
+      `https://mart2door.com/customer-api/remove-address/${addressId}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to delete address');
+    }
+
+    return { success: true };
   } catch (error) {
-    console.error('City API error:', error);
-    return [];
+    console.error('Error deleting address:', error);
+    throw error;
   }
 };

@@ -4,7 +4,7 @@ import { useAppSelector } from '@/store/useAuth';
 import { colors } from '@/theme/colors';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,100 +14,139 @@ const AddAddress = () => {
     const router = useRouter();
     const auth = useAppSelector(s => s.auth);
     const reduxToken = auth.token;
-
-    const [fullName, setFullName] = useState('');
-    const [address, setAddress] = useState('');
-    const [city, setCity] = useState('');
-    const [state, setState] = useState('');
-    const [zipCode, setZipCode] = useState('');
-    const [country, setCountry] = useState('');
-    const [countries, setCountries] = useState<Country[]>([]); 
+    const { addressId, addressName, addressLine1, city: propCity, state: propState, postalCode, country: propCountry, isDefaults } = useLocalSearchParams<{
+        addressId?: string;
+        addressName?: string;
+        addressLine1?: string;
+        city?: string;
+        state?: string;
+        postalCode?: string;
+        country?: string;
+        isDefaults?: string;
+    }>();
+    const [fullName, setFullName] = useState(addressName || '');
+    const [address, setAddress] = useState(addressLine1 || '');
+    const [city, setCity] = useState(propCity || '');
+    const [state, setState] = useState(propState || '');
+    const [zipCode, setZipCode] = useState(postalCode || '');
+    const [country, setCountry] = useState(propCountry || '');
+    const [countries, setCountries] = useState<Country[]>([]);
     const [states, setStates] = useState<StateItem[]>([]);
     const [cities, setCities] = useState<CityItem[]>([]);
-    const [isDefault, setIsDefault] = useState(false);
+    const [isDefault, setIsDefault] = useState(isDefaults === 'true');
 
-    // Fetch countries on load
+    // Fetch countries only once
     useEffect(() => {
-        if (!reduxToken) return;
+        if (!reduxToken || countries.length > 0) return; // prevent multiple fetches
 
         const loadCountries = async () => {
-            const data = await fetchCountries(reduxToken);
-            setCountries(data);
+            try {
+                const data = await fetchCountries(reduxToken);
+                setCountries(data);
+            } catch (error) {
+                console.error('Error fetching countries:', error);
+            }
         };
 
         loadCountries();
-    }, [reduxToken]);
+    }, [reduxToken, countries.length]);
 
-    // Fetch states when country changes
+    // Fetch states only if country changes
     useEffect(() => {
         if (!reduxToken || !country) return;
 
+        // Avoid re-fetching if states already correspond to this country
+        if (states.length > 0 && states[0]?.country === country) return;
+
         const loadStates = async () => {
-            const data = await fetchStates(reduxToken, country);
-            setStates(data);
-            setState(''); // reset selected state
+            try {
+                const data = await fetchStates(reduxToken, country);
+                // You can attach country to states to check later
+                const dataWithCountry = data.map(stateItem => ({ ...stateItem, country }));
+                setStates(dataWithCountry);
+                setState(''); // reset selected state
+                setCities([]); // clear cities when country changes
+                setCity('');
+            } catch (error) {
+                console.error('Error fetching states:', error);
+            }
         };
 
         loadStates();
     }, [country, reduxToken]);
 
-    // Load cities when state changes
+    // Fetch cities only if state changes
     useEffect(() => {
         if (!reduxToken || !state) return;
+
+        // Avoid re-fetching if cities already correspond to this state
+        if (cities.length > 0 && cities[0]?.state === state) return;
+
         const loadCities = async () => {
-            const data = await fetchCities(reduxToken, state);
-            setCities(data);
-            setCity('');
+            try {
+                const data = await fetchCities(reduxToken, state);
+                const dataWithState = data.map(cityItem => ({ ...cityItem, state }));
+                setCities(dataWithState);
+                setCity('');
+            } catch (error) {
+                console.error('Error fetching cities:', error);
+            }
         };
+
         loadCities();
     }, [state, reduxToken]);
 
-const handleSaveAddress = async () => {
-    if (!reduxToken) return;
 
-    try {
-        const payload = {
-            address_name: fullName,
-            address_line1: address,
-            city: city,
-            state: state,
-            postal_code: zipCode,
-            country: country,
-            is_default: isDefault,
-        };
+    const handleSaveAddress = async () => {
+        if (!reduxToken) return;
 
-        const response = await fetch('https://mart2door.com/customer-api/addresses', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `token ${reduxToken}`,
-            },
-            body: JSON.stringify(payload),
-        });
+        try {
+            const payload = {
+                address_name: fullName,
+                address_line1: address,
+                city: city,
+                state: state,
+                postal_code: zipCode,
+                country: country,
+                is_default: isDefault,
+            };
+            const url = addressId
+                ? `https://mart2door.com/customer-api/addresses/${addressId}`
+                : 'https://mart2door.com/customer-api/addresses';
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `token ${reduxToken}`,
+                },
+                body: JSON.stringify(payload),
+            });
 
-        const result = await response.json();
+            const result = await response.json();
 
-        if (!response.ok) {
-            console.error('Failed to save address:', result);
-            return;
+            if (!response.ok) {
+                console.error('Failed to save address:', result);
+                return;
+            }
+
+            console.log('Address saved successfully:', result);
+
+            // Optional: go back after success
+            router.back();
+
+        } catch (error) {
+            console.error('Error saving address:', error);
         }
-
-        console.log('Address saved successfully:', result);
-
-        // Optional: go back after success
-        router.back();
-
-    } catch (error) {
-        console.error('Error saving address:', error);
-    }
-};
+    };
 
 
     return (
         <SafeAreaView style={styles.container}>
             <ImageBackground source={require('../assets/images/background.png')} style={styles.background}>
-                <Header title="Add Address" showDefaultIcons={false} />
-
+                <Header
+                    title={addressId ? "Edit Address" : "Add Address"}
+                    showDefaultIcons={false}
+                />
                 <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
                     <View style={styles.formContainer}>
                         <Text style={styles.label}>Save this address as</Text>
@@ -138,7 +177,11 @@ const handleSaveAddress = async () => {
                             <View style={[styles.column, { marginRight: 10 }]}>
                                 <Text style={styles.label}>City</Text>
                                 <View style={styles.inputContainer}>
-                                    <Picker selectedValue={city} onValueChange={setCity} style={styles.picker} enabled={cities.length > 0}>
+                                    <Picker selectedValue={city}
+                                        onValueChange={(itemValue) => setCity(itemValue)}
+                                        style={styles.picker}
+                                        enabled={cities.length > 0}
+                                    >
                                         <Picker.Item label="Select City" value="" />
                                         {cities.map((item, index) => (
                                             <Picker.Item key={index} label={item.city} value={item.city} />
@@ -151,7 +194,7 @@ const handleSaveAddress = async () => {
                                 <View style={styles.inputContainer}>
                                     <Picker
                                         selectedValue={state}
-                                        onValueChange={setState}
+                                        onValueChange={(itemValue) => setState(itemValue)}
                                         style={styles.picker}
                                         enabled={states.length > 0}
                                     >
@@ -183,7 +226,7 @@ const handleSaveAddress = async () => {
                                 <View style={styles.inputContainer}>
                                     <Picker
                                         selectedValue={country}
-                                        onValueChange={setCountry}
+                                        onValueChange={(itemValue) => setCountry(itemValue)}
                                         style={styles.picker}
                                     >
                                         <Picker.Item label="Select Country" value="" />
@@ -209,7 +252,7 @@ const handleSaveAddress = async () => {
                 </ScrollView>
 
                 <TouchableOpacity style={styles.saveButton} onPress={handleSaveAddress}>
-                    <Text style={styles.saveButtonText}>Save Address</Text>
+                    <Text style={styles.saveButtonText}>{addressId ? "Update Address" : "Save Address"}</Text>
                 </TouchableOpacity>
             </ImageBackground>
         </SafeAreaView>

@@ -7,29 +7,30 @@ import React, { useState } from 'react';
 import { ImageBackground, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
-
-interface Address {
-    id: string;
-    name: string;
-    address: string;
-}
+import { useEffect } from 'react';
+import { useAppSelector } from '@/store/useAuth';
+import { Address, deleteAddress, fetchAddresses } from '@/service/address';
 
 const ManageAddress = () => {
     const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const insets = useSafeAreaInsets();
-    const [addresses, setAddresses] = useState<Address[]>([
-        {
-            id: '1',
-            name: 'Home',
-            address: '123 Main St, Apt 4B\nNew York, Manhattan, NY 10001',
-        },
-        {
-            id: '2',
-            name: 'Work',
-            address: '456 Business Ave, Floor 2\nNew York, Queens, NY 10010',
-        },
-    ]);
+    const [addresses, setAddresses] = useState<Address[]>([]);
+
+    const token = useAppSelector((s) => s.auth.token);
+    useEffect(() => {
+        const loadAddresses = async () => {
+            try {
+                const res = await fetchAddresses(token || '');
+                setAddresses(res.data);
+            } catch (error) {
+                console.log('Address fetch error:', error);
+            }
+        };
+        loadAddresses();
+    }, []);
+
+
 
     return (
         <SafeAreaView style={styles.container}>
@@ -43,12 +44,16 @@ const ManageAddress = () => {
                         <View key={address.id} style={styles.addressCard}>
                             <View style={styles.addressHeader}>
                                 <View style={styles.addressTitleContainer}>
-                                    <Text style={styles.addressName}>{address.name}</Text>
+                                    <Text style={styles.addressName}>{address.address_name}</Text>
                                 </View>
                             </View>
                             <View style={styles.addressRow}>
-                                <Text style={styles.addressText}>{address.address}</Text>
-
+                                <View style={styles.addressTextContainer}>
+                                    <Text style={styles.addressText}>{address.address_line1}</Text>
+                                    <Text style={styles.addressText}>
+                                        {[address.state, address.city, address.postal_code].filter(Boolean).join(', ')}
+                                    </Text>
+                                </View>
                                 <TouchableOpacity
                                     style={styles.menuButton}
                                     onPress={() => {
@@ -59,7 +64,6 @@ const ManageAddress = () => {
                                     <Ionicons name="ellipsis-vertical" size={25} color={'gray'} />
                                 </TouchableOpacity>
                             </View>
-
                         </View>
                     ))}
                 </ScrollView>
@@ -92,7 +96,16 @@ const ManageAddress = () => {
                                         if (selectedAddress) {
                                             router.push({
                                                 pathname: '/AddAddress',
-                                                params: { addressId: selectedAddress.id }
+                                                params: {
+                                                    addressId: selectedAddress.id,
+                                                    addressName: selectedAddress.address_name,
+                                                    addressLine1: selectedAddress.address_line1,
+                                                    city: selectedAddress.city,
+                                                    state: selectedAddress.state,
+                                                    postalCode: selectedAddress.postal_code,
+                                                    country: selectedAddress.country,
+                                                    isDefaults: selectedAddress.is_default ? 'true' : 'false'
+                                                }
                                             });
                                         }
                                         setIsModalVisible(false);
@@ -102,12 +115,18 @@ const ManageAddress = () => {
                                 </TouchableOpacity>
 
                                 <View style={styles.divider} />
-
                                 <TouchableOpacity
                                     style={[styles.actionButton, styles.destructiveButton]}
-                                    onPress={() => {
+                                    onPress={async () => {
                                         if (selectedAddress) {
-                                            setAddresses(addresses.filter(addr => addr.id !== selectedAddress.id));
+                                            try {
+                                                await deleteAddress(token || '', selectedAddress.id);
+                                                // Remove the address from local state
+                                                setAddresses(addresses.filter(addr => addr.id !== selectedAddress.id));
+                                            } catch (error) {
+                                                console.error('Error removing address:', error);
+                                                alert('Failed to remove address. Please try again.');
+                                            }
                                         }
                                         setIsModalVisible(false);
                                     }}
@@ -138,7 +157,7 @@ const styles = StyleSheet.create({
     },
     background: {
         flex: 1,
-        backgroundColor:colors.white
+        backgroundColor: colors.white
     },
     scrollView: {
         flex: 1,
@@ -160,9 +179,28 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
+    addressRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginTop: 8,
+    },
     addressTitleContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+    },
+    addressTextContainer: {
+        flex: 1,
+        marginRight: 8,
+    },
+    addressText: {
+        fontSize: 14,
+        color: '#333',
+        marginBottom: 2,
+    },
+    menuButton: {
+        padding: 8,
+        marginLeft: 8,
     },
     addressName: {
         fontFamily: 'Montserrat',
@@ -170,22 +208,6 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginRight: 8,
     },
-addressRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-},
-
-menuButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    alignSelf: 'flex-start',
-},
-addressText: {
-    fontFamily: 'MontserratMedium',
-    fontWeight: '500',
-    fontSize: moderateScale(14),
-},
 
     addButton: {
         height: verticalScale(68),
