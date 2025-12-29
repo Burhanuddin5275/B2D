@@ -1,5 +1,5 @@
 import Header from '@/components/Header';
-import { addToCart, removeFromCart, selectCartItems, updateQuantity } from '@/store/cartSlice';
+import { removeFromCart, selectCartItems, updateQuantity } from '@/store/cartSlice';
 import { useAppDispatch, useAppSelector } from '@/store/useAuth';
 import { colors } from '@/theme/colors';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -20,6 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 
 interface ProductVariant {
+  id: number;
   name: string;
   price: number | string;
   unit_quantity?: string;
@@ -76,7 +77,9 @@ const Product = () => {
   const { product } = useLocalSearchParams();
   const dispatch = useAppDispatch();
   const cartItems = useAppSelector(selectCartItems);
-
+  const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
+  const token = useAppSelector((s) => s.auth.token);
+  const phone = useAppSelector((s) => s.auth.phone);
   const parsedProduct: Product = useMemo(() => {
     try {
       return JSON.parse(
@@ -109,20 +112,66 @@ const Product = () => {
     }
   }, [existingCartItem]);
 
-  const handleAddToCart = () => {
-    dispatch(
-      addToCart({
-        id: parsedProduct.id,
-        name: parsedProduct.name,
-        price: parsedProduct.price,
-        img: parsedProduct.image,
-        seller: parsedProduct.seller,
-        quantity: 1,
-      })
-    );
-    setQuantity(1);
-    setShowQuantitySelector(true);
+  useEffect(() => {
+    if (parsedProduct.variations && parsedProduct.variations.length > 0) {
+      const selected = parsedProduct.variations[selectedVariant];
+      console.log('Selected variant:', {
+        index: selectedVariant,
+        id: selected?.id,
+        name: selected?.name,
+        price: selected?.price
+      });
+    }
+  }, [selectedVariant, parsedProduct.variations]);
+  const handleAddToCart = async () => {
+    if (!isAuthenticated || !token) {
+      alert('Please login to add items to cart');
+      return;
+    }
+
+    if (!parsedProduct) return;
+
+    const selectedVar = parsedProduct.variations?.[selectedVariant];
+
+    const payload: any = {
+      product: parsedProduct.id,
+      quantity,
+    };
+
+    // ✅ only send variation if backend expects it
+    if (selectedVar?.id) {
+      payload.variation = selectedVar.id;
+    }
+
+    try {
+      const response = await fetch(
+        'https://mart2door.com/customer-api/cart',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `token ${token}`,
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const raw = await response.json();
+      console.log('STATUS:', response.status);
+      console.log('RESPONSE:', raw);
+
+      if (!response.ok) {
+        alert('Failed to add item to cart');
+        return;
+      }
+      setShowQuantitySelector(true)
+      alert(`${raw.message}`);
+    } catch (err) {
+      console.error('Add to cart failed:', err);
+    }
   };
+
 
   const incrementQuantity = () => {
     const newQuantity = quantity + 1;
@@ -215,26 +264,37 @@ const Product = () => {
                 <Text style={styles.ratingCount}>1079 reviews</Text>
               </View>
             </View>
-
             {parsedProduct.variations && parsedProduct.variations.length > 0 && (
               <>
                 <Text style={styles.packLabel}>Available Variants</Text>
-                <View style={styles.packOptionsRow}>
-                  {parsedProduct.variations.map((variant, index) => {
+                <FlatList
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  data={parsedProduct.variations}
+                  keyExtractor={(_, index) => index.toString()}
+                  contentContainerStyle={styles.variantsContainer}
+                  renderItem={({ item: variant, index }) => {
                     const isActive = index === selectedVariant;
-                    const price = typeof variant.price === 'number' 
-                      ? `$${variant.price.toFixed(2)}` 
+                    const price = typeof variant.price === 'number'
+                      ? `$${variant.price.toFixed(2)}`
                       : variant.price;
-                    
+
                     return (
                       <TouchableOpacity
-                        key={index}
+                        key={`${variant.id}-${index}`}
                         style={[
                           styles.packOption,
                           isActive ? styles.packOptionActive : styles.packOptionIdle,
                         ]}
                         activeOpacity={0.85}
-                        onPress={() => setSelectedVariant(index)}
+                        onPress={() => {
+                          setSelectedVariant(index);
+                          console.log('Variant selected:', {
+                            index,
+                            variantId: variant.id,
+                            variantName: variant.name
+                          });
+                        }}
                       >
                         <Text
                           style={[
@@ -255,11 +315,10 @@ const Product = () => {
                         </Text>
                       </TouchableOpacity>
                     );
-                  })}
-                </View>
+                  }}
+                />
               </>
             )}
-
             <View style={styles.disclaimerBadge}>
               <Text style={styles.disclaimerTitle}>
                 Disclaimer: Weight of the vegetables will vary based on their
@@ -580,17 +639,21 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat',
     fontSize: moderateScale(14),
   },
+  variantsContainer: {
+    paddingVertical: verticalScale(8),
+    paddingHorizontal: scale(4),
+    paddingRight: scale(16),
+  },
   packOptionsRow: {
-    flexDirection: 'row',
-    gap: scale(12),
     marginTop: verticalScale(12),
   },
   packOption: {
-    flex: 1,
+    width: scale(120),
     borderRadius: 12,
     paddingVertical: verticalScale(12),
     borderWidth: 1.5,
     alignItems: 'center',
+    marginRight: scale(12),
   },
   packOptionIdle: {
     borderColor: colors.secondaryLight,
