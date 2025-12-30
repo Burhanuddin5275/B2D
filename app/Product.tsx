@@ -1,4 +1,5 @@
 import Header from '@/components/Header';
+import { CartItem, fetchCart } from '@/service/cart';
 import { removeFromCart, selectCartItems, updateQuantity } from '@/store/cartSlice';
 import { useAppDispatch, useAppSelector } from '@/store/useAuth';
 import { colors } from '@/theme/colors';
@@ -76,10 +77,49 @@ const RATING_BREAKDOWN = [
 const Product = () => {
   const { product } = useLocalSearchParams();
   const dispatch = useAppDispatch();
-  const cartItems = useAppSelector(selectCartItems);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
   const token = useAppSelector((s) => s.auth.token);
   const phone = useAppSelector((s) => s.auth.phone);
+  const [isLoading, setIsLoading] = useState(false);
+  useEffect(() => {
+    console.log('Token:', cartItems);
+    const loadCart = async () => {
+      try {
+        setIsLoading(true);
+        if (token) {
+          const data = await fetchCart(token);
+          const cartdata = data.map(item => ({
+            id: item.id,
+            quantity: item.quantity,
+            price: item.price,
+            store: {
+              id: item.store.id,
+              name: item.store.name
+            },
+            product: {
+              id: item.product.id,
+              name: item.product.name,
+              slug: item.product.slug,
+              product_images: item.product.product_images
+            },
+            variation: {
+              id: item.variation?.id || 0,
+              name: item.variation?.name || 'Default',
+              // Add any other required variation properties
+              image: item.variation?.image || item.product.product_images[0]?.image,
+            }
+          }));
+          setCartItems(cartdata);
+        }
+      } catch (error) {
+        console.error('Failed to load cart:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadCart();
+  }, [token]);
   const parsedProduct: Product = useMemo(() => {
     try {
       return JSON.parse(
@@ -98,19 +138,20 @@ const Product = () => {
   const { width: screenWidth } = Dimensions.get('window');
 
   const existingCartItem = useMemo(
-    () => cartItems.find((item) => item.id === parsedProduct.id),
+    () => cartItems.find((item) => item.product.id === parsedProduct.id),
     [cartItems, parsedProduct.id]
   );
 
   useEffect(() => {
     if (existingCartItem) {
-      setQuantity(existingCartItem.quantity);
+      setQuantity(existingCartItem.quantity); // Load cart quantity
       setShowQuantitySelector(true);
     } else {
       setQuantity(1);
       setShowQuantitySelector(false);
     }
   }, [existingCartItem]);
+
 
   useEffect(() => {
     if (parsedProduct.variations && parsedProduct.variations.length > 0) {
@@ -156,7 +197,7 @@ const Product = () => {
           body: JSON.stringify(payload),
         }
       );
-
+     console.log(payload)
       const raw = await response.json();
       console.log('STATUS:', response.status);
       console.log('RESPONSE:', raw);
@@ -166,7 +207,7 @@ const Product = () => {
         return;
       }
       setShowQuantitySelector(true)
-      alert(`${raw.message}`);
+      alert(raw);
     } catch (err) {
       console.error('Add to cart failed:', err);
     }
@@ -450,7 +491,10 @@ const Product = () => {
                 >
                   <Ionicons name="remove" size={18} color={colors.white} />
                 </TouchableOpacity>
+
+                {/* Show current quantity */}
                 <Text style={styles.quantityText}>{quantity}</Text>
+
                 <TouchableOpacity
                   onPress={incrementQuantity}
                   style={styles.quantityButton}
@@ -460,6 +504,7 @@ const Product = () => {
                 </TouchableOpacity>
               </View>
             )}
+
           </View>
         </View>
       </ImageBackground>

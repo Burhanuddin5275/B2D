@@ -1,4 +1,5 @@
 import Header from '@/components/Header';
+import { Address, fetchAddresses } from '@/service/address';
 import { fetchCart } from '@/service/cart';
 import { useAppSelector } from '@/store/useAuth';
 import { colors } from '@/theme/colors';
@@ -61,8 +62,9 @@ export default function Cart() {
   const [customTip, setCustomTip] = useState('');
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] =
-    useState<'credit' | 'debit' | 'square'>('credit');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'credit' | 'debit' | 'square'>('credit');
+  const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
+  const [addresses, setAddresses] = useState<Address[]>([]);
   useEffect(() => {
     const loadCart = async () => {
       try {
@@ -79,6 +81,28 @@ export default function Cart() {
     };
     loadCart();
   }, [token]);
+    useEffect(() => {
+  const loadAddresses = async () => {
+    try {
+      const res = await fetchAddresses(token || '');
+      setAddresses(res.data);
+
+      const defaultAddress = res.data.find((addr: any) => addr.is_default);
+
+      if (defaultAddress) {
+        setSelectedAddress(defaultAddress);
+      } 
+
+      else if (res.data.length > 0) {
+        setSelectedAddress(res.data[0]);
+      }
+    } catch (error) {
+      console.log('Address fetch error:', error);
+    }
+  };
+  
+  loadAddresses();
+}, [token]);
   const updateQuantity = (itemId: number, newQuantity: number) => {
     setCartItems(prevItems =>
       prevItems.map(item =>
@@ -146,7 +170,7 @@ export default function Cart() {
       }
       setDeliverySlots(slots);
     } else {
-      setDeliverySlots([]); // same-day only
+      setDeliverySlots([]);
     }
   }, [deliveryType]);
   const activeSeller = sellerGroups.find((g) => g.seller === activeSellerId);
@@ -158,37 +182,15 @@ export default function Cart() {
       : subtotal * (parseInt(selectedTip, 10) / 100);
   const taxAmount = subtotal * 0.18;
   const payableTotal = subtotal + deliveryFee + tipAmount + taxAmount;
-  const addresses = [
-    {
-      id: '1',
-      type: 'Home',
-      line1: '456 Elm Street, Apt 12B',
-      line2: 'Houston, Texas 90001'
-    },
-    {
-      id: '2',
-      type: 'Work',
-      line1: '789 Business Ave, Suite 400',
-      line2: 'Houston, Texas 90015'
-    },
-    {
-      id: '3',
-      type: 'Other',
-      line1: '123 Other Place',
-      line2: 'Houston, Texas 90025'
-    }
-  ];
   const [isAddressModalVisible, setIsAddressModalVisible] = useState(false);
-  const [selectedAddress, setSelectedAddress] = useState(addresses[0]);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
 
   const handlePlaceOrder = async () => {
-    if (isPlacingOrder) return; // Prevent multiple submissions
+    if (isPlacingOrder) return; 
     
     setIsPlacingOrder(true);
     setOrderError(null);
-    // Get current date and time for schedule_order
     const now = new Date();
     const scheduleDate = new Date(now);
     
@@ -211,7 +213,7 @@ export default function Cart() {
       cart_ids: activeSeller?.items.map(item => item.id) || [],
       delivery_type: deliveryType,
       schedule_order: formattedDate,
-      address_id: parseInt(selectedAddress.id),
+      address_id: selectedAddress?.id,
       driver_tip: selectedTip === 'other' ? customTip : `${selectedTip}%`,
       delivery_instructions: deliveryInstructions,
       payment_type: 
@@ -455,9 +457,9 @@ export default function Cart() {
                 </View>
 
                 <Text style={styles.addressLabel}>
-                  {selectedAddress.type}: {selectedAddress.line1}
+                  {selectedAddress?.address_name}: {selectedAddress?.address_line1}
                 </Text>
-                <Text style={styles.addressLabel}>{selectedAddress.line2}</Text>
+                <Text style={styles.addressLabel}>{selectedAddress?.state}, {selectedAddress?.city}, {selectedAddress?.postal_code}</Text>
               </View>
 
               {/* TIP */}
@@ -709,15 +711,15 @@ export default function Cart() {
                     }}
                     style={[
                       styles.addressOption,
-                      selectedAddress.id === address.id &&
+                      selectedAddress?.id === address.id &&
                       styles.selectedAddress
                     ]}
                   >
                     <View style={styles.addressItemContainer}>
                       <View style={styles.addressDetails}>
-                        <Text style={styles.addressType}>{address.type}</Text>
-                        <Text style={styles.addressText}>{address.line1}</Text>
-                        <Text style={styles.addressText}>{address.line2}</Text>
+                        <Text style={styles.addressType}>{address.address_name}</Text>
+                        <Text style={styles.addressText}>{address.address_line1}</Text>
+                        <Text style={styles.addressText}>{address.state}, {address.city}, {address.postal_code}</Text>
                       </View>
 
                       <TouchableOpacity style={styles.editButton}>
