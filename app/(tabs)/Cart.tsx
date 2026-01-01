@@ -1,8 +1,10 @@
 import Header from '@/components/Header';
 import { Address, fetchAddresses } from '@/service/address';
-import { fetchCart } from '@/service/cart';
+import { addOrUpdateCart, fetchCart, removeFromCartApi } from '@/service/cart';
+import { placeOrderApi } from '@/service/order';
 import { useAppSelector } from '@/store/useAuth';
 import { colors } from '@/theme/colors';
+import { API_URL } from '@/url/Api_Url';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -81,38 +83,74 @@ export default function Cart() {
     };
     loadCart();
   }, [token]);
-    useEffect(() => {
-  const loadAddresses = async () => {
+
+  const incrementQuantity = async (item: CartItem) => {
+    if (!token) return;
+
+    const newQty = item.quantity + 1;
+
     try {
-      const res = await fetchAddresses(token || '');
-      setAddresses(res.data);
+      await addOrUpdateCart(token, {
+        id: item.id,
+        product: item.product.id,
+        quantity: newQty,
+        variation: item.variation?.id,
+      });
 
-      const defaultAddress = res.data.find((addr: any) => addr.is_default);
-
-      if (defaultAddress) {
-        setSelectedAddress(defaultAddress);
-      } 
-
-      else if (res.data.length > 0) {
-        setSelectedAddress(res.data[0]);
-      }
-    } catch (error) {
-      console.log('Address fetch error:', error);
+      const updatedCart = await fetchCart(token);
+      setCartItems(updatedCart);
+    } catch (e) {
+      console.error('Increment error:', e);
     }
   };
-  
-  loadAddresses();
-}, [token]);
-  const updateQuantity = (itemId: number, newQuantity: number) => {
-    setCartItems(prevItems =>
-      prevItems.map(item =>
-        item.id === itemId ? { ...item, quantity: newQuantity } : item
-      )
-    );
+  const decrementQuantity = async (item: CartItem) => {
+    if (!token) return;
+
+    const newQty = item.quantity - 1;
+
+    try {
+      if (newQty <= 0) {
+        await removeFromCartApi(token, item.id);
+      } else {
+        await addOrUpdateCart(token, {
+          id: item.id,
+          product: item.product.id,
+          quantity: newQty,
+          variation: item.variation?.id,
+        });
+      }
+
+      const updatedCart = await fetchCart(token);
+      setCartItems(updatedCart);
+    } catch (e) {
+      console.error('Decrement error:', e);
+    }
   };
-  const removeFromCart = (itemId: number) => {
-    setCartItems(prevItems => prevItems.filter(item => item.id !== itemId));
-  };
+
+  useEffect(() => {
+    const loadAddresses = async () => {
+      try {
+        const res = await fetchAddresses(token || '');
+        setAddresses(res.data);
+
+        const defaultAddress = res.data.find((addr: any) => addr.is_default);
+
+        if (defaultAddress) {
+          setSelectedAddress(defaultAddress);
+        }
+
+        else if (res.data.length > 0) {
+          setSelectedAddress(res.data[0]);
+        }
+      } catch (error) {
+        console.log('Address fetch error:', error);
+      }
+    };
+
+    loadAddresses();
+  }, [token]);
+
+
   const cartTotalPrice = useMemo(() =>
     cartItems.reduce((total, item) => total + (item.price * item.quantity), 0),
     [cartItems]
@@ -151,14 +189,7 @@ export default function Cart() {
   }, [sellerGroups, activeSellerId]);
   const cartIsEmpty = cartItems.length === 0;
   const handleSelectSeller = (sellerId: string) => setActiveSellerId(sellerId);
-  const handleAdjustQuantity = (item: CartItem, delta: number) => {
-    const nextQuantity = item.quantity + delta;
-    if (nextQuantity <= 0) {
-      removeFromCart(item.id);
-    } else {
-      updateQuantity(item.id, nextQuantity);
-    }
-  };
+
   useEffect(() => {
     if (deliveryType === 'regular') {
       const slots = [];
@@ -187,28 +218,23 @@ export default function Cart() {
   const [orderError, setOrderError] = useState<string | null>(null);
 
   const handlePlaceOrder = async () => {
-    if (isPlacingOrder) return; 
-    
+    if (isPlacingOrder) return;
+
     setIsPlacingOrder(true);
     setOrderError(null);
+
     const now = new Date();
     const scheduleDate = new Date(now);
-    
-    // If it's regular delivery and a slot is selected, use that date
+
     if (deliveryType === 'regular' && selectedSlot) {
       const slotDate = new Date(selectedSlot);
-      // // Set to 10:30 AM of the selected date
-      // slotDate.setHours(10, 30, 0, 0);
       scheduleDate.setTime(slotDate.getTime());
     } else {
-      // For express delivery or no slot selected, use current time + 1 hour
       scheduleDate.setHours(now.getHours() + 1);
     }
 
-    // Format the date to ISO string
     const formattedDate = scheduleDate.toISOString();
 
-    // Prepare the order data
     const orderData = {
       cart_ids: activeSeller?.items.map(item => item.id) || [],
       delivery_type: deliveryType,
@@ -216,45 +242,33 @@ export default function Cart() {
       address_id: selectedAddress?.id,
       driver_tip: selectedTip === 'other' ? customTip : `${selectedTip}%`,
       delivery_instructions: deliveryInstructions,
-      payment_type: 
-        selectedPaymentMethod === 'credit' ? 'Credit Card' :
-        selectedPaymentMethod === 'debit' ? 'Debit Card' : 'Marketplace Square Payment'
+      payment_type:
+        selectedPaymentMethod === 'credit'
+          ? 'Credit Card'
+          : selectedPaymentMethod === 'debit'
+            ? 'Debit Card'
+            : 'Marketplace Square Payment',
     };
 
     try {
-      const response = await fetch('https://mart2door.com/customer-api/place-order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `token ${token}`,
-        },
-        body: JSON.stringify(orderData),
-      });
       console.log('send order data:', orderData);
-      const responseData = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(responseData.message || 'Failed to place order');
-      }
-      
-      // Order placed successfully
+
+      const responseData = await placeOrderApi(token!, orderData);
+      alert(responseData.message);
       console.log('Order placed successfully:', responseData);
-      
-      // Close the payment modal
+ 
       setIsPaymentModalVisible(false);
-      
-      // Navigate to order screen with success state
-      router.push({
+
+      router.push({ 
         pathname: '/(tabs)/Order',
-        params: { 
-          orderPlaced: 'true', 
-          orderId: responseData.order_id?.toString() || '' 
-        }
+        params: {
+          orderPlaced: 'true',
+          orderId: responseData.order_id?.toString() || '',
+        },
       });
     } catch (error: any) {
       console.error('Error placing order:', error);
       setOrderError(error?.message || 'Failed to place order. Please try again.');
-      return; // Don't close modal on error
     } finally {
       setIsPlacingOrder(false);
     }
@@ -339,6 +353,9 @@ export default function Cart() {
                             />
                             <View style={styles.itemDetails}>
                               <Text style={styles.itemName} numberOfLines={2}>{item.product?.name}</Text>
+                              {item.variation?.name && (
+                                <Text style={styles.itemName} numberOfLines={1}>{item.variation?.name}</Text>
+                              )}
                               <Text style={styles.itemPrice}>
                                 ${(item.price * item.quantity).toFixed(2)}
                               </Text>
@@ -346,18 +363,20 @@ export default function Cart() {
                             <View style={styles.quantityControls}>
                               <TouchableOpacity
                                 style={styles.quantityButton}
-                                onPress={() => handleAdjustQuantity(item, -1)}
+                                onPress={() => decrementQuantity(item)}
                               >
-                                <Text style={styles.quantityButtonText}>-</Text>
+                                <Text style={styles.quantityButtonText}>−</Text>
                               </TouchableOpacity>
+
                               <View style={styles.quantityValueWrapper}>
                                 <Text style={styles.quantityValue}>
-                                  {item.quantity.toString().padStart(2, '0')}
+                                  {String(item.quantity).padStart(2, '0')}
                                 </Text>
                               </View>
+
                               <TouchableOpacity
                                 style={styles.quantityButton}
-                                onPress={() => handleAdjustQuantity(item, 1)}
+                                onPress={() => incrementQuantity(item)}
                               >
                                 <Text style={styles.quantityButtonText}>+</Text>
                               </TouchableOpacity>

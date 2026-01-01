@@ -7,63 +7,141 @@ import { moderateScale, scale } from 'react-native-size-matters';
 import { useDispatch, useSelector } from 'react-redux';
 import { removeFromWishlist, selectWishlistItems } from '../store/wishlistSlice';
 import { colors } from '@/theme/colors';
+import { useEffect, useState } from 'react';
+import { addOrUpdateCart, CartItem, fetchCart, removeFromCartApi } from '@/service/cart';
+import { useAppSelector } from '@/store/useAuth';
+import { getFromWishlistApi, removeFromWishlistApi } from '@/service/wishlist';
 
 export default function Wishlist() {
   const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
-  const wishlistItems = useSelector(selectWishlistItems);
-  const cartItems = useSelector(selectCartItems);
-interface Product {
-  id: number;
-  name: string;
-  subtitle: string;
-  image: any;
-  price: number;
-  quantity?: number;
-  weight?: number;
-  unit?: string;
-  category: string;
-  seller: string;
-}
-  
-const existingCartItem = (productId: number) => 
-  cartItems.find((item) => item.id === productId); // This should be cartItems, not wishlistItems
-
-const handleAddToCart = (product: any) => {
-  const cartItem = existingCartItem(product.id);
-  const currentQty = cartItem?.quantity || 0;
-  const newQuantity = currentQty + 1;
-  
-  if (currentQty > 0) {
-    dispatch(updateQuantity({ id: product.id, quantity: newQuantity }));
-  } else {
-    dispatch(
-      addToCart({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        quantity: 1,
-        img: product.img,
-        seller: product.seller,
-      })
-    );
+  const [wishlist, setWishlist] = useState<any[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
+  const token = useAppSelector((s) => s.auth.token);
+  interface Product {
+    id: number;
+    name: string;
+    subtitle: string;
+    image: any;
+    price: number;
+    quantity?: number;
+    weight?: number;
+    unit?: string;
+    category: string;
+    seller: string;
   }
-};
+  useEffect(() => {
+    if (!token) return;
 
-  const incrementQuantity = (productId: number) => {
-    const currentQty = existingCartItem(productId)?.quantity || 0;
-    const newQuantity = currentQty + 1;
-    dispatch(updateQuantity({ id: productId, quantity: newQuantity }));
+    const loadWishlist = async () => {
+      try {
+        const response = await getFromWishlistApi(token);
+        const wishlistItems = response?.data || [];
+
+        const products = wishlistItems.map((item: any) => ({
+           wishlist_id: item.id,
+          id: item.product.id,
+          name: item.product.name,
+          price: item.product.regular_price,
+          image: item.product.product_images?.[0]?.image || '',
+          product_images: item.product.product_images || [],
+          store: item.store,
+          variation: item.variation,
+        }));
+
+        setWishlist(products);
+      } catch (error) {
+        console.error('Failed to load wishlist:', error);
+        setWishlist([]);
+      }
+    };
+
+    loadWishlist();
+  }, [token]);
+
+  useEffect(() => {
+    const loadCart = async () => {
+      try {
+        if (token) {
+          const data = await fetchCart(token);
+          setCartItems(data);
+        }
+      } catch (error) {
+        console.error('Failed to load cart:', error);
+      }
+    };
+    loadCart();
+  }, [token]);
+
+  const existingCartItem = (productId: number) =>
+    cartItems.find((item) => item.product?.id === productId);
+  const handleAddToCart = async (product: any) => {
+    if (!token || !isAuthenticated) {
+      alert('Please login to add items to cart');
+      return;
+    }
+
+    try {
+      await addOrUpdateCart(token, {
+        product: product.id,
+        quantity: 1,
+        variation: product.product_variations?.[0]?.id,
+      });
+
+      const updatedCart = await fetchCart(token);
+      setCartItems(updatedCart);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to add item');
+    }
   };
 
-  const decrementQuantity = (productId: number) => {
-    const currentQty = existingCartItem(productId)?.quantity || 0;
-    const newQuantity = currentQty - 1;
-    
-    if (newQuantity <= 0) {
-      dispatch(removeFromCart(productId));
-    } else {
-      dispatch(updateQuantity({ id: productId, quantity: newQuantity }));
+  const incrementQuantity = async (product: any) => {
+    const item = cartItems.find((item) => item.product.id === product.id);
+    if (!item || !token) return;
+
+    const newQty = item.quantity + 1;
+
+    try {
+      await addOrUpdateCart(token, {
+        id: item.id,
+        product: product.id,
+        quantity: newQty,
+        variation: item.variation?.id,
+      });
+
+      const updatedCart = await fetchCart(token);
+      setCartItems(updatedCart);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const decrementQuantity = async (product: any) => {
+    const item = cartItems.find((item) => item.product.id === product.id);
+    if (!item || !token) return;
+
+    const newQty = item.quantity - 1;
+
+    try {
+      if (newQty <= 0) {
+        // 🔥 DELETE API
+        await removeFromCartApi(token, item.id);
+      } else {
+        // 🔁 UPDATE API
+        await addOrUpdateCart(token, {
+          id: item.id,
+          product: product.id,
+          quantity: newQty,
+          variation: item.variation?.id,
+        });
+      }
+
+      const updatedCart = await fetchCart(token);
+      setCartItems(updatedCart);
+    } catch (e) {
+      console.error(e);
     }
   };
   return (
@@ -72,37 +150,47 @@ const handleAddToCart = (product: any) => {
         source={require('../assets/images/background.png')}
         style={styles.backgroundImage}
       >
-      <Header title="Wishlist" showDefaultIcons={false}/>
+        <Header title="Wishlist" showDefaultIcons={false} />
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-          {wishlistItems.map((item) => {
+          {wishlist.map((item) => {
             const qty = existingCartItem(item.id)?.quantity || 0;
             return (
               <View key={item.id} style={styles.productCard}>
                 <View style={styles.productImageContainer}>
-                  <Image source={item.img} style={styles.productImage} resizeMode="contain" />
+                  <Image source={{ uri: item.image }} style={styles.productImage} />
                   <TouchableOpacity
                     style={styles.heartButton}
-                    onPress={() => dispatch(removeFromWishlist(item.id))}
+                    onPress={async () => {
+                      if (!token) return;
+
+                      try {
+                        await removeFromWishlistApi(token, item.wishlist_id); 
+                        setWishlist(wishlist.filter((w) => w.wishlist_id !== item.wishlist_id));
+                      } catch (error) {
+                        console.error('Failed to remove from wishlist:', error);
+                      }
+                    }}
                   >
                     <Ionicons name="heart" size={20} color="#FF6B6B" />
                   </TouchableOpacity>
+
                 </View>
 
                 <View style={styles.productInfo}>
                   <View style={styles.productHeader}>
                     <View style={styles.productTextContainer}>
-                      <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
-                      <Text style={styles.productSubtitle} numberOfLines={1}>{item.subtitle}</Text>
+                      <Text style={styles.productName}>{item.name}</Text>
+                      <Text style={styles.productSubtitle}>{item.store.name}</Text>
                     </View>
                   </View>
 
                   <View style={styles.priceRow}>
-                    <Text style={styles.productPrice}>${item.price}</Text>
+                    <Text style={styles.productPrice}>${item.price || '0.00'}</Text>
                     {qty > 0 ? (
                       <View style={styles.qtyControl}>
                         <TouchableOpacity
                           style={styles.qtySideButton}
-                          onPress={() => decrementQuantity(item.id)}
+                          onPress={() => decrementQuantity(item)}
                         >
                           <Text style={styles.qtySideButtonText}>−</Text>
                         </TouchableOpacity>
@@ -111,7 +199,7 @@ const handleAddToCart = (product: any) => {
                         </View>
                         <TouchableOpacity
                           style={styles.qtySideButtonFilled}
-                          onPress={() => incrementQuantity(item.id)}
+                          onPress={() => incrementQuantity(item)}
                         >
                           <Text style={styles.qtySideButtonFilledText}>+</Text>
                         </TouchableOpacity>
@@ -139,9 +227,9 @@ const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
     width: '100%',
-    backgroundColor:colors.white
+    backgroundColor: colors.white
   },
- 
+
   scrollContainer: {
     padding: scale(15),
   },
@@ -184,17 +272,17 @@ const styles = StyleSheet.create({
 
   },
   productName: {
-    fontFamily:'Montserrat',
+    fontFamily: 'Montserrat',
     fontSize: moderateScale(14),
     fontWeight: '600',
   },
   productSubtitle: {
-    fontFamily:'Montserrat',
+    fontFamily: 'Montserrat',
     fontSize: moderateScale(12),
     color: colors.textPrimary,
   },
   productPrice: {
-    fontFamily:'Montserrat',
+    fontFamily: 'Montserrat',
     fontSize: moderateScale(16),
     fontWeight: '600',
   },
@@ -212,9 +300,9 @@ const styles = StyleSheet.create({
 
   },
   addButtonText: {
-    color:  colors.primaryDark,
+    color: colors.primaryDark,
     fontWeight: '700',
-    textAlign: 'center', 
+    textAlign: 'center',
     fontSize: moderateScale(14),
   },
   qtyControl: {

@@ -8,6 +8,8 @@ import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 import { logout } from '../../store/authSlice';
 import { useAppDispatch, useAppSelector } from '../../store/useAuth';
 import { colors } from '@/theme/colors';
+import { API_URL } from '@/url/Api_Url';
+import { logoutApi } from '@/service/profile';
 
 
 export default function Profile() {
@@ -24,36 +26,23 @@ export default function Profile() {
   }, [token, phone]);
 const handleLogout = async () => {
   try {
-    // Make the logout API call
-    const response = await fetch('https://mart2door.com/customer-api/auth/logout', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `token ${token}`
-      }
-    });
-
-    // Clear local state regardless of API response
+    await logoutApi(token||'');
+    alert('Logout successfully');
     dispatch(logout());
-    
-    // Clear navigation state and redirect to login
     router.replace({
       pathname: '/Login',
-      params: { 
-        // Clear any params that might contain sensitive data
+      params: {
         token: undefined,
-        phone: undefined
-      }
+        phone: undefined,
+      },
     });
-    
-    // Force a hard reset of the navigation state
-    router.navigate('/Login');
-    
+
+    router.navigate('/(tabs)/Home');
   } catch (error) {
     console.error('Error during logout:', error);
-    // Still clear local state even if API call fails
+
     dispatch(logout());
-    router.replace('/Login');
+    router.replace('/(tabs)/Home');
   }
 };
 

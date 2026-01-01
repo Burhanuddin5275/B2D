@@ -1,3 +1,4 @@
+import { API_URL } from "@/url/Api_Url";
 import { Category } from "./category";
 
 
@@ -39,7 +40,7 @@ interface ProductApiResponse {
 export const fetchProducts = async (): Promise<Product[]> => {
   try {
     const res = await fetch(
-      "https://mart2door.com/customer-api/get-products"
+      `${API_URL}customer-api/get-products`
     );
     const json: ProductApiResponse = await res.json();
 

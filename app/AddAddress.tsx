@@ -2,6 +2,7 @@ import Header from '@/components/Header';
 import { Country, StateItem, CityItem, fetchCountries, fetchStates, fetchCities } from '@/service/address';
 import { useAppSelector } from '@/store/useAuth';
 import { colors } from '@/theme/colors';
+import { API_URL } from '@/url/Api_Url';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -111,8 +112,8 @@ const AddAddress = () => {
                 is_default: isDefault,
             };
             const url = addressId
-                ? `https://mart2door.com/customer-api/addresses/${addressId}`
-                : 'https://mart2door.com/customer-api/addresses';
+                ? `${API_URL}customer-api/addresses/${addressId}`
+                : `${API_URL}customer-api/addresses`;
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -123,15 +124,12 @@ const AddAddress = () => {
             });
 
             const result = await response.json();
-
+          alert(result.message);
             if (!response.ok) {
                 console.error('Failed to save address:', result);
                 return;
             }
-
             console.log('Address saved successfully:', result);
-
-            // Optional: go back after success
             router.back();
 
         } catch (error) {

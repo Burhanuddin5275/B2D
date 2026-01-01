@@ -5,15 +5,31 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { selectCartUniqueItems } from '@/store/cartSlice';
 import { useAppSelector } from '@/store/useAuth';
 import { Tabs } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Dimensions, Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { moderateScale, s, scale, verticalScale } from 'react-native-size-matters';
 import { colors } from '@/theme/colors';
+import { CartItem, fetchCart } from '@/service/cart';
 export default function TabLayout() {
+  const auth = useAppSelector((s) => s.auth);
+  const token = auth.token;
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const { width: screenWidth } = Dimensions.get('window');
   const insets = useSafeAreaInsets();
-
+  useEffect(() => {
+    const loadCart = async () => {
+      try {
+        if (token) {
+          const data = await fetchCart(token);
+          setCartItems(data);
+        }
+      } catch (error) {
+        console.error('Failed to load cart:', error);
+      }
+    };
+    loadCart();
+  }, [token]);
 
   const getTabBarHeight = () => {
     return screenWidth < 350 ? verticalScale(75) : screenWidth < 350 ? verticalScale(70) : verticalScale(65);
@@ -27,8 +43,8 @@ export default function TabLayout() {
         headerShown: false,
         tabBarStyle: {
           marginBottom: verticalScale(6),
-          backgroundColor: 'transparent', 
-          paddingTop: verticalScale(6), 
+          backgroundColor: 'transparent',
+          paddingTop: verticalScale(6),
           position: 'absolute',
           bottom: 0,
           paddingBottom: Math.max(insets.bottom, verticalScale(2)),
@@ -80,7 +96,7 @@ export default function TabLayout() {
           title: 'Cart',
           tabBarLabelStyle: styles.text,
           tabBarIcon: ({ color }) => {
-            const cartItemsCount = useAppSelector(selectCartUniqueItems);
+            const cartItemsCount = cartItems.length;
             return (
               <View>
                 <IconSymbol size={scale(24)} name="cart.fill" color={color} style={styles.icon} />
@@ -181,7 +197,7 @@ const styles = StyleSheet.create({
     bottom: verticalScale(15),
     backgroundColor: '#FF3B30',
     borderRadius: 10,
-    minWidth: 15, 
+    minWidth: 15,
     height: 15,
     justifyContent: 'center',
     alignItems: 'center',
@@ -193,13 +209,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   icon: {
-   lineHeight: scale(22),
+    lineHeight: scale(22),
   },
-  text:{
+  text: {
     marginTop: verticalScale(4),
     fontSize: scale(12),
     fontFamily: 'PoppinsMedium',
-    fontWeight: '400', 
+    fontWeight: '400',
     lineHeight: scale(10),
   }
 });

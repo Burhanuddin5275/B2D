@@ -1,4 +1,3 @@
-import { addToCart, removeFromCart, selectCartItems, updateQuantity } from '@/store/cartSlice'
 import { addToWishlist, removeFromWishlist, selectWishlistItems } from '@/store/wishlistSlice'
 import Ionicons from '@expo/vector-icons/Ionicons'
 import { useNavigation } from '@react-navigation/native'
@@ -14,6 +13,7 @@ import { colors } from '@/theme/colors'
 import { router } from 'expo-router'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { moderateScale, verticalScale } from 'react-native-size-matters'
+import { addOrUpdateCart, CartItem, fetchCart, removeFromCartApi } from '@/service/cart'
 
 const { width } = Dimensions.get('window')
 
@@ -22,9 +22,11 @@ const Search = () => {
   const [query, setQuery] = useState('')
   const dispatch = useAppDispatch();
   const wishlistItems = useAppSelector(selectWishlistItems);
-  const cartItems = useAppSelector(selectCartItems);
+  const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
+  const token = useAppSelector((s) => s.auth.token);
   const [apiProducts, setApiProducts] = useState<Product[]>([]);
   const [apiCategories, setApiCategories] = useState<Category[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const wishlistIds = useMemo(() => wishlistItems.map(item => item.id), [wishlistItems]);
   const checkIsInWishlist = (productId: number) => wishlistIds.includes(productId);
@@ -45,80 +47,125 @@ const Search = () => {
       dispatch(addToWishlist(payload));
     }
   };
-
+  // First, update the useMemo hook to properly map and filter categories
   const { categories, products } = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return { categories: [], products: [] }
+    const q = query.trim().toLowerCase();
+    if (!q) return { categories: [], products: [] };
 
-    // Map API categories to Suggestion format with all required properties
+    // Map API categories with proper structure
     const mappedCategories = apiCategories.map(category => ({
-      id: `cat-${category.id}`,
+      id: `cat_${category.id}`,
       title: category.name,
+      subtitle: category.description || '',
       type: 'category' as const,
-      image: category.image ? { uri: category.image } : null, // No image fallback - will use emoji
+      image: category.image ? { uri: category.image } : null,
       bgColor: '#EEE',
-      emoji: '🛒',
-      subtitle: ''
+      emoji: '🛒'
     }));
 
-    // Map API products to Suggestion format
     const mappedProducts = apiProducts.map(product => ({
-      id: product.id,
+      id: `prod_${product.id}`,
       title: product.name,
       subtitle: typeof product.category_name === 'object' ? product.category_name.name : 'Product',
+      description: product.description || '', // Add this line
       price: product.regular_price || '0.00',
-      image: product.product_images?.[0]?.image ? { uri: product.product_images[0].image } : null, // No image fallback
+      image: product.product_images?.[0]?.image ? { uri: product.product_images[0].image } : null,
       type: 'product' as const,
       seller: product.store_name?.name || 'Marketplace',
     }));
 
     return {
-      categories: mappedCategories.filter(s =>
-        s.title.toLowerCase().includes(q) || s.subtitle.toLowerCase().includes(q)
+      categories: mappedCategories.filter(category =>
+        category.title.toLowerCase().includes(q) ||
+        (category.subtitle && category.subtitle.toLowerCase().includes(q))
       ),
-      products: mappedProducts.filter(s => 
-        s.title.toLowerCase().includes(q) || s.title.toLowerCase().includes(q)
+      products: mappedProducts.filter(product =>
+        product.title.toLowerCase().includes(q) ||
+        product.subtitle.toLowerCase().includes(q)
       )
-    }
-  }, [query, apiProducts, apiCategories])
-
+    };
+  }, [query, apiProducts, apiCategories]);
+  useEffect(() => {
+    const loadCart = async () => {
+      try {
+        if (token) {
+          const data = await fetchCart(token);
+          setCartItems(data);
+        }
+      } catch (error) {
+        console.error('Failed to load cart:', error);
+      }
+    };
+    loadCart();
+  }, [token]);
   const existingCartItem = (productId: number) =>
-    cartItems.find((item) => item.id === productId);
+    cartItems.find((item) => item.product.id === productId);
+  const handleAddToCart = async (product: any) => {
+    if (!token || !isAuthenticated) {
+      alert('Please login to add items to cart');
+      return;
+    }
 
-  const handleAddToCart = (product: any) => {
-    const currentQty = existingCartItem(product.id)?.quantity || 0;
-    const newQuantity = currentQty + 1;
+    try {
+      await addOrUpdateCart(token, {
+        product: product.id,
+        quantity: 1,
+        variation: product.product_variations?.[0]?.id,
+      });
 
-    if (currentQty > 0) {
-      dispatch(updateQuantity({ id: product.id, quantity: newQuantity }));
-    } else {
-      dispatch(
-        addToCart({
-          id: product.id,
-          name: product.title,
-          price: Number(product.price),
-          img: product.image,
-          seller: product.seller ?? 'Marketplace',
-          quantity: 1,
-        })
-      );
+      const updatedCart = await fetchCart(token);
+      setCartItems(updatedCart);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to add item');
     }
   };
 
-  const incrementQuantity = (productId: number) => {
-    const currentQty = existingCartItem(productId)?.quantity || 0;
-    const newQuantity = currentQty + 1;
-    dispatch(updateQuantity({ id: productId, quantity: newQuantity }));
+  const incrementQuantity = async (product: any) => {
+    const item = cartItems.find((item) => item.product.id === product.id);
+    if (!item || !token) return;
+
+    const newQty = item.quantity + 1;
+
+    try {
+      await addOrUpdateCart(token, {
+        id: item.id,
+        product: product.id,
+        quantity: newQty,
+        variation: item.variation?.id,
+      });
+
+      const updatedCart = await fetchCart(token);
+      setCartItems(updatedCart);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  const decrementQuantity = (productId: number) => {
-    const currentQty = existingCartItem(productId)?.quantity || 0;
-    const newQuantity = currentQty - 1;
+  const decrementQuantity = async (product: any) => {
+    const item = cartItems.find((item) => item.product.id === product.id);
+    if (!item || !token) return;
 
-    if (newQuantity <= 0) {
-      dispatch(removeFromCart(productId));
-    } else {
-      dispatch(updateQuantity({ id: productId, quantity: newQuantity }));
+    const newQty = item.quantity - 1;
+
+    try {
+      if (newQty <= 0) {
+        // 🔥 DELETE API
+        await removeFromCartApi(token, item.id);
+      } else {
+        // 🔁 UPDATE API
+        await addOrUpdateCart(token, {
+          id: item.id,
+          product: product.id,
+          quantity: newQty,
+          variation: item.variation?.id,
+        });
+      }
+
+      const updatedCart = await fetchCart(token);
+      setCartItems(updatedCart);
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -183,34 +230,32 @@ const Search = () => {
           </View>
         ) : (
           <View style={styles.resultsWrap}>
-            {products.length > 0 && (
+            {apiProducts.length > 0 && (
               <>
                 <Text style={styles.sectionTitle}>Category</Text>
                 <FlatList
-                  data={products}
+                  data={apiProducts}  // Changed from products to categories
                   keyExtractor={(item) => String(item.id)}
                   renderItem={({ item }) => (
                     <View style={styles.row}>
-                      {item.type === 'product' ? (
-                        <View style={[styles.emojiWrap, { backgroundColor: '#EEE' }]}>
-                          <Image style={styles.emoji} src={item.image?.uri} />
-                        </View>
-                      ) : item.image ? (
-                        <View style={[styles.emojiWrap, { backgroundColor: '#EEE' }]}>
-                            <Image style={styles.emoji} src={item.image?.uri} />
-                        </View>
-                      ) : (
-                        <View style={[styles.emojiWrap, { backgroundColor: '#EEE' }]}>
-                          <Text style={styles.emoji}>{'🛒'}</Text>
-                        </View>
-                      )}
-                      <View style={styles.rowText}>
-                        <Text style={styles.rowTitle}>{item.title}</Text>
-                        <Text style={styles.rowSubtitle}>{item.subtitle}</Text>
+                      <View style={styles.emojiWrap}>
+                        {item.product_images?.length > 0 ? (
+                          <Image
+                            source={{ uri: item.product_images[0].image }}
+                            style={ProductStyle.productPic}
+                            resizeMode="contain"
+                          />
+                        ) : (
+                          <View style={{ justifyContent: 'center', alignItems: 'center' }}>
+                            <Text>🛒</Text>
+                          </View>
+                        )}
+
                       </View>
-                      <TouchableOpacity style={styles.rowAction} onPress={() => setQuery('')}>
-                        <Ionicons name="close" size={18} color="#9B9B9B" />
-                      </TouchableOpacity>
+                      <View style={styles.rowText}>
+                        <Text style={styles.rowTitle}>{item.name}</Text>
+                        <Text style={styles.rowSubtitle}>{item.category_name.name}</Text>
+                      </View>
                     </View>
                   )}
                   ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -218,15 +263,15 @@ const Search = () => {
                 />
               </>
             )}
-            {products.length > 0 && (
+            {apiProducts.length > 0 && (
               <View style={ProductStyle.productsSection}>
                 <ScrollView
                   showsVerticalScrollIndicator={false}
                 >
                   <Text style={styles.sectionTitle}>Products</Text>
-                  <View style={[ProductStyle.productsGrid,{marginBottom: verticalScale(100)}]}>
-                    {products.map((item) => {
-                      const productId = item.id as number;
+                  <View style={[ProductStyle.productsGrid, { marginBottom: verticalScale(100) }]}>
+                    {apiProducts.map((item) => {
+                      const productId = Number(item.id)
                       const qty = existingCartItem(productId)?.quantity || 0;
                       return (
                         <TouchableOpacity
@@ -238,24 +283,38 @@ const Search = () => {
                               params: {
                                 product: JSON.stringify({
                                   id: item.id,
-                                  name: item.title,
-                                  price: parseFloat(item.price || '0'),
-                                  img: item.image,
-                                  subtitle: item.subtitle,
-                                  seller: item.seller || 'Unknown Seller'
+                                  name: item.name,
+                                  description: item.description || '',
+                                  price: item.regular_price,
+                                  // product_images: product.product_images || [],
+                                  images: item.product_images?.map((img) => img.image) || [],
+                                  variations: item.product_variations?.map((variation) => ({
+                                    id: variation.id,
+                                    name: variation.name,
+                                    price: variation.price,
+                                    unit_quantity: variation.unit_quantity,
+                                    stock: variation.stock,
+                                  })) || [],
+                                  category: item.category_name?.name || '',
+                                  seller: item.store_name?.name || 'Fresh Mart'
                                 })
                               }
                             });
                           }}
                         >
                           <View style={ProductStyle.productImage}>
-                            {item.image ? (
-                              <Image source={item.image} style={ProductStyle.productPic} resizeMode="contain" />
+                            {item.product_images?.length > 0 ? (
+                              <Image
+                                source={{ uri: item.product_images[0].image }}
+                                style={ProductStyle.productPic}
+                                resizeMode="contain"
+                              />
                             ) : (
                               <View style={[ProductStyle.productPic, { backgroundColor: '#EEE', justifyContent: 'center', alignItems: 'center' }]}>
                                 <Text style={{ fontSize: 24 }}>🛒</Text>
                               </View>
                             )}
+
                           </View>
                           <TouchableOpacity
                             style={[ProductStyle.favoriteButton, checkIsInWishlist(productId) && ProductStyle.favoriteButtonActive]}
@@ -268,32 +327,35 @@ const Search = () => {
                             />
                           </TouchableOpacity>
                           <View style={ProductStyle.productInfo}>
-                            <Text style={ProductStyle.productName}>{item.title}</Text>
-                            <Text style={ProductStyle.productSubtitle}>{item.subtitle}</Text>
-                            <Text style={ProductStyle.priceText}>${item.price}</Text>
+                            <Text style={ProductStyle.productName}>{item.name}</Text>
+                            <Text style={ProductStyle.productSubtitle}>{item.category_name.name}</Text>
+                            <Text style={ProductStyle.priceText}>${item.regular_price}</Text>
                             <View style={ProductStyle.buttonContainer}>
                               {qty === 0 ? (
                                 <TouchableOpacity
                                   style={ProductStyle.addButton}
-                                  onPress={() => incrementQuantity(productId)}
-                                  onPressIn={() => handleAddToCart(item)}
+                                  onPress={() => handleAddToCart(item)}
                                 >
-                                  <Text style={ProductStyle.addButtonText}>+ Add</Text>
+                                  <Text style={ProductStyle.addButtonText}>Add To Cart</Text>
                                 </TouchableOpacity>
                               ) : (
                                 <View style={ProductStyle.qtyControl}>
                                   <TouchableOpacity
                                     style={ProductStyle.qtySideButton}
-                                    onPress={() => decrementQuantity(productId)}
+                                    onPress={() => decrementQuantity(item)}
                                   >
                                     <Text style={ProductStyle.qtySideButtonText}>−</Text>
                                   </TouchableOpacity>
+
                                   <View style={ProductStyle.qtyPill}>
-                                    <Text style={ProductStyle.qtyText}>{String(qty).padStart(2, '0')}</Text>
+                                    <Text style={ProductStyle.qtyText}>
+                                      {String(qty).padStart(2, '0')}
+                                    </Text>
                                   </View>
+
                                   <TouchableOpacity
                                     style={ProductStyle.qtySideButtonFilled}
-                                    onPress={() => incrementQuantity(productId)}
+                                    onPress={() => incrementQuantity(item)}
                                   >
                                     <Text style={ProductStyle.qtySideButtonFilledText}>+</Text>
                                   </TouchableOpacity>
@@ -327,7 +389,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   innerBg: {
-    backgroundColor:colors.primaryLight,
+    backgroundColor: colors.primaryLight,
     height: verticalScale(120),
     shadowColor: '#000',
     shadowOffset: {
@@ -430,16 +492,16 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   rowTitle: {
-    fontFamily:'Montserrat',
+    fontFamily: 'Montserrat',
     fontSize: moderateScale(14),
     fontWeight: '600',
     marginBottom: 2,
   },
   rowSubtitle: {
-    fontFamily:'Montserrat',
+    fontFamily: 'Montserrat',
     fontSize: moderateScale(12),
     color: colors.textPrimary,
-  },  
+  },
   rowAction: {
     padding: 6,
   },

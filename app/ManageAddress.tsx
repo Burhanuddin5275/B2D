@@ -121,7 +121,7 @@ const ManageAddress = () => {
                                         if (selectedAddress) {
                                             try {
                                                 await deleteAddress(token || '', selectedAddress.id);
-                                                // Remove the address from local state
+                                                alert('Address removed successfully.');
                                                 setAddresses(addresses.filter(addr => addr.id !== selectedAddress.id));
                                             } catch (error) {
                                                 console.error('Error removing address:', error);

@@ -1,8 +1,9 @@
 import Header from '@/components/Header';
-import { CartItem, fetchCart } from '@/service/cart';
+import { CartItem, fetchCart, removeFromCartApi } from '@/service/cart';
 import { removeFromCart, selectCartItems, updateQuantity } from '@/store/cartSlice';
 import { useAppDispatch, useAppSelector } from '@/store/useAuth';
 import { colors } from '@/theme/colors';
+import { API_URL } from '@/url/Api_Url';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -80,7 +81,6 @@ const Product = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
   const token = useAppSelector((s) => s.auth.token);
-  const phone = useAppSelector((s) => s.auth.phone);
   const [isLoading, setIsLoading] = useState(false);
   useEffect(() => {
     console.log('Token:', cartItems);
@@ -138,19 +138,22 @@ const Product = () => {
   const { width: screenWidth } = Dimensions.get('window');
 
   const existingCartItem = useMemo(
-    () => cartItems.find((item) => item.product.id === parsedProduct.id),
-    [cartItems, parsedProduct.id]
+    () => cartItems.find((item) =>
+      item.product.id === parsedProduct.id &&
+      (!item.variation || item.variation.id === (parsedProduct.variations?.[selectedVariant]?.id || 0))
+    ),
+    [cartItems, parsedProduct.id, selectedVariant, parsedProduct.variations]
   );
 
   useEffect(() => {
     if (existingCartItem) {
-      setQuantity(existingCartItem.quantity); // Load cart quantity
+      setQuantity(existingCartItem.quantity);
       setShowQuantitySelector(true);
     } else {
       setQuantity(1);
       setShowQuantitySelector(false);
     }
-  }, [existingCartItem]);
+  }, [existingCartItem, selectedVariant]);
 
 
   useEffect(() => {
@@ -159,60 +162,78 @@ const Product = () => {
       console.log('Selected variant:', {
         index: selectedVariant,
         id: selected?.id,
+        product: parsedProduct.id,
         name: selected?.name,
         price: selected?.price
       });
     }
   }, [selectedVariant, parsedProduct.variations]);
+    /* ================= ADD TO CART ================= */
+
   const handleAddToCart = async () => {
-    if (!isAuthenticated || !token) {
+    if (!token || !isAuthenticated) {
       alert('Please login to add items to cart');
       return;
     }
 
-    if (!parsedProduct) return;
-
-    const selectedVar = parsedProduct.variations?.[selectedVariant];
-
-    const payload: any = {
-      product: parsedProduct.id,
-      quantity,
-    };
-
-    // ✅ only send variation if backend expects it
-    if (selectedVar?.id) {
-      payload.variation = selectedVar.id;
-    }
-
     try {
-      const response = await fetch(
-        'https://mart2door.com/customer-api/cart',
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `token ${token}`,
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-     console.log(payload)
-      const raw = await response.json();
-      console.log('STATUS:', response.status);
-      console.log('RESPONSE:', raw);
+      await addOrUpdateCart(token, {
+        product: parsedProduct.id,
+        quantity,
+        variation:
+          parsedProduct.variations?.[selectedVariant]?.id,
+      });
 
-      if (!response.ok) {
-        alert('Failed to add item to cart');
-        return;
-      }
-      setShowQuantitySelector(true)
-      alert(raw);
-    } catch (err) {
-      console.error('Add to cart failed:', err);
+      const updatedCart = await fetchCart(token);
+      setCartItems(updatedCart);
+      setShowQuantitySelector(true);
+    } catch {
+      alert('Failed to add item');
     }
   };
+ /* ================= UPDATE CART ================= */
+ const addOrUpdateCart = async (
+  token: string,
+  payload: {
+    id?: number;
+    product: number;
+    quantity: number;
+    variation?: number;
+  }
+) => {
+  const response = await fetch(`${API_URL}customer-api/cart`, {
+    method: 'POST',
+    headers: {
+      Authorization: `token ${token}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
 
+  const json = await response.json();
+
+  if (!response.ok) {
+    throw json;
+  }
+
+  return json;
+};
+  const handleRemoveFromCart = async () => {
+    if (!existingCartItem || !token) return;
+
+    try {
+      await removeFromCartApi(token, existingCartItem.id);
+
+      setQuantity(1);
+      setShowQuantitySelector(false);
+
+      const updatedCart = await fetchCart(token);
+      setCartItems(updatedCart);
+    } catch {
+      alert('Failed to remove item');
+    }
+  };
 
   const incrementQuantity = () => {
     const newQuantity = quantity + 1;
@@ -232,7 +253,59 @@ const Product = () => {
     setQuantity(newQuantity);
     dispatch(updateQuantity({ id: parsedProduct.id, quantity: newQuantity }));
   };
+const updateCartQuantity = async (newQuantity: number) => {
+  // Don't allow quantity less than 1
+  if (newQuantity < 1) return;
 
+  // Update local state immediately for better UX
+  setQuantity(newQuantity);
+
+  if (!isAuthenticated || !token || !existingCartItem) return;
+
+  try {
+    const selectedVar = parsedProduct.variations?.[selectedVariant];
+    const payload: any = {
+      id: existingCartItem.id, // Important: Include the cart item ID
+      product: parsedProduct.id,
+      quantity: newQuantity,
+    };
+
+    if (selectedVar?.id) {
+      payload.variation = selectedVar.id;
+    }
+
+    const response = await fetch(
+      `${API_URL}customer-api/cart`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `token ${token}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('Update quantity failed:', error);
+      // Revert quantity on error
+      setQuantity(quantity);
+      alert('Failed to update quantity');
+      return;
+    }
+
+    // Update local cart state
+    const updatedCart = await fetchCart(token);
+    setCartItems(updatedCart);
+  } catch (err) {
+    console.error('Update quantity failed:', err);
+    // Revert quantity on error
+    setQuantity(quantity);
+    alert('Failed to update quantity. Please try again.');
+  }
+};
   return (
     <SafeAreaView style={styles.safeArea}>
       <ImageBackground
@@ -373,7 +446,7 @@ const Product = () => {
 
           <View style={styles.highlightCard}>
             <Text style={styles.highlightHeading}>
-              Why shop from Buzz 2 Door?
+              Why shop from Mart 2 Door?
             </Text>
             {HIGHLIGHTS.map((item, index) => (
               <View key={item.id} style={styles.highlightBlock}>
@@ -472,31 +545,46 @@ const Product = () => {
         {/* Add to Cart Button with Quantity Selector */}
         <View style={styles.addToCartContainer}>
           <View style={styles.addToCartContent}>
-            <TouchableOpacity
-              style={[styles.addToCartButton, showQuantitySelector && styles.addedButton]}
-              onPress={handleAddToCart}
-              activeOpacity={0.9}
-            >
-              <Text style={styles.addToCartText}>
-                Add to Cart
-              </Text>
-            </TouchableOpacity>
-
-            {showQuantitySelector && (
+            {existingCartItem ? (
+              <TouchableOpacity
+                style={[styles.addToCartButton, styles.removeButton]}
+                onPress={handleRemoveFromCart}
+                activeOpacity={0.9}
+              >
+                <Text style={styles.addToCartText}>
+                  Remove from Cart
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.addToCartButton, showQuantitySelector && styles.addedButton]}
+                onPress={handleAddToCart}
+                activeOpacity={0.9}
+              >
+                <Text style={styles.addToCartText}>
+                  Add to Cart
+                </Text>
+              </TouchableOpacity>
+            )}
+            {showQuantitySelector && existingCartItem && (
               <View style={styles.quantitySelector}>
                 <TouchableOpacity
-                  onPress={decrementQuantity}
-                  style={styles.quantityButton}
+                  onPress={() => updateCartQuantity(quantity - 1)}
+                  style={[styles.quantityButton, quantity <= 1 && styles.disabledButton]}
                   activeOpacity={0.7}
+                  disabled={quantity <= 1}
                 >
-                  <Ionicons name="remove" size={18} color={colors.white} />
+                  <Ionicons
+                    name="remove"
+                    size={18}
+                    color={quantity <= 1 ? colors.black : colors.white}
+                  />
                 </TouchableOpacity>
 
-                {/* Show current quantity */}
                 <Text style={styles.quantityText}>{quantity}</Text>
 
                 <TouchableOpacity
-                  onPress={incrementQuantity}
+                  onPress={() => updateCartQuantity(quantity + 1)}
                   style={styles.quantityButton}
                   activeOpacity={0.7}
                 >
@@ -504,7 +592,6 @@ const Product = () => {
                 </TouchableOpacity>
               </View>
             )}
-
           </View>
         </View>
       </ImageBackground>
@@ -616,6 +703,24 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(12),
     color: colors.white,
     textAlign: 'center',
+  },
+  disabledButton: {
+  opacity: 0.5,
+  backgroundColor: 'gray', 
+},
+  removeButton: {
+    backgroundColor: '#ff4444', 
+    flex: 1,
+    height: verticalScale(50),
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   addToCartButton: {
     width: '100%',

@@ -1,16 +1,16 @@
 import { ProductStyle } from '@/assets/css/style'
 import Header from '@/components/Header'
-import { addToCart, removeFromCart, selectCartItems, updateQuantity } from '@/store/cartSlice'
 import { useAppSelector } from '@/store/useAuth'
 import { colors } from '@/theme/colors'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Animated, Image, ImageBackground, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { scale, verticalScale } from 'react-native-size-matters'
 import { useDispatch, useSelector } from 'react-redux'
 import { addToWishlist, removeFromWishlist, selectWishlistItems } from '../../store/wishlistSlice'
+import { addOrUpdateCart, CartItem, fetchCart, removeFromCartApi } from '@/service/cart'
 
 interface Product {
   id: number;
@@ -37,12 +37,14 @@ const Category = () => {
   const [quantities, setQuantities] = useState<Record<number, number>>({});
   const [wishlist, setWishlist] = useState<number[]>([]);
   const checkIsInWishlist = (productId: number) => wishlist.includes(productId);
-  const dispatch = useDispatch(); 
+  const dispatch = useDispatch();
   const { categoryName, products } = useLocalSearchParams();
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const productsData: Product[] = products ? JSON.parse(products as string) : [];
   const wishlistItems = useSelector(selectWishlistItems);
   const [isFilterVisible, setIsFilterVisible] = useState(false);
-  const cartItems = useAppSelector(selectCartItems);
+  const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
+  const token = useAppSelector((s) => s.auth.token);
 
   // Set header title to the category name
   const headerTitle = typeof categoryName === 'string' ? categoryName : 'Category';
@@ -68,49 +70,94 @@ const Category = () => {
   const handleFilterPress = showFilterModal;
 
   const handleSearchPress = () => {
-   router.push('/Search');
+    router.push('/Search');
   };
-const [quantity, setQuantity] = useState(1);
-  const existingCartItem = (productId: number) => 
-    cartItems.find((item) => item.id === productId);
-  const handleAddToCart = (product: Product) => {
-    const currentQty = existingCartItem(product.id)?.quantity || 0;
-    const newQuantity = currentQty + 1;
-    const price = parseFloat(product.product_variations?.[0]?.price || '0');
-    
-    if (currentQty > 0) {
-      dispatch(updateQuantity({ id: product.id, quantity: newQuantity }));
-    } else {
-      dispatch(
-        addToCart({
-          id: product.id,
-          name: product.name,
-          price: parseFloat(product.regular_price),
-          img: product.product_images?.[0]?.image || '',
-          seller: product.store_name?.name || 'Unknown Seller',
-          quantity: 1,
-        })
-      );
+  const [quantity, setQuantity] = useState(1);
+  useEffect(() => {
+    const loadCart = async () => {
+      try {
+        if (token) {
+          const data = await fetchCart(token);
+          setCartItems(data);
+        }
+      } catch (error) {
+        console.error('Failed to load cart:', error);
+      }
+    };
+    loadCart();
+  }, [token]);
+
+  const existingCartItem = (productId: number) =>
+    cartItems.find((item) => item.product.id === productId);
+  const handleAddToCart = async (product: any) => {
+    if (!token || !isAuthenticated) {
+      alert('Please login to add items to cart');
+      return;
     }
-    setQuantity(newQuantity);
-  };
 
-  const incrementQuantity = (productId: number) => {
-    const currentQty = existingCartItem(productId)?.quantity || 0;
-    const newQuantity = currentQty + 1;
-    dispatch(updateQuantity({ id: productId, quantity: newQuantity }));
-  };
+    try {
+      await addOrUpdateCart(token, {
+        product: product.id,
+        quantity: 1,
+        variation: product.product_variations?.[0]?.id,
+      });
 
-  const decrementQuantity = (productId: number) => {
-    const currentQty = existingCartItem(productId)?.quantity || 0;
-    const newQuantity = currentQty - 1;
-    
-    if (newQuantity <= 0) {
-      dispatch(removeFromCart(productId));
-    } else {
-      dispatch(updateQuantity({ id: productId, quantity: newQuantity }));
+      const updatedCart = await fetchCart(token);
+      setCartItems(updatedCart);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to add item');
     }
   };
+
+  const incrementQuantity = async (product: any) => {
+    const item = cartItems.find((item) => item.product.id === product.id);
+    if (!item || !token) return;
+
+    const newQty = item.quantity + 1;
+
+    try {
+      await addOrUpdateCart(token, {
+        id: item.id,
+        product: product.id,
+        quantity: newQty,
+        variation: item.variation?.id,
+      });
+
+      const updatedCart = await fetchCart(token);
+      setCartItems(updatedCart);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const decrementQuantity = async (product: any) => {
+    const item = cartItems.find((item) => item.product.id === product.id);
+    if (!item || !token) return;
+
+    const newQty = item.quantity - 1;
+
+    try {
+      if (newQty <= 0) {
+        // 🔥 DELETE API
+        await removeFromCartApi(token, item.id);
+      } else {
+        // 🔁 UPDATE API
+        await addOrUpdateCart(token, {
+          id: item.id,
+          product: product.id,
+          quantity: newQty,
+          variation: item.variation?.id,
+        });
+      }
+
+      const updatedCart = await fetchCart(token);
+      setCartItems(updatedCart);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
       <ImageBackground
@@ -120,35 +167,50 @@ const [quantity, setQuantity] = useState(1);
         <Header title={headerTitle} showDefaultIcons={true} rightIcons={[
           { name: 'filter', onPress: handleFilterPress },
           { name: 'search-outline', onPress: handleSearchPress },
-        ]}/>
-        <ScrollView style={{flex: 1}}>
+        ]} />
+        <ScrollView style={{ flex: 1 }}>
           {/* Products Section */}
-          <View style={ProductStyle.productsSection}> 
+          <View style={ProductStyle.productsSection}>
             <View style={ProductStyle.productsGrid}>
               {productsData.length > 0 ? productsData.map((product: Product) => {
                 const qty = existingCartItem(product.id)?.quantity || 0;
                 return (
-                  <TouchableOpacity 
-                    key={product.id} 
+                  <TouchableOpacity
+                    key={product.id}
                     style={ProductStyle.productCard}
                     onPress={() => {
                       router.push({
-                        pathname: '/Product', 
+                        pathname: '/Product',
                         params: {
-                          product: JSON.stringify(product),
-                          categoryName: headerTitle
+                          product: JSON.stringify({
+                            id: product.id,
+                            name: product.name,
+                            description: product.description || '',
+                            price: product.regular_price,
+                            // product_images: product.product_images || [],
+                            images: product.product_images?.map((img) => img.image) || [],
+                            variations: product.product_variations?.map((variation) => ({
+                              id: variation.id,
+                              name: variation.name,
+                              price: variation.price,
+                              unit_quantity: variation.unit_quantity,
+                              stock: variation.stock,
+                            })) || [],
+                            category: product.category_name?.name || '',
+                            seller: product.store_name?.name || 'Fresh Mart'
+                          })
                         }
                       });
                     }}>
                     <View style={ProductStyle.productImage}>
                       {product.product_images && product.product_images.length > 0 ? (
-                        <Image 
-                          source={{ uri: product.product_images[0].image }} 
-                          style={ProductStyle.productPic} 
-                          resizeMode="contain" 
+                        <Image
+                          source={{ uri: product.product_images[0].image }}
+                          style={ProductStyle.productPic}
+                          resizeMode="contain"
                         />
                       ) : (
-                        <View style={[ProductStyle.productPic, {backgroundColor: '#f0f0f0'}]} />
+                        <View style={[ProductStyle.productPic, { backgroundColor: '#f0f0f0' }]} />
                       )}
                     </View>
                     <TouchableOpacity
@@ -167,7 +229,7 @@ const [quantity, setQuantity] = useState(1);
                         {product.category_name.name}
                       </Text>
                       <Text style={ProductStyle.priceText}>
-                        ${product.regular_price|| '0.00'}
+                        ${product.regular_price || '0.00'}
                       </Text>
                       <View style={ProductStyle.buttonContainer}>
                         {qty === 0 ? (
@@ -175,27 +237,32 @@ const [quantity, setQuantity] = useState(1);
                             style={ProductStyle.addButton}
                             onPress={() => handleAddToCart(product)}
                           >
-                            <Text style={ProductStyle.addButtonText}>+ Add</Text>
+                            <Text style={ProductStyle.addButtonText}>Add To Cart</Text>
                           </TouchableOpacity>
                         ) : (
                           <View style={ProductStyle.qtyControl}>
                             <TouchableOpacity
                               style={ProductStyle.qtySideButton}
-                              onPress={() => decrementQuantity(product.id)}
+                              onPress={() => decrementQuantity(product)}
                             >
                               <Text style={ProductStyle.qtySideButtonText}>−</Text>
                             </TouchableOpacity>
+
                             <View style={ProductStyle.qtyPill}>
-                              <Text style={ProductStyle.qtyText}>{String(qty).padStart(2, '0')}</Text>
+                              <Text style={ProductStyle.qtyText}>
+                                {String(qty).padStart(2, '0')}
+                              </Text>
                             </View>
+
                             <TouchableOpacity
                               style={ProductStyle.qtySideButtonFilled}
-                              onPress={() => incrementQuantity(product.id)}
+                              onPress={() => incrementQuantity(product)}
                             >
                               <Text style={ProductStyle.qtySideButtonFilledText}>+</Text>
                             </TouchableOpacity>
                           </View>
                         )}
+
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -213,13 +280,13 @@ const [quantity, setQuantity] = useState(1);
         animationType="none"
         onRequestClose={hideFilterModal}
       >
-        <View style={[styles.modalOverlay,{ paddingBottom: Math.max(insets.bottom, verticalScale(1))}]}>
-          <TouchableOpacity 
+        <View style={[styles.modalOverlay, { paddingBottom: Math.max(insets.bottom, verticalScale(1)) }]}>
+          <TouchableOpacity
             style={styles.modalBackground}
             activeOpacity={1}
             onPress={hideFilterModal}
           >
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.bottomSheet,
               ]}
@@ -227,7 +294,7 @@ const [quantity, setQuantity] = useState(1);
               <View style={styles.filterContent}>
                 <View style={styles.headerContainer}>
                   <Text style={styles.filterTitle}>Sort products By</Text>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     onPress={hideFilterModal}
                     style={{
                       position: 'absolute',
@@ -240,10 +307,10 @@ const [quantity, setQuantity] = useState(1);
                     <Ionicons name="close" size={14} color={colors.textPrimary} />
                   </TouchableOpacity>
                 </View>
-                
+
                 {/* Sort Options */}
                 <View style={styles.optionsContainer}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.optionItem}
                     onPress={() => setSelectedOption('Relevance')}
                   >
@@ -252,10 +319,10 @@ const [quantity, setQuantity] = useState(1);
                     </View>
                     <Text style={styles.optionText}>Relevance</Text>
                   </TouchableOpacity>
-                  
+
                   <View style={styles.divider} />
-                  
-                  <TouchableOpacity 
+
+                  <TouchableOpacity
                     style={styles.optionItem}
                     onPress={() => setSelectedOption('Price (low to high)')}
                   >
@@ -264,10 +331,10 @@ const [quantity, setQuantity] = useState(1);
                     </View>
                     <Text style={styles.optionText}>Price (low to high)</Text>
                   </TouchableOpacity>
-                  
+
                   <View style={styles.divider} />
-                  
-                  <TouchableOpacity 
+
+                  <TouchableOpacity
                     style={styles.optionItem}
                     onPress={() => setSelectedOption('Price (high to low)')}
                   >
@@ -276,10 +343,10 @@ const [quantity, setQuantity] = useState(1);
                     </View>
                     <Text style={styles.optionText}>Price (high to low)</Text>
                   </TouchableOpacity>
-                  
+
                   <View style={styles.divider} />
-                  
-                  <TouchableOpacity 
+
+                  <TouchableOpacity
                     style={styles.optionItem}
                     onPress={() => setSelectedOption('Popularity')}
                   >
@@ -319,7 +386,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom:0,
+    bottom: 0,
     height: verticalScale(320),
     backgroundColor: 'white',
     borderTopLeftRadius: 20,
@@ -368,7 +435,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat',
     fontWeight: '600',
   },
-  divider: { 
+  divider: {
     height: 1,
     backgroundColor: colors.textSecondary,
     marginLeft: scale(16),
@@ -376,6 +443,6 @@ const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
     width: '100%',
-    backgroundColor:colors.white
+    backgroundColor: colors.white
   },
 })

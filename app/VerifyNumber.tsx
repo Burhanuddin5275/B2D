@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 import { loginSuccess } from '../store/authSlice';
 import { useAppDispatch } from '../store/useAuth';
+import { API_URL } from '@/url/Api_Url';
 
 const VerifyNumber = () => {
   const { phone } = useLocalSearchParams();
@@ -58,7 +59,7 @@ const VerifyNumber = () => {
         return;
       }
       setIsSubmitting(true);
-      const response = await fetch('https://mart2door.com/customer-api/auth/validate_token', {
+      const response = await fetch(`${API_URL}/customer-api/auth/validate_token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

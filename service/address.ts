@@ -1,3 +1,5 @@
+import { API_URL } from "@/url/Api_Url";
+
 export interface Country {
   country: string;
 }
@@ -28,7 +30,7 @@ export const fetchCountries = async (
 ): Promise<Country[]> => {
 
     const response = await fetch(
-      'https://mart2door.com/api/get-locations/country',
+      `${API_URL}api/get-locations/country`,
       {
         method: 'GET',
         headers: {
@@ -50,7 +52,7 @@ export const fetchStates = async (
 ): Promise<StateItem[]> => {
 
     const response = await fetch(
-      'https://mart2door.com/api/get-locations/state',
+      `${API_URL}api/get-locations/state`,
       {
         method: 'POST',
         headers: {
@@ -70,7 +72,7 @@ export const fetchStates = async (
 
 
 export const fetchCities = async (token: string, state: string): Promise<CityItem[]> => {
-    const response = await fetch('https://mart2door.com/api/get-locations/city', {
+    const response = await fetch(`${API_URL}api/get-locations/city`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -88,7 +90,7 @@ export const fetchCities = async (token: string, state: string): Promise<CityIte
 // service/address.ts
 export const fetchAddresses = async (token: string) => {
   const response = await fetch(
-    'https://mart2door.com/customer-api/addresses',
+    `${API_URL}customer-api/addresses`,
     {
       method: 'GET',
       headers: {
@@ -104,7 +106,7 @@ export const fetchAddresses = async (token: string) => {
 export const deleteAddress = async (token: string, addressId: number): Promise<{ success: boolean }> => {
   try {
     const response = await fetch(
-      `https://mart2door.com/customer-api/remove-address/${addressId}`,
+      `${API_URL}customer-api/remove-address/${addressId}`,
       {
         method: 'GET',
         headers: {

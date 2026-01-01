@@ -1,6 +1,8 @@
 
 // categoryApi.ts
 
+import { API_URL } from "@/url/Api_Url";
+
 export interface Category {
   id: number;
   name: string;
@@ -21,7 +23,7 @@ export interface CategoryApiResponse {
 
 export const fetchCategories = async (): Promise<Category[]> => {
   try {
-    const response = await fetch("https://mart2door.com/customer-api/get-categories");
+    const response = await fetch(`${API_URL}customer-api/get-categories`);
     const json: CategoryApiResponse = await response.json();
 
     if (json.status) {

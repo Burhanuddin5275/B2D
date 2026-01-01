@@ -62,32 +62,24 @@ export default function CompleteProfile() {
 
   // ================= FETCH PROFILE =================
 useEffect(() => {
-  let isMounted = true;
-
   const loadProfile = async () => {
     try {
       console.log('Fetching profile with token:', resolvedToken);
       const data = await getProfile(resolvedToken||'');
-
-      if (isMounted) {
         setFirstName(data.first_name || '');
         setLastName(data.last_name || '');
         setEmail(data.email || '');
         if (data.avatar) setImage(data.avatar);
-      }
+
     } catch (error) {
       console.error('Error fetching profile:', error);
-      if (isMounted) Alert.alert('Error', 'Failed to load profile data');
+     Alert.alert('Error', 'Failed to load profile data');
     } finally {
-      if (isMounted) setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
   loadProfile();
-
-  return () => {
-    isMounted = false;
-  };
 }, [resolvedToken]);
 
   // ================= IMAGE PICKER =================

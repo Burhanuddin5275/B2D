@@ -1,3 +1,5 @@
+import { API_URL } from "@/url/Api_Url";
+
 // /services/orderApi.ts
 export interface OrderStatus {
   status: string;
@@ -116,7 +118,7 @@ export interface OrderDetailResponse {
 }
 export const fetchOrders = async (token: string): Promise<Order[]> => {
   try {
-    const response = await fetch('https://mart2door.com/customer-api/my-orders', {
+    const response = await fetch(`${API_URL}customer-api/my-orders`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -136,7 +138,7 @@ export const fetchOrders = async (token: string): Promise<Order[]> => {
 // /service/orderService.ts
 export const fetchOrderById = async (orderId: string, token: string) => {
   try {
-    const res = await fetch(`https://mart2door.com/customer-api/my-orders/${orderId}`, {
+    const res = await fetch(`${API_URL}customer-api/my-orders/${orderId}`, {
       headers: {
         Authorization: `token ${token}`,
       },
@@ -150,3 +152,21 @@ export const fetchOrderById = async (orderId: string, token: string) => {
   }
 };
 
+export const placeOrderApi = async (token: string, orderData: any) => {
+  const res = await fetch(`${API_URL}customer-api/place-order`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `token ${token}`,
+    },
+    body: JSON.stringify(orderData),
+  });
+
+  const json = await res.json();
+
+  if (!res.ok) {
+    throw new Error(json.message || 'Failed to place order');
+  }
+
+  return json;
+};

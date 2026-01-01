@@ -1,3 +1,4 @@
+import { API_URL } from "@/url/Api_Url";
 
 export interface image {
   store: number;
@@ -22,14 +23,14 @@ export interface StoreApiResponse {
 
 export const fetchStores = async (): Promise<Store[]> => {
   try {
-    const response = await fetch("https://mart2door.com/customer-api/get-stores");
+    const response = await fetch(`${API_URL}customer-api/get-stores`);
     const json: StoreApiResponse = await response.json();
 
     if (json.status) {
       return json.data;
     }
 
-    console.warn("Category API error:", json.message);
+    console.warn("Store API error:", json.message);
     return [];
   } catch (error) {
     console.error("Network error:", error);

@@ -148,10 +148,12 @@ const OrderTracker = () => {
     id: item.id,
     name: item.product.name,
     qty: item.quantity,
+    variant: item.variation?.name,
     price: parseFloat(item.price),
     image: { uri: item.product.product_images[0]?.image },
     ratingLabel: 'Rate product',
   }));
+  console.log('items', items);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -219,6 +221,12 @@ const OrderTracker = () => {
                 <Image source={item.image} style={styles.itemImage} />
                 <View style={styles.itemDetails}>
                   <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
+                  {item.variant && (
+                    <Text style={[styles.itemName, { color: colors.textPrimary, fontSize: moderateScale(12) }]}
+                      numberOfLines={1}>
+                      {item.variant}
+                    </Text>
+                  )}
                   <View style={styles.priceRatingContainer}>
                     <Text style={styles.itemPrice}>
                       ${item.price.toFixed(2)} ({item.qty})
@@ -276,6 +284,12 @@ const OrderTracker = () => {
                     <Image source={ratingItem.image} style={styles.ratingItemImage} />
                     <View style={styles.ratingItemInfo}>
                       <Text style={styles.ratingItemName} numberOfLines={2}>{ratingItem.name}</Text>
+                      {ratingItem.variant && (
+                        <Text style={[styles.itemName, { color: colors.textPrimary, fontSize: moderateScale(12) }]}
+                          numberOfLines={1}>
+                          {ratingItem.variant}
+                        </Text>
+                      )}
                       <Text style={styles.ratingItemPrice}>
                         ${ratingItem.price.toFixed(2)} ({ratingItem.qty})
                       </Text>
