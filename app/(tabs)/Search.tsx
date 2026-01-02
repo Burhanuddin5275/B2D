@@ -12,8 +12,9 @@ import { useAppDispatch, useAppSelector } from '@/store/useAuth'
 import { colors } from '@/theme/colors'
 import { router } from 'expo-router'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
-import { moderateScale, verticalScale } from 'react-native-size-matters'
+import { moderateScale, scale, verticalScale } from 'react-native-size-matters'
 import { addOrUpdateCart, CartItem, fetchCart, removeFromCartApi } from '@/service/cart'
+import { addToWishlistApi, getFromWishlistApi, removeFromWishlistApi } from '@/service/wishlist'
 
 const { width } = Dimensions.get('window')
 
@@ -21,70 +22,72 @@ const Search = () => {
   const navigation = useNavigation()
   const [query, setQuery] = useState('')
   const dispatch = useAppDispatch();
-  const wishlistItems = useAppSelector(selectWishlistItems);
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
   const token = useAppSelector((s) => s.auth.token);
   const [apiProducts, setApiProducts] = useState<Product[]>([]);
   const [apiCategories, setApiCategories] = useState<Category[]>([]);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const wishlistIds = useMemo(() => wishlistItems.map(item => item.id), [wishlistItems]);
-  const checkIsInWishlist = (productId: number) => wishlistIds.includes(productId);
+  const [wishlist, setWishlist] = useState<any>([]);
+  const checkIsInWishlist = (productId: number) =>
+    wishlist.some((item: any) => item.product_id === productId);
   const insets = useSafeAreaInsets();
 
-  const toggleWishlist = (product: any) => {
-    const payload = {
-      id: product.id,
-      name: product.title,
-      subtitle: product.subtitle,
-      price: Number(product.price),
-      img: product.image,
-      seller: product.seller ?? 'Marketplace',
-    };
-    if (checkIsInWishlist(product.id)) {
-      dispatch(removeFromWishlist(product.id));
-    } else {
-      dispatch(addToWishlist(payload));
+  const toggleWishlist = async (product: Product) => {
+    if (!token || !isAuthenticated) {
+      alert('Please login to use wishlist');
+      return;
+    }
+
+    const variationId = product.product_variations?.[0]?.id;
+
+    try {
+      const existingItem = wishlist.find(
+        (item: any) => item.product_id === product.id
+      );
+
+      if (existingItem) {
+        await removeFromWishlistApi(token, existingItem.wishlist_id);
+
+        setWishlist((prev: any[]) =>
+          prev.filter(item => item.product_id !== product.id)
+        );
+      } else {
+        const payload: any = {
+          product: product.id,
+        };
+
+        if (variationId) {
+          payload.variation = variationId;
+        }
+
+        const newItem = await addToWishlistApi(token, payload);
+
+        if (newItem?.id) {
+          setWishlist((prev: any[]) => [
+            ...prev,
+            {
+              wishlist_id: newItem.id,
+              product_id: product.id,
+            },
+          ]);
+        } else {
+          const wishlistRes = await getFromWishlistApi(token);
+
+          setWishlist(
+            wishlistRes.data.map((item: any) => ({
+              wishlist_id: item.id,
+              product_id: item.product.id,
+            }))
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Wishlist error:', error);
+      alert('Failed to update wishlist');
     }
   };
-  // First, update the useMemo hook to properly map and filter categories
-  const { categories, products } = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return { categories: [], products: [] };
 
-    // Map API categories with proper structure
-    const mappedCategories = apiCategories.map(category => ({
-      id: `cat_${category.id}`,
-      title: category.name,
-      subtitle: category.description || '',
-      type: 'category' as const,
-      image: category.image ? { uri: category.image } : null,
-      bgColor: '#EEE',
-      emoji: '🛒'
-    }));
-
-    const mappedProducts = apiProducts.map(product => ({
-      id: `prod_${product.id}`,
-      title: product.name,
-      subtitle: typeof product.category_name === 'object' ? product.category_name.name : 'Product',
-      description: product.description || '', // Add this line
-      price: product.regular_price || '0.00',
-      image: product.product_images?.[0]?.image ? { uri: product.product_images[0].image } : null,
-      type: 'product' as const,
-      seller: product.store_name?.name || 'Marketplace',
-    }));
-
-    return {
-      categories: mappedCategories.filter(category =>
-        category.title.toLowerCase().includes(q) ||
-        (category.subtitle && category.subtitle.toLowerCase().includes(q))
-      ),
-      products: mappedProducts.filter(product =>
-        product.title.toLowerCase().includes(q) ||
-        product.subtitle.toLowerCase().includes(q)
-      )
-    };
-  }, [query, apiProducts, apiCategories]);
   useEffect(() => {
     const loadCart = async () => {
       try {
@@ -174,13 +177,9 @@ const Search = () => {
       try {
         setLoading(true);
         // Load products and categories in parallel
-        const [productsData, categoriesData] = await Promise.all([
-          fetchProducts(),
-          fetchCategories()
-        ]);
+        const productsData = await (fetchProducts());
 
         setApiProducts(productsData);
-        setApiCategories(categoriesData);
       } catch (error) {
         console.error('Failed to load data:', error);
         // You can set an error state here to show to the user
@@ -191,6 +190,14 @@ const Search = () => {
 
     loadData();
   }, []);
+  const productsToShow = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return []; // nothing shown if search is empty
+
+    return apiProducts.filter(product =>
+      product.name.toLowerCase().includes(q)
+    );
+  }, [query, apiProducts]);
 
   return (
     <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
@@ -218,164 +225,154 @@ const Search = () => {
             </View>
           </View>
         </ImageBackground>
-        {query.trim().length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>Start typing to search for products</Text>
-          </View>
-        ) : categories.length === 0 && products.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>Try refining your search or</Text>
-            <Text style={styles.emptyTitle}>explore different categories to find</Text>
-            <Text style={styles.emptyTitle}>what you're looking for.</Text>
-          </View>
-        ) : (
-          <View style={styles.resultsWrap}>
-            {apiProducts.length > 0 && (
-              <>
-                <Text style={styles.sectionTitle}>Category</Text>
-                <FlatList
-                  data={apiProducts}  // Changed from products to categories
-                  keyExtractor={(item) => String(item.id)}
-                  renderItem={({ item }) => (
-                    <View style={styles.row}>
-                      <View style={styles.emojiWrap}>
-                        {item.product_images?.length > 0 ? (
-                          <Image
-                            source={{ uri: item.product_images[0].image }}
-                            style={ProductStyle.productPic}
-                            resizeMode="contain"
-                          />
+
+        <View style={styles.resultsWrap}>
+          {/* Category Section */}
+          {productsToShow.length > 0 && (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>Category</Text>
+              <ScrollView
+                style={styles.categoryScrollView}
+                contentContainerStyle={styles.categoryList}
+                showsVerticalScrollIndicator={true}
+                nestedScrollEnabled={true}
+              >
+                <View style={styles.categoryList}>
+                  {productsToShow.map((category) => (
+                    <View key={`category-${category.id}`} style={styles.categoryItem}>
+                      <View style={styles.categoryLeft}>
+                        {category.product_images?.length > 0 ? (
+                            <Image
+                              source={{ uri: category.product_images[0].image }}
+                              style={styles.emoji}
+                              resizeMode="contain"
+                            />
                         ) : (
-                          <View style={{ justifyContent: 'center', alignItems: 'center' }}>
-                            <Text>🛒</Text>
+                          <View style={styles.categoryIcon}>
+                            <Ionicons name="pricetag-outline" size={20} color="#666" />
                           </View>
                         )}
-
-                      </View>
-                      <View style={styles.rowText}>
-                        <Text style={styles.rowTitle}>{item.name}</Text>
-                        <Text style={styles.rowSubtitle}>{item.category_name.name}</Text>
+                        <View>
+                          <Text style={styles.categoryName}>{category.name}</Text>
+                          <Text style={styles.categorySubtitle}>{category.category_name?.name}</Text>
+                        </View>
                       </View>
                     </View>
-                  )}
-                  ItemSeparatorComponent={() => <View style={styles.separator} />}
-                  contentContainerStyle={styles.listContent}
-                />
-              </>
-            )}
-            {apiProducts.length > 0 && (
-              <View style={ProductStyle.productsSection}>
-                <ScrollView
-                  showsVerticalScrollIndicator={false}
-                >
-                  <Text style={styles.sectionTitle}>Products</Text>
-                  <View style={[ProductStyle.productsGrid, { marginBottom: verticalScale(100) }]}>
-                    {apiProducts.map((item) => {
-                      const productId = Number(item.id)
-                      const qty = existingCartItem(productId)?.quantity || 0;
-                      return (
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+          )}
+          {/* Products Section */}
+          {productsToShow.length > 0 && (
+            <View style={ProductStyle.productsSection}>
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <Text style={styles.sectionTitle}>Products</Text>
+                <View style={[ProductStyle.productsGrid, { marginBottom: verticalScale(100) }]}>
+                  {productsToShow.map((item) => {
+                    const productId = Number(item.id);
+                    const qty = existingCartItem(productId)?.quantity || 0;
+                    return (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={ProductStyle.productCard}
+                        onPress={() => {
+                          router.push({
+                            pathname: '/Product',
+                            params: {
+                              product: JSON.stringify({
+                                id: item.id,
+                                name: item.name,
+                                description: item.description || '',
+                                price: item.regular_price,
+                                images: item.product_images?.map((img) => img.image) || [],
+                                variations: item.product_variations?.map((v) => ({
+                                  id: v.id,
+                                  name: v.name,
+                                  price: v.price,
+                                  unit_quantity: v.unit_quantity,
+                                  stock: v.stock,
+                                })) || [],
+                                category: item.category_name?.name || '',
+                                seller: item.store_name?.name || 'Fresh Mart',
+                              }),
+                            },
+                          });
+                        }}
+                      >
+                        <View style={ProductStyle.productImage}>
+                          {item.product_images?.length > 0 ? (
+                            <Image
+                              source={{ uri: item.product_images[0].image }}
+                              style={ProductStyle.productPic}
+                              resizeMode="contain"
+                            />
+                          ) : (
+                            <View style={[ProductStyle.productPic, { backgroundColor: '#EEE', justifyContent: 'center', alignItems: 'center' }]}>
+                              <Text style={{ fontSize: 24 }}>🛒</Text>
+                            </View>
+                          )}
+                        </View>
+
                         <TouchableOpacity
-                          key={item.id}
-                          style={ProductStyle.productCard}
-                          onPress={() => {
-                            router.push({
-                              pathname: '/Product',
-                              params: {
-                                product: JSON.stringify({
-                                  id: item.id,
-                                  name: item.name,
-                                  description: item.description || '',
-                                  price: item.regular_price,
-                                  // product_images: product.product_images || [],
-                                  images: item.product_images?.map((img) => img.image) || [],
-                                  variations: item.product_variations?.map((variation) => ({
-                                    id: variation.id,
-                                    name: variation.name,
-                                    price: variation.price,
-                                    unit_quantity: variation.unit_quantity,
-                                    stock: variation.stock,
-                                  })) || [],
-                                  category: item.category_name?.name || '',
-                                  seller: item.store_name?.name || 'Fresh Mart'
-                                })
-                              }
-                            });
-                          }}
+                          style={[ProductStyle.favoriteButton, checkIsInWishlist(productId) && ProductStyle.favoriteButtonActive]}
+                          onPress={() => toggleWishlist(item)}
                         >
-                          <View style={ProductStyle.productImage}>
-                            {item.product_images?.length > 0 ? (
-                              <Image
-                                source={{ uri: item.product_images[0].image }}
-                                style={ProductStyle.productPic}
-                                resizeMode="contain"
-                              />
+                          <Ionicons
+                            name={checkIsInWishlist(productId) ? 'heart' : 'heart-outline'}
+                            size={20}
+                            color={checkIsInWishlist(productId) ? '#cfcdcdff' : '#888'}
+                          />
+                        </TouchableOpacity>
+
+                        <View style={ProductStyle.productInfo}>
+                          <Text style={ProductStyle.productName}>{item.name}</Text>
+                          <Text style={ProductStyle.productSubtitle}>{item.category_name?.name}</Text>
+                          <Text style={ProductStyle.priceText}>${item.regular_price}</Text>
+
+                          <View style={ProductStyle.buttonContainer}>
+                            {qty === 0 ? (
+                              <TouchableOpacity
+                                style={ProductStyle.addButton}
+                                onPress={() => handleAddToCart(item)}
+                              >
+                                <Text style={ProductStyle.addButtonText}>Add To Cart</Text>
+                              </TouchableOpacity>
                             ) : (
-                              <View style={[ProductStyle.productPic, { backgroundColor: '#EEE', justifyContent: 'center', alignItems: 'center' }]}>
-                                <Text style={{ fontSize: 24 }}>🛒</Text>
+                              <View style={ProductStyle.qtyControl}>
+                                <TouchableOpacity
+                                  style={ProductStyle.qtySideButton}
+                                  onPress={() => decrementQuantity(item)}
+                                >
+                                  <Text style={ProductStyle.qtySideButtonText}>−</Text>
+                                </TouchableOpacity>
+
+                                <View style={ProductStyle.qtyPill}>
+                                  <Text style={ProductStyle.qtyText}>{String(qty).padStart(2, '0')}</Text>
+                                </View>
+
+                                <TouchableOpacity
+                                  style={ProductStyle.qtySideButtonFilled}
+                                  onPress={() => incrementQuantity(item)}
+                                >
+                                  <Text style={ProductStyle.qtySideButtonFilledText}>+</Text>
+                                </TouchableOpacity>
                               </View>
                             )}
-
                           </View>
-                          <TouchableOpacity
-                            style={[ProductStyle.favoriteButton, checkIsInWishlist(productId) && ProductStyle.favoriteButtonActive]}
-                            onPress={() => toggleWishlist(item)}
-                          >
-                            <Ionicons
-                              name={checkIsInWishlist(productId) ? "heart" : "heart-outline"}
-                              size={20}
-                              color={checkIsInWishlist(productId) ? "#cfcdcdff" : "#888"}
-                            />
-                          </TouchableOpacity>
-                          <View style={ProductStyle.productInfo}>
-                            <Text style={ProductStyle.productName}>{item.name}</Text>
-                            <Text style={ProductStyle.productSubtitle}>{item.category_name.name}</Text>
-                            <Text style={ProductStyle.priceText}>${item.regular_price}</Text>
-                            <View style={ProductStyle.buttonContainer}>
-                              {qty === 0 ? (
-                                <TouchableOpacity
-                                  style={ProductStyle.addButton}
-                                  onPress={() => handleAddToCart(item)}
-                                >
-                                  <Text style={ProductStyle.addButtonText}>Add To Cart</Text>
-                                </TouchableOpacity>
-                              ) : (
-                                <View style={ProductStyle.qtyControl}>
-                                  <TouchableOpacity
-                                    style={ProductStyle.qtySideButton}
-                                    onPress={() => decrementQuantity(item)}
-                                  >
-                                    <Text style={ProductStyle.qtySideButtonText}>−</Text>
-                                  </TouchableOpacity>
-
-                                  <View style={ProductStyle.qtyPill}>
-                                    <Text style={ProductStyle.qtyText}>
-                                      {String(qty).padStart(2, '0')}
-                                    </Text>
-                                  </View>
-
-                                  <TouchableOpacity
-                                    style={ProductStyle.qtySideButtonFilled}
-                                    onPress={() => incrementQuantity(item)}
-                                  >
-                                    <Text style={ProductStyle.qtySideButtonFilledText}>+</Text>
-                                  </TouchableOpacity>
-                                </View>
-                              )}
-                            </View>
-                          </View>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </ScrollView>
-              </View>
-            )}
-
-          </View>
-        )}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </ScrollView>
+            </View>
+          )}
+        </View>
       </ImageBackground>
     </SafeAreaView>
-  )
+  );
+
 }
 
 const styles = StyleSheet.create({
@@ -434,6 +431,60 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  sectionContainer: {
+    paddingHorizontal: scale(16),
+    marginBottom: verticalScale(20),
+  },
+  categoryScrollView: {
+    maxHeight: verticalScale(100),
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  categoryList: {
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  categoryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: moderateScale(12),
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  categoryLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  categoryImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    marginRight: moderateScale(12),
+  },
+  categoryIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: moderateScale(12),
+  },
+  categoryName: {
+    fontSize: moderateScale(14),
+    fontFamily: 'InterMedium',
+    color: colors.textPrimary,
+    marginBottom: 2,
+  },
+  categorySubtitle: {
+    fontSize: moderateScale(12),
+    color: '#999',
+    fontFamily: 'InterRegular',
+  },
+  closeButton: {
+    padding: moderateScale(4),
+  },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
@@ -476,14 +527,12 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   emoji: {
-    width: 48,
-    height: 48,
-    resizeMode: 'contain',
+    width: scale(40),
+    height: verticalScale(40),
   },
   thumbImage: {
-    width: 56,
-    height: 40,
-    resizeMode: 'contain',
+    width: scale(56),
+    height: scale(40),
     marginRight: 12,
     borderRadius: 6,
   },

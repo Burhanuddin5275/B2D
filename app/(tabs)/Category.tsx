@@ -4,13 +4,14 @@ import { useAppSelector } from '@/store/useAuth'
 import { colors } from '@/theme/colors'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
-import React, { useEffect, useState } from 'react'
-import { Animated, Image, ImageBackground, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import React, { useEffect, useMemo, useState } from 'react'
+import { Animated, Image, ImageBackground, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { scale, verticalScale } from 'react-native-size-matters'
 import { useDispatch, useSelector } from 'react-redux'
 import { addToWishlist, removeFromWishlist, selectWishlistItems } from '../../store/wishlistSlice'
 import { addOrUpdateCart, CartItem, fetchCart, removeFromCartApi } from '@/service/cart'
+import { addToWishlistApi, getFromWishlistApi, removeFromWishlistApi } from '@/service/wishlist'
 
 interface Product {
   id: number;
@@ -35,30 +36,75 @@ const Category = () => {
   const [selectedOption, setSelectedOption] = useState('Relevance');
   const insets = useSafeAreaInsets();
   const [quantities, setQuantities] = useState<Record<number, number>>({});
-  const [wishlist, setWishlist] = useState<number[]>([]);
-  const checkIsInWishlist = (productId: number) => wishlist.includes(productId);
+  const [wishlist, setWishlist] = useState<any>([]);
+  const checkIsInWishlist = (productId: number) =>
+    wishlist.some((item: any) => item.product_id === productId);
   const dispatch = useDispatch();
   const { categoryName, products } = useLocalSearchParams();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const productsData: Product[] = products ? JSON.parse(products as string) : [];
-  const wishlistItems = useSelector(selectWishlistItems);
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
   const token = useAppSelector((s) => s.auth.token);
-
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchActive, setIsSearchActive] = useState(false);
   // Set header title to the category name
   const headerTitle = typeof categoryName === 'string' ? categoryName : 'Category';
 
-  const toggleWishlist = (product: any) => {
-    if (checkIsInWishlist(product.id)) {
-      dispatch(removeFromWishlist(product.id));
-      setWishlist(prev => prev.filter(id => id !== product.id));
-    } else {
-      dispatch(addToWishlist(product));
-      setWishlist(prev => [...prev, product.id]);
+  const toggleWishlist = async (product: Product) => {
+    if (!token || !isAuthenticated) {
+      alert('Please login to use wishlist');
+      return;
+    }
+
+    const variationId = product.product_variations?.[0]?.id;
+
+    try {
+      const existingItem = wishlist.find(
+        (item: any) => item.product_id === product.id
+      );
+
+      if (existingItem) {
+        await removeFromWishlistApi(token, existingItem.wishlist_id);
+
+        setWishlist((prev: any[]) =>
+          prev.filter(item => item.product_id !== product.id)
+        );
+      } else {
+        const payload: any = {
+          product: product.id,
+        };
+
+        if (variationId) {
+          payload.variation = variationId;
+        }
+
+        const newItem = await addToWishlistApi(token, payload);
+
+        if (newItem?.id) {
+          setWishlist((prev: any[]) => [
+            ...prev,
+            {
+              wishlist_id: newItem.id,
+              product_id: product.id,
+            },
+          ]);
+        } else {
+          const wishlistRes = await getFromWishlistApi(token);
+
+          setWishlist(
+            wishlistRes.data.map((item: any) => ({
+              wishlist_id: item.id,
+              product_id: item.product.id,
+            }))
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Wishlist error:', error);
+      alert('Failed to update wishlist');
     }
   };
-
   const showFilterModal = () => {
     setIsFilterVisible(true);
   };
@@ -158,21 +204,87 @@ const Category = () => {
     }
   };
 
+const filteredAndSortedProducts = useMemo(() => {
+  // First filter the products
+  let result = searchQuery
+    ? productsData.filter(product => {
+        const searchTerm = searchQuery.toLowerCase().trim();
+        const productFirstWord = product.name.split(' ')[0].toLowerCase();
+        const categoryFirstWord = (product.category_name?.name || '').split(' ')[0].toLowerCase();
+        return (
+          productFirstWord.startsWith(searchTerm) ||
+          categoryFirstWord.startsWith(searchTerm)
+        );
+      })
+    : [...productsData];
+
+  // Then sort based on selected option
+  switch (selectedOption) {
+    case 'Price (low to high)':
+      result.sort((a, b) => parseFloat(a.regular_price) - parseFloat(b.regular_price));
+      break;
+    case 'Price (high to low)':
+      result.sort((a, b) => parseFloat(b.regular_price) - parseFloat(a.regular_price));
+      break;
+    case 'Popularity':
+      // Assuming higher stock means more popular - adjust this logic based on your actual popularity data
+      result.sort((a, b) => {
+        const aStock = a.product_variations?.[0]?.stock || 0;
+        const bStock = b.product_variations?.[0]?.stock || 0;
+        return bStock - aStock;
+      });
+      break;
+    // 'Relevance' is the default case and keeps the original order
+    default:
+      break;
+  }
+
+  return result;
+}, [productsData, searchQuery, selectedOption]);
   return (
     <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
       <ImageBackground
         source={require('../../assets/images/background.png')}
         style={styles.backgroundImage}
       >
-        <Header title={headerTitle} showDefaultIcons={true} rightIcons={[
-          { name: 'filter', onPress: handleFilterPress },
-          { name: 'search-outline', onPress: handleSearchPress },
-        ]} />
+        <Header
+          title={isSearchActive ? '' : headerTitle}
+          showDefaultIcons={true}
+          rightIcons={[
+            { name: 'filter', onPress: handleFilterPress },
+            {
+              name: isSearchActive ? 'close' : 'search-outline',
+              onPress: () => {
+                setIsSearchActive(!isSearchActive);
+                if (isSearchActive) {
+                  setSearchQuery(''); 
+                }
+              }
+            },
+          ]}
+        />
+        {isSearchActive && (
+          <View style={styles.searchBarContainer}>
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search for products or categories"
+              placeholderTextColor="#999"
+              style={styles.searchInput}
+              autoFocus={true}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <Ionicons name="close-circle" size={20} color="#888" />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
         <ScrollView style={{ flex: 1 }}>
           {/* Products Section */}
           <View style={ProductStyle.productsSection}>
             <View style={ProductStyle.productsGrid}>
-              {productsData.length > 0 ? productsData.map((product: Product) => {
+             {filteredAndSortedProducts.length > 0 ? filteredAndSortedProducts.map((product: Product) => {
                 const qty = existingCartItem(product.id)?.quantity || 0;
                 return (
                   <TouchableOpacity
@@ -403,6 +515,22 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
+  searchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+
   optionsContainer: {
     backgroundColor: colors.white,
     borderRadius: 8,

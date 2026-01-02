@@ -170,3 +170,29 @@ export const placeOrderApi = async (token: string, orderData: any) => {
 
   return json;
 };
+export const cancelOrderApi = async (
+  token: string, 
+ orderId: string | number,
+  reason: string, 
+
+) => {
+  const res = await fetch(`${API_URL}customer-api/cancelled-order`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `token ${token}`,
+    },
+    body: JSON.stringify({
+      order_id: Number(orderId), 
+      cancel_reason:  reason,
+    }),
+  });
+
+  const json = await res.json();
+
+  if (!res.ok) {
+    throw new Error(json.message || 'Failed to cancel order');
+  }
+
+  return json;
+};

@@ -64,6 +64,7 @@ export const updateProfile = async (
 
   return data;
 };
+
 export const logoutApi = async (token: string | null) => {
   if (!token) return;
 
@@ -80,4 +81,22 @@ export const logoutApi = async (token: string | null) => {
     // because logout should still proceed locally
     console.error('Logout API failed:', error);
   }
+};
+
+export const deleteAccount = async (token: string): Promise<{ message: string }> => {
+  const response = await fetch(`${API_URL}customer-api/auth/delete-account`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `token ${token}`,
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to delete account');
+  }
+
+  return data;
 };

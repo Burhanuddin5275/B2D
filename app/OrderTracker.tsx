@@ -1,10 +1,11 @@
 import Header from '@/components/Header';
-import { fetchOrderById } from '@/service/order';
+import { CancelOrderModal } from '@/components/modal';
+import { cancelOrderApi, fetchOrderById } from '@/service/order';
 import { useAppSelector } from '@/store/useAuth';
 import { colors } from '@/theme/colors';
 import { ImageBackground } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Image,
   Modal,
@@ -13,16 +14,17 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-  ActivityIndicator,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 
 
-const getTimelineStatuses = (status: string) => {
+const getTimelineStatuses = (statusArray: any[], timeString: string, orderData: any) => {
+  // Get the latest status from the array
+  const latestStatus = statusArray.length > 0 ? statusArray[statusArray.length - 1].status : 'processing';
   const now = new Date();
-  const timeOptions: Intl.DateTimeFormatOptions = {
+  const timeOptions = {
     month: '2-digit',
     day: '2-digit',
     year: 'numeric',
@@ -31,40 +33,43 @@ const getTimelineStatuses = (status: string) => {
     hour12: true,
   };
 
-  const timeString = now.toLocaleString('en-US', timeOptions);
-
   const timelineSteps = [
-    { label: 'Order placed!', time: timeString },
-    { label: 'Preparing for dispatch', time: '' },
-    { label: 'Out for delivery', time: '' },
-    { label: 'Order delivered', time: '' },
+    { label: 'Order placed!', time: orderData.created_at },
+    { label: 'Processing', time: '' },
+    { label: 'Out for delivery',time: '' },
+    { label: 'Delivered', time:  ''},
   ];
 
   let activeIndex = 0;
 
-  switch (status.toLowerCase()) {
-    case 'placed':
-      activeIndex = 0;
-      break;
-    case 'preparing for dispatch':
+  switch (latestStatus.toLowerCase()) {
+    case 'processing':
       activeIndex = 1;
       timelineSteps[1].time = timeString;
       break;
     case 'out for delivery':
       activeIndex = 2;
-      timelineSteps[1].time = new Date(now.getTime() - 3600000).toLocaleString('en-US', timeOptions);
+      timelineSteps[1].time = new Date(now.getTime() - 3600000).toLocaleString('en-US');
       timelineSteps[2].time = timeString;
       break;
     case 'delivered':
       activeIndex = 3;
-      timelineSteps[1].time = new Date(now.getTime() - 10800000).toLocaleString('en-US', timeOptions);
-      timelineSteps[2].time = new Date(now.getTime() - 14400000).toLocaleString('en-US', timeOptions);
+      timelineSteps[1].time = new Date(now.getTime() - 10800000).toLocaleString('en-US');
+      timelineSteps[2].time = new Date(now.getTime() - 14400000).toLocaleString('en-US');
       timelineSteps[3].time = timeString;
       break;
-    case 'cancelled by you / store':
-      timelineSteps[0].time = timeString;
+    case 'cancelled':
+      const cancelledStatus = statusArray.find((s: any) => s.status === 'cancelled');
+      const cancelledTime = cancelledStatus?.created_at || timeString;
       return {
-        steps: [timelineSteps[0], { label: 'Order cancelled', time: timeString }],
+        steps: [
+          timelineSteps[0], 
+          { 
+            label: 'Cancelled by you / store', 
+            time: cancelledTime,
+            isCancelled: true 
+          }
+        ],
         activeIndex: 1,
         isCancelled: true,
       };
@@ -90,13 +95,23 @@ const OrderTracker = () => {
   const [userRating, setUserRating] = useState(0);
   const [userComment, setUserComment] = useState('');
   const token = useAppSelector((s) => s.auth.token);
+  const [isCancelModalVisible, setIsCancelModalVisible] = useState(false);
   useEffect(() => {
-    const getOrder = async () => {
-      if (!orderId) return;
-      const data = await fetchOrderById(orderId, token || '');
-      setOrderData(data);
-      setLoading(false);
-    };
+   const getOrder = async () => {
+  if (!orderId) return;
+  try {
+    const data = await fetchOrderById(orderId, token || '');
+    setOrderData({
+      ...data,
+      // Ensure status is always an array
+      status: Array.isArray(data.status) ? data.status : [{ status: 'processing', created_at: new Date().toISOString() }]
+    });
+  } catch (error) {
+    console.error('Error fetching order:', error);
+  } finally {
+    setLoading(false);
+  }
+};
     getOrder();
   }, [orderId]);
 
@@ -131,8 +146,11 @@ const OrderTracker = () => {
   }
 
   // Extract order info
-  const orderStatus = orderData.order_status || 'placed';
-  const { steps, activeIndex, isCancelled } = getTimelineStatuses(orderStatus);
+  const { steps, activeIndex, isCancelled } = getTimelineStatuses(
+    orderData.status || [],
+    orderData.updated_at || new Date().toISOString(),
+    orderData
+  );
 
   const deliveryType = orderData.delivery_type ?? 'Express Delivery';
   const schedule_order = orderData.schedule_order
@@ -153,8 +171,33 @@ const OrderTracker = () => {
     image: { uri: item.product.product_images[0]?.image },
     ratingLabel: 'Rate product',
   }));
-  console.log('items', items);
+  console.log('items', orderData);
+const handleCancelOrder = async (reason: string) => {
+  try {
+    if (!token) {
+      throw new Error('Please login to cancel the order');
+    }
 
+    if (!orderId) {
+      throw new Error('Invalid order ID');
+    }
+
+    // Correct parameter order: token, cancel_reason, orderId
+    const json = await cancelOrderApi(token,orderId,reason); 
+    
+    alert(json.message);
+    console.log('Cancellation response:', json.message);
+
+    setIsCancelModalVisible(false);
+
+  } catch (error: any) {
+    console.error('Error cancelling order:', error);
+    const errorMessage = error.response?.data?.message ||
+      error.message ||
+      'Failed to submit cancellation request. Please try again.';
+    throw new Error(errorMessage);
+  }
+};
   return (
     <SafeAreaView style={styles.safeArea}>
       <ImageBackground source={require('../assets/images/background.png')} style={styles.background}>
@@ -265,6 +308,31 @@ const OrderTracker = () => {
               <Text style={styles.summaryTotalLabel}>Total amount:</Text>
               <Text style={styles.summaryTotalValue}>${totalAmount.toFixed(2)}</Text>
             </View>
+            <CancelOrderModal
+              isVisible={isCancelModalVisible}
+              onClose={() => setIsCancelModalVisible(false)}
+              onSubmit={handleCancelOrder}
+              title="Cancel Order"
+              subtitle="We're sorry to see you go. Please let us know why you're canceling."
+              cancelButtonText="Don't Cancel"
+              submitButtonText="Confirm Cancellation"
+            />
+            {steps[0]?.label === 'Order placed!' && !isCancelled && (
+              <TouchableOpacity
+                style={[styles.summaryRow, { marginTop: verticalScale(20), justifyContent: 'center' }]}
+                onPress={() => setIsCancelModalVisible(true)}
+              >
+                <Text
+                  style={{
+                    color: 'red',
+                    fontFamily: 'InterRegular',
+                    fontSize: moderateScale(14),
+                  }}
+                >
+                  Cancel Order
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </ScrollView>
 

@@ -1,4 +1,6 @@
 import Header from '@/components/Header';
+import { deleteAccount, logoutApi } from '@/service/profile';
+import { colors } from '@/theme/colors';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -7,9 +9,6 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 import { logout } from '../../store/authSlice';
 import { useAppDispatch, useAppSelector } from '../../store/useAuth';
-import { colors } from '@/theme/colors';
-import { API_URL } from '@/url/Api_Url';
-import { logoutApi } from '@/service/profile';
 
 
 export default function Profile() {
@@ -45,7 +44,36 @@ const handleLogout = async () => {
     router.replace('/(tabs)/Home');
   }
 };
+const handleDeleteAccount = async () => {
+    if (!token) {
+    alert('You need to be logged in to delete your account');
+      return;
+    }
 
+    try {
+      const response = await deleteAccount(token);
+      
+      // Logout the user after successful account deletion
+      await logoutApi(token);
+      dispatch(logout());
+      
+      alert(response.message);
+      
+      // Navigate to home screen
+      router.replace({
+        pathname: '/(tabs)/Home',
+        params: {
+          token: undefined,
+          phone: undefined,
+        },
+      });
+    } catch (error: any) {
+      console.error('Error deleting account:', error);
+      alert(error.message || 'Failed to delete account. Please try again.');
+    } finally {
+      setShowDeleteModal(false);
+    }
+  };
   return (
     <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
       <ImageBackground
@@ -148,7 +176,7 @@ const handleLogout = async () => {
                           <TouchableOpacity
                             style={[styles.modalButton, styles.destructiveButton]}
                             onPress={() => {
-                              // Handle account deletion
+                              handleDeleteAccount();
                               setShowDeleteModal(false);
                             }}
                           >

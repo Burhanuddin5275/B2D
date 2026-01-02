@@ -1,23 +1,38 @@
 import { API_URL } from '@/url/Api_Url';
-export interface WishlistItem {
-  wishlist_id: number;
-  product_id: number;
-}
-
-export const addToWishlistApi = async (token: string, productId: number) => {
-  const res = await fetch(`${API_URL}customer-api/add-wishlist/${productId}`, {
+export const addToWishlistApi = async (
+  token: string,
+  payload: {
+    product: number;
+    variation?: number;
+  }
+) => {
+  const res = await fetch(`${API_URL}customer-api/wishlist`, {
     method: 'POST',
     headers: {
       Authorization: `token ${token}`,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
     },
+    body: JSON.stringify(payload), // ✅ variation omitted if undefined
   });
 
-  if (!res.ok) throw new Error('Failed to add wishlist item');
+  const text = await res.text();
 
-  const data = await res.json();
-  return data.data; // should return the newly created wishlist item with id
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    console.error('Wishlist API returned HTML:', text);
+    throw new Error('Invalid API response');
+  }
+
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to add wishlist');
+  }
+
+  return data?.data ?? data; // flexible return
 };
+
 
 
 export const removeFromWishlistApi = async (token: string, wishlistId: number) => {

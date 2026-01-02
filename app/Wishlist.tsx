@@ -40,16 +40,16 @@ export default function Wishlist() {
         const wishlistItems = response?.data || [];
 
         const products = wishlistItems.map((item: any) => ({
-           wishlist_id: item.id,
+          wishlist_id: item.id,
           id: item.product.id,
           name: item.product.name,
           price: item.product.regular_price,
           image: item.product.product_images?.[0]?.image || '',
           product_images: item.product.product_images || [],
           store: item.store,
+          product_variations: item.product.product_variations || [],
           variation: item.variation,
         }));
-
         setWishlist(products);
       } catch (error) {
         console.error('Failed to load wishlist:', error);
@@ -86,7 +86,7 @@ export default function Wishlist() {
       await addOrUpdateCart(token, {
         product: product.id,
         quantity: 1,
-        variation: product.product_variations?.[0]?.id,
+        variation: product.variation?.id,
       });
 
       const updatedCart = await fetchCart(token);
@@ -164,7 +164,7 @@ export default function Wishlist() {
                       if (!token) return;
 
                       try {
-                        await removeFromWishlistApi(token, item.wishlist_id); 
+                        await removeFromWishlistApi(token, item.wishlist_id);
                         setWishlist(wishlist.filter((w) => w.wishlist_id !== item.wishlist_id));
                       } catch (error) {
                         console.error('Failed to remove from wishlist:', error);
@@ -181,6 +181,13 @@ export default function Wishlist() {
                     <View style={styles.productTextContainer}>
                       <Text style={styles.productName}>{item.name}</Text>
                       <Text style={styles.productSubtitle}>{item.store.name}</Text>
+                      {
+                        item.variation && (
+                          <Text style={styles.productSubtitle}>
+                            {item.variation.name}
+                          </Text>
+                        )
+                      }
                     </View>
                   </View>
 

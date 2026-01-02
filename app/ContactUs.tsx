@@ -1,27 +1,44 @@
 import Header from '@/components/Header';
+import { contactUsApi } from '@/service/contactus';
+import { useAppSelector } from '@/store/useAuth';
 import { colors } from '@/theme/colors';
+import { API_URL } from '@/url/Api_Url';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
-import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ImageBackground,
-    ScrollView,
-    StyleSheet,
+    ActivityIndicator, Alert, ImageBackground, StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 
 const ContactUs = () => {
-    const navigation = useNavigation();
     const [message, setMessage] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const auth = useAppSelector(s => s.auth);
+    const token = auth.token;
+    const handleSend = async () => {
+        if (!message.trim()) {
+            Alert.alert('Error', 'Please enter your message');
+            return;
+        }
 
-    const handleSend = () => {
-        // TODO: hook up with backend endpoint or support email integration
+        setIsLoading(true);
+        try {
+          const response = await contactUsApi( token||'',message);
+
+           Alert.alert('Success', response.message);
+           setMessage('');
+        } catch (error: any) {
+            console.error('Error sending message:', error);
+            Alert.alert('Error', error.message || 'Failed to send message. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -57,7 +74,7 @@ const ContactUs = () => {
                         <View style={styles.infoIcon}>
                             <Ionicons name="mail" size={18} color={colors.primaryDark} />
                         </View>
-                        <Text style={styles.infoValue}>support@buzz2door.com</Text>
+                        <Text style={styles.infoValue}>support@mart2door.com</Text>
                     </View>
 
                     <View style={styles.infoRow}>
@@ -69,8 +86,16 @@ const ContactUs = () => {
                 </View>
 
                 <View style={styles.footer}>
-                    <TouchableOpacity style={styles.primaryButton} onPress={handleSend}>
-                        <Text style={styles.buttonLabel}>Send message</Text>
+                    <TouchableOpacity
+                        style={[styles.primaryButton, isLoading && styles.disabledButton]}
+                        onPress={handleSend}
+                        disabled={isLoading}
+                    >
+                        {isLoading ? (
+                            <ActivityIndicator color="white" />
+                        ) : (
+                            <Text style={styles.buttonLabel}>Send message</Text>
+                        )}
                     </TouchableOpacity>
                 </View>
             </ImageBackground>
@@ -92,7 +117,7 @@ const styles = StyleSheet.create({
     subtitle: {
         fontFamily: 'PoppinsMedium',
         fontSize: moderateScale(14),
-        fontWeight:500,
+        fontWeight: 500,
         textAlign: 'center',
         marginTop: verticalScale(10),
         paddingHorizontal: scale(58),
@@ -109,18 +134,18 @@ const styles = StyleSheet.create({
     },
     messageInput: {
         fontFamily: 'MontserratMedium',
-        fontWeight:500,
+        fontWeight: 500,
         fontSize: 14,
         color: colors.primaryDark,
     },
     supportCard: {
-       marginBottom: verticalScale(20),
+        marginBottom: verticalScale(20),
         borderRadius: 18,
         padding: 20,
     },
     supportText: {
         fontFamily: 'MontserratMedium',
-        fontWeight:500,
+        fontWeight: 500,
         fontSize: moderateScale(14),
         marginHorizontal: scale(20),
         textAlign: 'center',
@@ -140,7 +165,7 @@ const styles = StyleSheet.create({
     },
     infoValue: {
         fontFamily: 'Montserrat',
-        fontWeight:700,
+        fontWeight: 700,
         fontSize: moderateScale(14),
         color: colors.primaryDark,
     },
@@ -163,8 +188,11 @@ const styles = StyleSheet.create({
     },
     buttonLabel: {
         fontFamily: 'Montserrat',
-        fontWeight:600,
+        fontWeight: 600,
         fontSize: moderateScale(16),
         color: colors.white,
+    },
+    disabledButton: {
+        opacity: 0.7,
     },
 });
