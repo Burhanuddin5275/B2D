@@ -385,7 +385,7 @@ const toggleWishlist = async (product: Product) => {
           {/* Products Section */}
           <View style={ProductStyle.productsSection}>
             <View style={ProductStyle.productsGrid}>
-              {Products.map((product) => {
+              {Products.slice(0,10).map((product) => {
                 const qty = existingCartItem(product.id)?.quantity || 0;
                 return (
                   <TouchableOpacity

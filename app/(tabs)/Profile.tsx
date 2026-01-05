@@ -9,6 +9,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 import { logout } from '../../store/authSlice';
 import { useAppDispatch, useAppSelector } from '../../store/useAuth';
+import StatusModal from '@/components/success';
 
 
 export default function Profile() {
@@ -18,55 +19,48 @@ export default function Profile() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const dispatch = useAppDispatch();
   const insets = useSafeAreaInsets();
-
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [message, setMessage] = useState('');
   useEffect(() => {
     console.log('Profile - Token:', token);
     console.log('Profile - Phone:', phone);
   }, [token, phone]);
-const handleLogout = async () => {
-  try {
-    await logoutApi(token||'');
-    alert('Logout successfully');
-    dispatch(logout());
-    router.replace({
-      pathname: '/Login',
-      params: {
-        token: undefined,
-        phone: undefined,
-      },
-    });
-
-    router.navigate('/(tabs)/Home');
-  } catch (error) {
-    console.error('Error during logout:', error);
-
-    dispatch(logout());
-    router.replace('/(tabs)/Home');
-  }
-};
-const handleDeleteAccount = async () => {
-    if (!token) {
-    alert('You need to be logged in to delete your account');
-      return;
-    }
-
+  const handleLogout = async () => {
     try {
-      const response = await deleteAccount(token);
-      
-      // Logout the user after successful account deletion
-      await logoutApi(token);
+      await logoutApi(token || '');
+      alert('Logout successfully');
       dispatch(logout());
-      
-      alert(response.message);
-      
-      // Navigate to home screen
       router.replace({
-        pathname: '/(tabs)/Home',
+        pathname: '/Login',
         params: {
           token: undefined,
           phone: undefined,
         },
       });
+
+      router.navigate('/(tabs)/Home');
+    } catch (error) {
+      console.error('Error during logout:', error);
+
+      dispatch(logout());
+      router.replace('/(tabs)/Home');
+    }
+  };
+  const handleDeleteAccount = async () => {
+    if (!token) {
+      alert('You need to be logged in to delete your account');
+      return;
+    }
+
+    try {
+      const response = await deleteAccount(token);
+
+      // Logout the user after successful account deletion
+      await logoutApi(token);
+      dispatch(logout());
+      setShowSuccess(true);
+      setMessage(response.message)
+
     } catch (error: any) {
       console.error('Error deleting account:', error);
       alert(error.message || 'Failed to delete account. Please try again.');
@@ -76,6 +70,19 @@ const handleDeleteAccount = async () => {
   };
   return (
     <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
+      <StatusModal
+        visible={showSuccess}
+        type="success"
+        title="Success!"
+        message={message}
+        onClose={() => {
+          setShowSuccess(false);
+          router.push('/(tabs)/Profile')
+        }}
+        dismissAfter={2000}
+        showButton={false}
+
+      />
       <ImageBackground
         source={require('../../assets/images/background.png')}
         style={styles.backgroundImage}
@@ -167,7 +174,7 @@ const handleDeleteAccount = async () => {
                           <Text style={styles.modalTitle}>Delete this Account</Text>
                           <Text style={styles.modalMessage}>Are you sure you want to delete this customer account? By proceeding,
                             all the data will be removed permanently.</Text>
-                          <TouchableOpacity 
+                          <TouchableOpacity
                             style={[styles.modalButton, styles.cancelButton]}
                             onPress={() => setShowDeleteModal(false)}
                           >
@@ -341,7 +348,7 @@ const styles = StyleSheet.create({
     fontFamily: 'MontserratMedium',
     fontSize: moderateScale(10),
   },
-  modalButton: { 
+  modalButton: {
     paddingVertical: verticalScale(10),
     width: '100%',
     alignItems: 'center',

@@ -1,5 +1,6 @@
 import Header from '@/components/Header';
 import { colors } from '@/theme/colors';
+import { API_URL } from '@/url/Api_Url';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -18,7 +19,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 import { loginSuccess } from '../store/authSlice';
 import { useAppDispatch } from '../store/useAuth';
-import { API_URL } from '@/url/Api_Url';
 
 const VerifyNumber = () => {
   const { phone } = useLocalSearchParams();
@@ -59,7 +59,7 @@ const VerifyNumber = () => {
         return;
       }
       setIsSubmitting(true);
-      const response = await fetch(`${API_URL}/customer-api/auth/validate_token`, {
+      const response = await fetch(`${API_URL}customer-api/auth/validate_token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primaryDark,
     borderRadius: 12,
     textAlign: 'center',
-    fontSize: moderateScale(24),
+    fontSize: moderateScale(18),
     backgroundColor: colors.white,
     fontFamily: 'Montserrat',
     fontWeight: '600',

@@ -1,12 +1,14 @@
 import Header from '@/components/Header';
 import { CancelOrderModal } from '@/components/modal';
+import StatusModal from '@/components/success';
 import { cancelOrderApi, fetchOrderById } from '@/service/order';
 import { useAppSelector } from '@/store/useAuth';
 import { colors } from '@/theme/colors';
 import { ImageBackground } from 'expo-image';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Image,
   Modal,
   ScrollView,
@@ -36,8 +38,8 @@ const getTimelineStatuses = (statusArray: any[], timeString: string, orderData: 
   const timelineSteps = [
     { label: 'Order placed!', time: orderData.created_at },
     { label: 'Processing', time: '' },
-    { label: 'Out for delivery',time: '' },
-    { label: 'Delivered', time:  ''},
+    { label: 'Out for delivery', time: '' },
+    { label: 'Delivered', time: '' },
   ];
 
   let activeIndex = 0;
@@ -63,11 +65,11 @@ const getTimelineStatuses = (statusArray: any[], timeString: string, orderData: 
       const cancelledTime = cancelledStatus?.created_at || timeString;
       return {
         steps: [
-          timelineSteps[0], 
-          { 
-            label: 'Cancelled by you / store', 
+          timelineSteps[0],
+          {
+            label: 'Cancelled by you / store',
             time: cancelledTime,
-            isCancelled: true 
+            isCancelled: true
           }
         ],
         activeIndex: 1,
@@ -96,22 +98,24 @@ const OrderTracker = () => {
   const [userComment, setUserComment] = useState('');
   const token = useAppSelector((s) => s.auth.token);
   const [isCancelModalVisible, setIsCancelModalVisible] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [message, setMessage] = useState('');
   useEffect(() => {
-   const getOrder = async () => {
-  if (!orderId) return;
-  try {
-    const data = await fetchOrderById(orderId, token || '');
-    setOrderData({
-      ...data,
-      // Ensure status is always an array
-      status: Array.isArray(data.status) ? data.status : [{ status: 'processing', created_at: new Date().toISOString() }]
-    });
-  } catch (error) {
-    console.error('Error fetching order:', error);
-  } finally {
-    setLoading(false);
-  }
-};
+    const getOrder = async () => {
+      if (!orderId) return;
+      try {
+        const data = await fetchOrderById(orderId, token || '');
+        setOrderData({
+          ...data,
+          // Ensure status is always an array
+          status: Array.isArray(data.status) ? data.status : [{ status: 'processing', created_at: new Date().toISOString() }]
+        });
+      } catch (error) {
+        console.error('Error fetching order:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
     getOrder();
   }, [orderId]);
 
@@ -137,11 +141,12 @@ const OrderTracker = () => {
     [userRating]
   );
 
+
   if (!orderData) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <Text style={{ textAlign: 'center', marginTop: 50 }}>No order data found.</Text>
-      </SafeAreaView>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primaryDark} />
+      </View>
     );
   }
 
@@ -172,34 +177,47 @@ const OrderTracker = () => {
     ratingLabel: 'Rate product',
   }));
   console.log('items', orderData);
-const handleCancelOrder = async (reason: string) => {
-  try {
-    if (!token) {
-      throw new Error('Please login to cancel the order');
+  const handleCancelOrder = async (reason: string) => {
+    try {
+      if (!token) {
+        throw new Error('Please login to cancel the order');
+      }
+
+      if (!orderId) {
+        throw new Error('Invalid order ID');
+      }
+
+      // Correct parameter order: token, cancel_reason, orderId
+      const json = await cancelOrderApi(token, orderId, reason);
+      setShowSuccess(true);
+      setMessage(json.message)
+
+      console.log('Cancellation response:', json.message);
+
+      setIsCancelModalVisible(false);
+
+    } catch (error: any) {
+      console.error('Error cancelling order:', error);
+      const errorMessage = error.response?.data?.message ||
+        error.message ||
+        'Failed to submit cancellation request. Please try again.';
+      throw new Error(errorMessage);
     }
-
-    if (!orderId) {
-      throw new Error('Invalid order ID');
-    }
-
-    // Correct parameter order: token, cancel_reason, orderId
-    const json = await cancelOrderApi(token,orderId,reason); 
-    
-    alert(json.message);
-    console.log('Cancellation response:', json.message);
-
-    setIsCancelModalVisible(false);
-
-  } catch (error: any) {
-    console.error('Error cancelling order:', error);
-    const errorMessage = error.response?.data?.message ||
-      error.message ||
-      'Failed to submit cancellation request. Please try again.';
-    throw new Error(errorMessage);
-  }
-};
+  };
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusModal
+        visible={showSuccess}
+        type="success"
+        title="Success!"
+        message={message}
+        onClose={() => {
+          setShowSuccess(false);
+          router.back();
+        }}
+        dismissAfter={2000}
+        showButton={false}
+      />
       <ImageBackground source={require('../assets/images/background.png')} style={styles.background}>
         <Header title={`Order ${orderData.order_no}`} showDefaultIcons={false} />
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -249,7 +267,7 @@ const handleCancelOrder = async (reason: string) => {
               Delivery address: <Text style={styles.infoValueText}>{deliveryAddress}</Text>
             </Text>
             <Text style={[styles.infoLabel, { marginTop: verticalScale(5) }]}>
-              Comment by you: <Text style={styles.infoValueText}>{comment}</Text>
+              Comment by you: <Text style={styles.infoValueText}>{`${comment}` || 'none'}</Text>
             </Text>
           </View>
 
@@ -399,6 +417,12 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.white,
   },
   scrollContent: {
     paddingHorizontal: scale(16),

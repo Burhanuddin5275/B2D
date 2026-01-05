@@ -1,10 +1,12 @@
 import Header from '@/components/Header';
+import StatusModal from '@/components/success';
 import { contactUsApi } from '@/service/contactus';
 import { useAppSelector } from '@/store/useAuth';
 import { colors } from '@/theme/colors';
 import { API_URL } from '@/url/Api_Url';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
     ActivityIndicator, Alert, ImageBackground, StyleSheet,
@@ -21,6 +23,8 @@ const ContactUs = () => {
     const [isLoading, setIsLoading] = useState(false);
     const auth = useAppSelector(s => s.auth);
     const token = auth.token;
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [status, setstatus] = useState('');
     const handleSend = async () => {
         if (!message.trim()) {
             Alert.alert('Error', 'Please enter your message');
@@ -29,10 +33,10 @@ const ContactUs = () => {
 
         setIsLoading(true);
         try {
-          const response = await contactUsApi( token||'',message);
-
-           Alert.alert('Success', response.message);
-           setMessage('');
+            const response = await contactUsApi(token || '', message);
+            setShowSuccess(true);
+           setstatus(response.message)
+            setMessage('');
         } catch (error: any) {
             console.error('Error sending message:', error);
             Alert.alert('Error', error.message || 'Failed to send message. Please try again.');
@@ -43,6 +47,18 @@ const ContactUs = () => {
 
     return (
         <SafeAreaView style={styles.safeArea}>
+            <StatusModal
+                visible={showSuccess}
+                type="success"
+                title="Success!"
+                message={status}
+                onClose={() => {
+                    setShowSuccess(false);
+                }}
+                dismissAfter={2000}
+                showButton={false}
+
+            />
             <ImageBackground
                 source={require('../assets/images/background.png')}
                 style={styles.background}

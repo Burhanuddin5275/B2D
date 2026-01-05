@@ -1,10 +1,11 @@
 import Header from '@/components/Header';
+import StatusModal from '@/components/success';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Address, fetchAddresses } from '@/service/address';
-import { addOrUpdateCart, fetchCart, removeFromCartApi } from '@/service/cart';
+import { addOrUpdateCart, CartItem, fetchCart, removeFromCartApi } from '@/service/cart';
 import { placeOrderApi } from '@/service/order';
 import { useAppSelector } from '@/store/useAuth';
 import { colors } from '@/theme/colors';
-import { API_URL } from '@/url/Api_Url';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -12,6 +13,7 @@ import {
   Image,
   ImageBackground,
   Modal,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -21,29 +23,6 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
-interface CartItem {
-  id: number;
-  quantity: number;
-  price: number;
-  store: {
-    id: number;
-    name: string;
-  };
-  product: {
-    id: number;
-    name: string;
-    slug: string;
-    product_images: {
-      id: number;
-      image: string;
-    }[];
-  };
-  variation: {
-    id: number;
-    name: string;
-    image: string;
-  } | null;
-}
 type SellerGroup = {
   seller: string;
   items: CartItem[];
@@ -59,6 +38,7 @@ export default function Cart() {
   const [deliveryType, setDeliveryType] = useState<'express' | 'regular'>('express');
   const [deliverySlots, setDeliverySlots] = useState<string[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [isExpressDisabled, setIsExpressDisabled] = useState(false);
   const CUTOFF_TIME = "6:00 PM";
   const [selectedTip, setSelectedTip] = useState<'10' | '15' | '20' | 'other'>('10');
   const [customTip, setCustomTip] = useState('');
@@ -67,21 +47,36 @@ export default function Cart() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'credit' | 'debit' | 'square'>('credit');
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [addresses, setAddresses] = useState<Address[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [message, setMessage] = useState('');
+  const reloadCartScreen = async () => {
+    if (!token) return;
+
+    try {
+      setRefreshing(true);
+
+      // Reload cart
+      const cartData = await fetchCart(token);
+      setCartItems(cartData);
+
+      // Reload addresses
+      const addressRes = await fetchAddresses(token);
+      setAddresses(addressRes.data);
+
+      const defaultAddress =
+        addressRes.data.find((addr: any) => addr.is_default) ||
+        addressRes.data[0];
+
+      setSelectedAddress(defaultAddress || null);
+    } catch (error) {
+      console.error('Reload error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
   useEffect(() => {
-    const loadCart = async () => {
-      try {
-        setIsLoading(true);
-        if (token) {
-          const data = await fetchCart(token);
-          setCartItems(data);
-        }
-      } catch (error) {
-        console.error('Failed to load cart:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadCart();
+    reloadCartScreen();
   }, [token]);
 
   const incrementQuantity = async (item: CartItem) => {
@@ -126,29 +121,6 @@ export default function Cart() {
       console.error('Decrement error:', e);
     }
   };
-
-  useEffect(() => {
-    const loadAddresses = async () => {
-      try {
-        const res = await fetchAddresses(token || '');
-        setAddresses(res.data);
-
-        const defaultAddress = res.data.find((addr: any) => addr.is_default);
-
-        if (defaultAddress) {
-          setSelectedAddress(defaultAddress);
-        }
-
-        else if (res.data.length > 0) {
-          setSelectedAddress(res.data[0]);
-        }
-      } catch (error) {
-        console.log('Address fetch error:', error);
-      }
-    };
-
-    loadAddresses();
-  }, [token]);
 
 
   const cartTotalPrice = useMemo(() =>
@@ -254,18 +226,11 @@ export default function Cart() {
       console.log('send order data:', orderData);
 
       const responseData = await placeOrderApi(token!, orderData);
-      alert(responseData.message);
+      setShowSuccess(true);
+      setMessage(responseData.message)
       console.log('Order placed successfully:', responseData);
- 
-      setIsPaymentModalVisible(false);
 
-      router.push({ 
-        pathname: '/(tabs)/Order',
-        params: {
-          orderPlaced: 'true',
-          orderId: responseData.order_id?.toString() || '',
-        },
-      });
+      setIsPaymentModalVisible(false);
     } catch (error: any) {
       console.error('Error placing order:', error);
       setOrderError(error?.message || 'Failed to place order. Please try again.');
@@ -273,8 +238,41 @@ export default function Cart() {
       setIsPlacingOrder(false);
     }
   };
+
+  useEffect(() => {
+ const checkExpressAvailability = () => {
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinutes = now.getMinutes();
+  
+  // 20:00 (8:00 PM) is the cutoff time
+  const isAfterCutoff = currentHour > 18 || (currentHour === 18 && currentMinutes > 0);
+  
+  setIsExpressDisabled(isAfterCutoff);
+
+  if (isAfterCutoff && deliveryType === 'express') {
+    setDeliveryType('regular');
+  }
+};
+ 
+    checkExpressAvailability();
+  }, []);
+
   return (
     <SafeAreaView style={[styles.safeArea, { paddingBottom: insets.bottom }]}>
+      <StatusModal
+        visible={showSuccess}
+        type="success"
+        title="Success!"
+        message={message}
+        onClose={() => {
+          setShowSuccess(false);
+          router.push('/(tabs)/Order');
+        }}
+        dismissAfter={2000}
+        showButton={false}
+
+      />
       <ImageBackground
         source={require('../../assets/images/background.png')}
         style={styles.backgroundImage}
@@ -283,6 +281,13 @@ export default function Cart() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={reloadCartScreen}
+              colors={[colors.primaryDark]}
+            />
+          }
         >
           {/* HEADER */}
           <View style={styles.pageHeader}>
@@ -294,10 +299,7 @@ export default function Cart() {
           {/* EMPTY STATE */}
           {cartIsEmpty ? (
             <View style={styles.emptyState}>
-              <Image
-                source={require('../../assets/images/bag.png')}
-                style={styles.emptyIllustration}
-              />
+              <IconSymbol size={scale(80)} name="bag.fill" color={colors.primary} style={styles.emptyIllustration} />
               <Text style={styles.emptyTitle}>Your cart is empty</Text>
               <Text style={styles.emptyText}>
                 Browse products and add items from different sellers to see them here.
@@ -407,9 +409,11 @@ export default function Cart() {
                       styles.deliveryChip,
                       deliveryType === 'express'
                         ? styles.deliveryChipActive
-                        : styles.deliveryChipIdle
+                        : styles.deliveryChipIdle,
+                      isExpressDisabled && styles.disabledChip
                     ]}
-                    onPress={() => setDeliveryType('express')}
+                    onPress={() => !isExpressDisabled && setDeliveryType('express')}
+                    disabled={isExpressDisabled}
                   >
                     <Text
                       style={[
@@ -474,11 +478,16 @@ export default function Cart() {
                     <Text style={styles.linkText}>Change</Text>
                   </TouchableOpacity>
                 </View>
-
-                <Text style={styles.addressLabel}>
-                  {selectedAddress?.address_name}: {selectedAddress?.address_line1}
-                </Text>
-                <Text style={styles.addressLabel}>{selectedAddress?.state}, {selectedAddress?.city}, {selectedAddress?.postal_code}</Text>
+                {selectedAddress ? (
+                  <>
+                    <Text style={styles.addressLabel}>
+                      {selectedAddress.address_name}: {selectedAddress.address_line1}, {selectedAddress.suite}
+                    </Text>
+                    <Text style={styles.addressLabel}>{selectedAddress.state}, {selectedAddress.city}, {selectedAddress.postal_code}</Text>
+                  </>
+                ) : (
+                  <Text style={[styles.addressLabel, { color: '#666' }]}>No address found</Text>
+                )}
               </View>
 
               {/* TIP */}
@@ -737,11 +746,29 @@ export default function Cart() {
                     <View style={styles.addressItemContainer}>
                       <View style={styles.addressDetails}>
                         <Text style={styles.addressType}>{address.address_name}</Text>
-                        <Text style={styles.addressText}>{address.address_line1}</Text>
+                        <Text style={styles.addressText}>{address.address_line1}, {address.suite}</Text>
                         <Text style={styles.addressText}>{address.state}, {address.city}, {address.postal_code}</Text>
                       </View>
 
-                      <TouchableOpacity style={styles.editButton}>
+                      <TouchableOpacity style={styles.editButton}
+                        onPress={() => {
+                          if (selectedAddress) {
+                            router.push({
+                              pathname: '/AddAddress',
+                              params: {
+                                addressId: selectedAddress.id,
+                                addressName: selectedAddress.address_name,
+                                addressLine1: selectedAddress.address_line1,
+                                city: selectedAddress.city,
+                                state: selectedAddress.state,
+                                postalCode: selectedAddress.postal_code,
+                                country: selectedAddress.country,
+                                isDefaults: selectedAddress.is_default ? 'true' : 'false'
+                              }
+                            });
+                          }
+                        }}
+                      >
                         <Ionicons name="create-outline" size={20} />
                       </TouchableOpacity>
                     </View>
@@ -945,12 +972,12 @@ const styles = StyleSheet.create({
     fontFamily: 'PoppinsSemi',
     fontWeight: '600',
     fontSize: moderateScale(18),
-    color: '#2F2D1E',
+    color: colors.primary,
   },
   emptyText: {
     fontFamily: 'PoppinsMedium',
     fontSize: moderateScale(12),
-    color: '#7C7754',
+    color: colors.textSecondary,
     textAlign: 'center',
     width: scale(240),
   },
@@ -1008,6 +1035,10 @@ const styles = StyleSheet.create({
   deliveryChipLabelActive: {
     color: colors.black,
     fontFamily: 'PoppinsSemi',
+  },
+    disabledChip: {
+    opacity: 0.5,
+    backgroundColor: colors.textSecondary, 
   },
   scheduleButton: {
     flexDirection: 'row',
@@ -1229,7 +1260,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     paddingTop: verticalScale(18),
     paddingHorizontal: scale(20),
-    paddingBottom: verticalScale(18),
+    paddingBottom: verticalScale(58),
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -6 },
     shadowOpacity: 0.15,

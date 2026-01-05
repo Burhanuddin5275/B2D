@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontFamily:'Montserrat',
-    fontSize: moderateScale(18),
+    fontSize: moderateScale(16),
     fontWeight: '600',
     textAlign:'center'
   },

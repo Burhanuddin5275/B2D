@@ -1,5 +1,6 @@
 import Header from '@/components/Header';
-import { Country, StateItem, CityItem, fetchCountries, fetchStates, fetchCities } from '@/service/address';
+import StatusModal from '@/components/success';
+import { CityItem, Country, fetchCities, fetchCountries, fetchStates, StateItem } from '@/service/address';
 import { useAppSelector } from '@/store/useAuth';
 import { colors } from '@/theme/colors';
 import { API_URL } from '@/url/Api_Url';
@@ -15,9 +16,10 @@ const AddAddress = () => {
     const router = useRouter();
     const auth = useAppSelector(s => s.auth);
     const reduxToken = auth.token;
-    const { addressId, addressName, addressLine1, city: propCity, state: propState, postalCode, country: propCountry, isDefaults } = useLocalSearchParams<{
+    const { addressId, addressName, addressLine1, suite ,city: propCity, state: propState, postalCode, country: propCountry, isDefaults } = useLocalSearchParams<{
         addressId?: string;
         addressName?: string;
+        suite?:string
         addressLine1?: string;
         city?: string;
         state?: string;
@@ -34,69 +36,112 @@ const AddAddress = () => {
     const [countries, setCountries] = useState<Country[]>([]);
     const [states, setStates] = useState<StateItem[]>([]);
     const [cities, setCities] = useState<CityItem[]>([]);
+    const [suiteNumber, setSuiteNumber] = useState(suite||'');
     const [isDefault, setIsDefault] = useState(isDefaults === 'true');
-
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [message, setMessage] = useState('');
     // Fetch countries only once
     useEffect(() => {
-        if (!reduxToken || countries.length > 0) return; // prevent multiple fetches
+        if (!reduxToken) return;
 
         const loadCountries = async () => {
             try {
                 const data = await fetchCountries(reduxToken);
                 setCountries(data);
+
+                // If we have a country from props, make sure it's selected
+                if (propCountry && data.some(c => c.country === propCountry)) {
+                    setCountry(propCountry);
+                }
             } catch (error) {
                 console.error('Error fetching countries:', error);
             }
         };
 
         loadCountries();
-    }, [reduxToken, countries.length]);
+    }, [reduxToken]);
 
     // Fetch states only if country changes
     useEffect(() => {
         if (!reduxToken || !country) return;
 
-        // Avoid re-fetching if states already correspond to this country
-        if (states.length > 0 && states[0]?.country === country) return;
-
         const loadStates = async () => {
             try {
                 const data = await fetchStates(reduxToken, country);
-                // You can attach country to states to check later
                 const dataWithCountry = data.map(stateItem => ({ ...stateItem, country }));
                 setStates(dataWithCountry);
-                setState(''); // reset selected state
-                setCities([]); // clear cities when country changes
-                setCity('');
+
+                // If we have a state from props and it exists in the new states list, select it
+                if (propState && dataWithCountry.some(s => s.state === propState)) {
+                    setState(propState);
+                    // If we have a city prop, set it immediately after state is set
+                    if (propCity) {
+                        setCity(propCity);
+                    }
+                } else {
+                    setState('');
+                    setCity('');
+                }
+                setCities([]);
             } catch (error) {
                 console.error('Error fetching states:', error);
             }
         };
 
         loadStates();
-    }, [country, reduxToken]);
+    }, [country, reduxToken, propState, propCity]);
 
-    // Fetch cities only if state changes
     useEffect(() => {
-        if (!reduxToken || !state) return;
-
-        // Avoid re-fetching if cities already correspond to this state
-        if (cities.length > 0 && cities[0]?.state === state) return;
+        if (!reduxToken || !state) {
+            setCities([]);
+            return;
+        }
 
         const loadCities = async () => {
             try {
-                const data = await fetchCities(reduxToken, state);
-                const dataWithState = data.map(cityItem => ({ ...cityItem, state }));
-                setCities(dataWithState);
-                setCity('');
+                const response = await fetchCities(reduxToken, state);
+                if (response?.length > 0) {
+                    const dataWithState = response.map((cityItem) => ({
+                        ...cityItem,
+                        state,
+                        city: cityItem.city || 'No city found',
+                        country: country
+                    }));
+                    setCities(dataWithState);
+
+                    // If we have a city from props or state, and it exists in the new cities list, select it
+                    const cityToSet = propCity || city;
+                    if (cityToSet && dataWithState.some(c => c.city === cityToSet)) {
+                        setCity(cityToSet);
+                    } else if (city && !dataWithState.some(c => c.city === city)) {
+                        // If current city is not in the list, clear it
+                        setCity('');
+                    }
+                } else {
+                    setCities([{
+                        city: 'No city found',
+                        state,
+                    }]);
+                    setCity('');
+                }
             } catch (error) {
                 console.error('Error fetching cities:', error);
+                setCities([{
+                    city: 'Error loading cities',
+                    state,
+                }]);
+                setCity('');
             }
         };
 
-        loadCities();
-    }, [state, reduxToken]);
-
+        // Only fetch cities if we don't already have them for this state
+        if (cities.length === 0 || cities[0]?.state !== state) {
+            loadCities();
+        } else if (city && !cities.some(c => c.city === city)) {
+            // If we have cities but the current city isn't in the list, clear it
+            setCity('');
+        }
+    }, [state, reduxToken, country, propCity]);
 
     const handleSaveAddress = async () => {
         if (!reduxToken) return;
@@ -104,6 +149,7 @@ const AddAddress = () => {
         try {
             const payload = {
                 address_name: fullName,
+                suite:suiteNumber,
                 address_line1: address,
                 city: city,
                 state: state,
@@ -124,13 +170,12 @@ const AddAddress = () => {
             });
 
             const result = await response.json();
-          alert(result.message);
             if (!response.ok) {
                 console.error('Failed to save address:', result);
                 return;
             }
-            console.log('Address saved successfully:', result);
-            router.back();
+            setShowSuccess(true);
+            setMessage(result.message)
 
         } catch (error) {
             console.error('Error saving address:', error);
@@ -140,6 +185,19 @@ const AddAddress = () => {
 
     return (
         <SafeAreaView style={styles.container}>
+            <StatusModal
+                visible={showSuccess}
+                type="success"
+                title="Success!"
+                message={message}
+                onClose={() => {
+                    setShowSuccess(false);
+                    router.back();
+                }}
+                dismissAfter={2000}
+                showButton={false}
+
+            />
             <ImageBackground source={require('../assets/images/background.png')} style={styles.background}>
                 <Header
                     title={addressId ? "Edit Address" : "Add Address"}
@@ -147,15 +205,31 @@ const AddAddress = () => {
                 />
                 <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
                     <View style={styles.formContainer}>
-                        <Text style={styles.label}>Save this address as</Text>
-                        <View style={styles.inputContainer}>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Name"
-                                value={fullName}
-                                onChangeText={setFullName}
-                                placeholderTextColor="#999"
-                            />
+                        <View style={[styles.row, { marginBottom: 16 }]}>
+                            <View style={{ flex: 1, marginRight: 10 }}>
+                                <Text style={styles.label}>Address name</Text>
+                                <View style={styles.inputContainer}>
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Name"
+                                        value={fullName}
+                                        onChangeText={setFullName}
+                                        placeholderTextColor="#999"
+                                    />
+                                </View>
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.label}>Suite/Apt #</Text>
+                                <View style={styles.inputContainer}>
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Optional"
+                                        value={suiteNumber}
+                                        onChangeText={setSuiteNumber}
+                                        placeholderTextColor="#999"
+                                    />
+                                </View>
+                            </View>
                         </View>
 
                         <Text style={styles.label}>Address</Text>
@@ -213,6 +287,7 @@ const AddAddress = () => {
                                         style={styles.input}
                                         placeholder="ZIP Code"
                                         value={zipCode}
+                                        maxLength={5}
                                         onChangeText={setZipCode}
                                         keyboardType="numeric"
                                         placeholderTextColor="#999"

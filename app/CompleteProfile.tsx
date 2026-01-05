@@ -1,4 +1,6 @@
 import Header from '@/components/Header';
+import StatusModal from '@/components/success';
+import { getProfile, updateProfile } from '@/service/profile';
 import { colors } from '@/theme/colors';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
@@ -18,7 +20,6 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 import { useAppDispatch, useAppSelector } from '../store/useAuth';
-import { getProfile, updateProfile } from '@/service/profile';
 export default function CompleteProfile() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -26,7 +27,8 @@ export default function CompleteProfile() {
   const [image, setImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [showSuccess, setShowSuccess] = useState(false);
+ const [message, setMessage] = useState('');
   const insets = useSafeAreaInsets();
   const dispatch = useAppDispatch();
 
@@ -61,26 +63,26 @@ export default function CompleteProfile() {
   }, [phone, resolvedToken]);
 
   // ================= FETCH PROFILE =================
-useEffect(() => {
-  const loadProfile = async () => {
-    try {
-      console.log('Fetching profile with token:', resolvedToken);
-      const data = await getProfile(resolvedToken||'');
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        console.log('Fetching profile with token:', resolvedToken);
+        const data = await getProfile(resolvedToken || '');
         setFirstName(data.first_name || '');
         setLastName(data.last_name || '');
         setEmail(data.email || '');
         if (data.avatar) setImage(data.avatar);
 
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-     Alert.alert('Error', 'Failed to load profile data');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        Alert.alert('Error', 'Failed to load profile data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  loadProfile();
-}, [resolvedToken]);
+    loadProfile();
+  }, [resolvedToken]);
 
   // ================= IMAGE PICKER =================
   const pickImage = async () => {
@@ -108,34 +110,51 @@ useEffect(() => {
   // ================= SUBMIT =================
   const isValid = firstName.trim() && lastName.trim() && email.trim();
 
-const handleSubmit = async () => {
-  if (!isValid || isSubmitting) return;
+  const handleSubmit = async () => {
+    if (!isValid || isSubmitting) return;
 
-  try {
-    setIsSubmitting(true);
+    try {
+      setIsSubmitting(true);
 
-    await updateProfile(resolvedToken||'', {
-      first_name: firstName.trim(),
-      last_name: lastName.trim(),
-      email: email.trim(), 
-      avatar: image || null,
-    });
+      const data = await updateProfile(resolvedToken || '', {
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        email: email.trim(),
+        avatar: image || null,
+      });
 
-    Alert.alert('Success', 'Profile updated successfully');
-    router.replace('/(tabs)/Home');
-  } catch (error: any) {
-    console.error('Profile update error:', error);
-    Alert.alert('Error', error?.message || 'Failed to update profile');
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+      if (data) {
+        setShowSuccess(true);
+        setMessage(data.message)
+      }
+    } catch (error: any) {
+      console.error('Profile update error:', error);
+      Alert.alert('Error', error?.message || 'Failed to update profile');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // ================= UI =================
   return (
     <SafeAreaView style={styles.container}>
+      <StatusModal
+        visible={showSuccess}
+        type="success"
+        title="Success!"
+        message={message}
+        onClose={() =>{
+           setShowSuccess(false);
+           router.push('/(tabs)/Profile');
+        }}
+        dismissAfter={2000}
+        showButton={false}
+     
+      />
       <ImageBackground
         source={require('../assets/images/background.png')}
         style={styles.backgroundImage}
+        resizeMode="cover"
       >
         <Header title="Complete profile" showDefaultIcons={false} />
 

@@ -16,6 +16,7 @@ export interface Address {
   id: number;
   address_name: string;
   address_line1: string;
+  suite:string;
   city: string;
   state: string;
   postal_code: string;
@@ -103,7 +104,7 @@ export const fetchAddresses = async (token: string) => {
   const result = await response.json();
   return result;
 };
-export const deleteAddress = async (token: string, addressId: number): Promise<{ success: boolean }> => {
+export const deleteAddress = async (token: string, addressId: number): Promise<{ success: boolean; message: string }> => {
   try {
     const response = await fetch(
       `${API_URL}customer-api/remove-address/${addressId}`,
@@ -116,11 +117,8 @@ export const deleteAddress = async (token: string, addressId: number): Promise<{
       }
     );
 
-    if (!response.ok) {
-      throw new Error('Failed to delete address');
-    }
-
-    return { success: true };
+    const data = await response.json();
+    return data;
   } catch (error) {
     console.error('Error deleting address:', error);
     throw error;

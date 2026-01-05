@@ -1,20 +1,19 @@
-import { addToWishlist, removeFromWishlist, selectWishlistItems } from '@/store/wishlistSlice'
 import Ionicons from '@expo/vector-icons/Ionicons'
 import { useNavigation } from '@react-navigation/native'
 import { ImageBackground } from 'expo-image'
 import React, { useEffect, useMemo, useState } from 'react'
-import { Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { Dimensions, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 
 import { ProductStyle } from '@/assets/css/style'
-import { Category, fetchCategories } from '@/service/category'
+import { addOrUpdateCart, CartItem, fetchCart, removeFromCartApi } from '@/service/cart'
+import { Category } from '@/service/category'
 import { fetchProducts, Product } from '@/service/product'
+import { addToWishlistApi, getFromWishlistApi, removeFromWishlistApi } from '@/service/wishlist'
 import { useAppDispatch, useAppSelector } from '@/store/useAuth'
 import { colors } from '@/theme/colors'
 import { router } from 'expo-router'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters'
-import { addOrUpdateCart, CartItem, fetchCart, removeFromCartApi } from '@/service/cart'
-import { addToWishlistApi, getFromWishlistApi, removeFromWishlistApi } from '@/service/wishlist'
 
 const { width } = Dimensions.get('window')
 
@@ -29,6 +28,7 @@ const Search = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [wishlist, setWishlist] = useState<any>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const checkIsInWishlist = (productId: number) =>
     wishlist.some((item: any) => item.product_id === productId);
   const insets = useSafeAreaInsets();
@@ -192,12 +192,21 @@ const Search = () => {
   }, []);
   const productsToShow = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return []; // nothing shown if search is empty
+    const selected = selectedCategory?.toLowerCase() || '';
 
-    return apiProducts.filter(product =>
-      product.name.toLowerCase().includes(q)
-    );
-  }, [query, apiProducts]);
+    return apiProducts.filter(product => {
+      const productName = product.name.toLowerCase();
+
+      const matchesSearch =
+        !q || productName.includes(q);
+
+      const matchesSelectedProduct =
+        !selected || productName.includes(selected);
+
+      return matchesSearch && matchesSelectedProduct;
+    });
+  }, [query, apiProducts, selectedCategory]);
+
 
   return (
     <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
@@ -214,12 +223,17 @@ const Search = () => {
               <TextInput
                 autoFocus
                 value={query}
-                onChangeText={setQuery}
+                onChangeText={(text) => {
+                  setQuery(text);
+                  if (text === '') {
+                    setSelectedCategory(null);
+                  }
+                }}
                 placeholder="Search for category & products"
                 placeholderTextColor="gray"
                 style={styles.input}
               />
-              <TouchableOpacity onPress={() => navigation.goBack()}>
+              <TouchableOpacity onPress={() => setSelectedCategory(null)}>
                 <Text style={styles.cancel}>Cancel</Text>
               </TouchableOpacity>
             </View>
@@ -239,25 +253,37 @@ const Search = () => {
               >
                 <View style={styles.categoryList}>
                   {productsToShow.map((category) => (
-                    <View key={`category-${category.id}`} style={styles.categoryItem}>
+                    <TouchableOpacity
+                      key={`category-${category.id}`}
+                      style={[
+                        styles.categoryItem,
+                        selectedCategory === category.name && {
+                        },
+                      ]}
+                      onPress={() => {
+                        setSelectedCategory(category.name);
+                        setQuery(category.name);
+                      }}
+                    >
+
                       <View style={styles.categoryLeft}>
                         {category.product_images?.length > 0 ? (
-                            <Image
-                              source={{ uri: category.product_images[0].image }}
-                              style={styles.emoji}
-                              resizeMode="contain"
-                            />
+                          <Image
+                            source={{ uri: category.product_images[0].image }}
+                            style={styles.emoji}
+                            resizeMode="contain"
+                          />
                         ) : (
                           <View style={styles.categoryIcon}>
                             <Ionicons name="pricetag-outline" size={20} color="#666" />
                           </View>
                         )}
                         <View>
-                          <Text style={styles.categoryName}>{category.name}</Text>
+                          <Text style={styles.categoryName} numberOfLines={1}>{category.name}</Text>
                           <Text style={styles.categorySubtitle}>{category.category_name?.name}</Text>
                         </View>
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   ))}
                 </View>
               </ScrollView>
@@ -268,7 +294,7 @@ const Search = () => {
             <View style={ProductStyle.productsSection}>
               <ScrollView showsVerticalScrollIndicator={false}>
                 <Text style={styles.sectionTitle}>Products</Text>
-                <View style={[ProductStyle.productsGrid, { marginBottom: verticalScale(100) }]}>
+                <View style={[ProductStyle.productsGrid, { marginBottom: verticalScale(240) }]}>
                   {productsToShow.map((item) => {
                     const productId = Number(item.id);
                     const qty = existingCartItem(productId)?.quantity || 0;
@@ -427,7 +453,7 @@ const styles = StyleSheet.create({
     color: colors.primaryDark,
   },
   cancel: {
-    color: '#0A84FF',
+    color: colors.primary,
     fontSize: 16,
     fontWeight: '600',
   },

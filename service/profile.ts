@@ -48,20 +48,7 @@ export const updateProfile = async (
     body: formData,
   });
 
-  const contentType = response.headers.get('content-type');
-  let data: any = null;
-
-  if (contentType && contentType.includes('application/json')) {
-    data = await response.json();
-  } else {
-    const text = await response.text();
-    console.error('Non-JSON response:', text);
-  }
-
-  if (!response.ok) {
-    throw new Error(data?.message || 'Profile update failed');
-  }
-
+   const data = await response.json(); 
   return data;
 };
 

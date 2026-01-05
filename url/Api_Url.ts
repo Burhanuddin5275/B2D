@@ -1,1 +1,1 @@
-export const API_URL = 'http://192.168.0.112:8000/';
+export const API_URL = 'https://mart2door.com/';

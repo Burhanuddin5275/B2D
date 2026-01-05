@@ -1,22 +1,22 @@
 import Header from '@/components/Header';
+import StatusModal from '@/components/success';
+import { Address, deleteAddress, fetchAddresses } from '@/service/address';
+import { useAppSelector } from '@/store/useAuth';
 import { colors } from '@/theme/colors';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ImageBackground, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
-import { useEffect } from 'react';
-import { useAppSelector } from '@/store/useAuth';
-import { Address, deleteAddress, fetchAddresses } from '@/service/address';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { moderateScale, verticalScale } from 'react-native-size-matters';
 
 const ManageAddress = () => {
     const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const insets = useSafeAreaInsets();
     const [addresses, setAddresses] = useState<Address[]>([]);
-
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [message, setMessage] = useState('');
     const token = useAppSelector((s) => s.auth.token);
     useEffect(() => {
         const loadAddresses = async () => {
@@ -34,6 +34,19 @@ const ManageAddress = () => {
 
     return (
         <SafeAreaView style={styles.container}>
+            <StatusModal
+                visible={showSuccess}
+                type="success"
+                title="Success!"
+                message={message}
+                onClose={() => {
+                    setShowSuccess(false);
+                    router.back();
+                }}
+                dismissAfter={2000}
+                showButton={false}
+
+            />
             <ImageBackground
                 source={require('../assets/images/background.png')}
                 style={styles.background}
@@ -49,9 +62,9 @@ const ManageAddress = () => {
                             </View>
                             <View style={styles.addressRow}>
                                 <View style={styles.addressTextContainer}>
-                                    <Text style={styles.addressText}>{address.address_line1}</Text>
+                                    <Text style={styles.addressText}>{address.suite}, {address.address_line1}</Text>
                                     <Text style={styles.addressText}>
-                                        {[address.state, address.city, address.postal_code].filter(Boolean).join(', ')}
+                                        {address.state}, {address.city}, {address.postal_code}
                                     </Text>
                                 </View>
                                 <TouchableOpacity
@@ -100,6 +113,7 @@ const ManageAddress = () => {
                                                     addressId: selectedAddress.id,
                                                     addressName: selectedAddress.address_name,
                                                     addressLine1: selectedAddress.address_line1,
+                                                    suite: selectedAddress.suite || '',
                                                     city: selectedAddress.city,
                                                     state: selectedAddress.state,
                                                     postalCode: selectedAddress.postal_code,
@@ -120,8 +134,9 @@ const ManageAddress = () => {
                                     onPress={async () => {
                                         if (selectedAddress) {
                                             try {
-                                                await deleteAddress(token || '', selectedAddress.id);
-                                                alert('Address removed successfully.');
+                                                const data = await deleteAddress(token || '', selectedAddress.id);
+                                                setShowSuccess(true);
+                                                setMessage(data.message)
                                                 setAddresses(addresses.filter(addr => addr.id !== selectedAddress.id));
                                             } catch (error) {
                                                 console.error('Error removing address:', error);
