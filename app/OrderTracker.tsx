@@ -154,9 +154,9 @@ const OrderTracker = () => {
           console.log('OTP API response:', data);
 
           if (data?.data?.otp) {
-          setOtpMessage(`${data.data.otp}`); // show only OTP
-          setOtpModalVisible(true);
-        };
+            setOtpMessage(`${data.data.otp}`); // show only OTP
+            setOtpModalVisible(true);
+          };
         } catch (err) {
           console.error('Error fetching OTP:', err);
         }
@@ -204,6 +204,8 @@ const OrderTracker = () => {
     orderData.updated_at || new Date().toISOString(),
     orderData
   );
+  const latestStatus =
+    orderData?.status?.[orderData.status.length - 1]?.status?.toLowerCase();
 
   const deliveryType = orderData.delivery_type ?? 'Express Delivery';
   const schedule_order = orderData.schedule_order
@@ -285,8 +287,8 @@ const OrderTracker = () => {
         title="Delivery OTP"
         message={otpMessage}
         onClose={() => setOtpModalVisible(false)}
-        showButton={true}
-        buttonText="OK"
+        dismissAfter={2000}
+        showButton={false}
       />
 
       <ImageBackground source={require('../assets/images/background.png')} style={styles.background}>
@@ -363,19 +365,22 @@ const OrderTracker = () => {
                     <Text style={styles.itemPrice}>
                       ${item.price.toFixed(2)} ({item.qty})
                     </Text>
-                    <TouchableOpacity
-                      onPress={() => handleOpenRatingModal(item)}
-                      disabled={isProductReviewed(item.productId)} // disable if already reviewed
-                    >
-                      <Text
-                        style={[
-                          styles.itemAction,
-                          isProductReviewed(item.productId) && { color: 'gray' }, // gray if disabled
-                        ]}
+                    {latestStatus === 'delivered' && (
+                      <TouchableOpacity
+                        onPress={() => handleOpenRatingModal(item)}
+                        disabled={isProductReviewed(item.productId)}
                       >
-                        {isProductReviewed(item.productId) ? 'Reviewed' : item.ratingLabel}
-                      </Text>
-                    </TouchableOpacity>
+                        <Text
+                          style={[
+                            styles.itemAction,
+                            isProductReviewed(item.productId) && { color: 'gray' },
+                          ]}
+                        >
+                          {isProductReviewed(item.productId) ? 'Reviewed' : item.ratingLabel}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+
                   </View>
                 </View>
               </View>
@@ -416,9 +421,12 @@ const OrderTracker = () => {
               cancelButtonText="Don't Cancel"
               submitButtonText="Confirm Cancellation"
             />
-            {steps[0]?.label === 'Order placed!' && !isCancelled && (
+            {latestStatus === 'placed' && !isCancelled && (
               <TouchableOpacity
-                style={[styles.summaryRow, { marginTop: verticalScale(20), justifyContent: 'center' }]}
+                style={[
+                  styles.summaryRow,
+                  { marginTop: verticalScale(20), justifyContent: 'center' },
+                ]}
                 onPress={() => setIsCancelModalVisible(true)}
               >
                 <Text
@@ -432,6 +440,7 @@ const OrderTracker = () => {
                 </Text>
               </TouchableOpacity>
             )}
+
           </View>
         </ScrollView>
 
