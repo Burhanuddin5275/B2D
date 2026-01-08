@@ -196,3 +196,21 @@ export const cancelOrderApi = async (
 
   return json;
 };
+
+const fetchOrderOtp = async (orderId: string, token: string) => {
+  try {
+    const response = await fetch(`https://mart2door.com/customer-api/get-order-otp/${orderId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `token ${token}`,
+      },
+    });
+    const data = await response.json();
+    console.log('OTP API response:', data);
+    return data;
+  } catch (error) {
+    console.error('Error fetching order OTP:', error);
+    return null;
+  }
+};

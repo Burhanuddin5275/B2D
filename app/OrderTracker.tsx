@@ -2,6 +2,7 @@ import Header from '@/components/Header';
 import { CancelOrderModal } from '@/components/modal';
 import StatusModal from '@/components/success';
 import { cancelOrderApi, fetchOrderById } from '@/service/order';
+import { fetchReview, ProductReview, reviewApi } from '@/service/review';
 import { useAppSelector } from '@/store/useAuth';
 import { colors } from '@/theme/colors';
 import { ImageBackground } from 'expo-image';
@@ -23,58 +24,51 @@ import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 
 
 const getTimelineStatuses = (statusArray: any[], timeString: string, orderData: any) => {
-  // Get the latest status from the array
-  const latestStatus = statusArray.length > 0 ? statusArray[statusArray.length - 1].status : 'processing';
+  const latestStatus = statusArray.length > 0
+    ? statusArray[statusArray.length - 1].status.toLowerCase()
+    : 'placed';
+
   const now = new Date();
-  const timeOptions = {
-    month: '2-digit',
-    day: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  };
 
   const timelineSteps = [
     { label: 'Order placed!', time: orderData.created_at },
-    { label: 'Processing', time: '' },
-    { label: 'Out for delivery', time: '' },
-    { label: 'Delivered', time: '' },
+    { label: 'Preparing for dispatch', time: '' }, // step 1
+    { label: 'Out for delivery', time: '' },      // step 2
+    { label: 'Delivered', time: '' },             // step 3
   ];
 
   let activeIndex = 0;
 
-  switch (latestStatus.toLowerCase()) {
-    case 'processing':
-      activeIndex = 1;
-      timelineSteps[1].time = timeString;
-      break;
-    case 'out for delivery':
-      activeIndex = 2;
-      timelineSteps[1].time = new Date(now.getTime() - 3600000).toLocaleString('en-US');
-      timelineSteps[2].time = timeString;
-      break;
-    case 'delivered':
-      activeIndex = 3;
-      timelineSteps[1].time = new Date(now.getTime() - 10800000).toLocaleString('en-US');
-      timelineSteps[2].time = new Date(now.getTime() - 14400000).toLocaleString('en-US');
-      timelineSteps[3].time = timeString;
-      break;
-    case 'cancelled':
-      const cancelledStatus = statusArray.find((s: any) => s.status === 'cancelled');
-      const cancelledTime = cancelledStatus?.created_at || timeString;
-      return {
-        steps: [
-          timelineSteps[0],
-          {
-            label: 'Cancelled by you / store',
-            time: cancelledTime,
-            isCancelled: true
-          }
-        ],
-        activeIndex: 1,
-        isCancelled: true,
-      };
+  if (latestStatus === 'placed') {
+    activeIndex = 0;
+  } else if (latestStatus === 'preparing for dispatch') {
+    activeIndex = 1;
+    const prepStep = statusArray.find((s: any) => s.status.toLowerCase() === 'preparing for dispatch');
+    timelineSteps[1].time = prepStep?.created_at || timeString;
+  } else if (latestStatus === 'out for delivery') {
+    activeIndex = 2;
+    const prepStep = statusArray.find((s: any) => s.status.toLowerCase() === 'preparing for dispatch');
+    timelineSteps[1].time = prepStep?.created_at || timeString;
+    const deliveryStep = statusArray.find((s: any) => s.status.toLowerCase() === 'out for delivery');
+    timelineSteps[2].time = deliveryStep?.created_at || timeString;
+  } else if (latestStatus === 'delivered') {
+    activeIndex = 3;
+    const prepStep = statusArray.find((s: any) => s.status.toLowerCase() === 'preparing for dispatch');
+    timelineSteps[1].time = prepStep?.created_at || timeString;
+    const deliveryStep = statusArray.find((s: any) => s.status.toLowerCase() === 'out for delivery');
+    timelineSteps[2].time = deliveryStep?.created_at || timeString;
+    const deliveredStep = statusArray.find((s: any) => s.status.toLowerCase() === 'delivered');
+    timelineSteps[3].time = deliveredStep?.created_at || timeString;
+  } else if (latestStatus === 'cancelled') {
+    const cancelledStatus = statusArray.find((s: any) => s.status.toLowerCase() === 'cancelled');
+    return {
+      steps: [
+        timelineSteps[0],
+        { label: 'Cancelled by you / store', time: cancelledStatus?.created_at || timeString, isCancelled: true }
+      ],
+      activeIndex: 1,
+      isCancelled: true,
+    };
   }
 
   return {
@@ -83,7 +77,6 @@ const getTimelineStatuses = (statusArray: any[], timeString: string, orderData: 
     isCancelled: false,
   };
 };
-
 const OrderTracker = () => {
   const params = useLocalSearchParams<{ orderId?: string }>();
   const orderId = params.orderId;
@@ -98,8 +91,29 @@ const OrderTracker = () => {
   const [userComment, setUserComment] = useState('');
   const token = useAppSelector((s) => s.auth.token);
   const [isCancelModalVisible, setIsCancelModalVisible] = useState(false);
+  const [reviews, setReviews] = useState<ProductReview[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);
   const [message, setMessage] = useState('');
+  const [otpModalVisible, setOtpModalVisible] = useState(false);
+  const [otpMessage, setOtpMessage] = useState('');
+
+  useEffect(() => {
+    const getReviews = async () => {
+      if (!token) return;
+      try {
+        const allReviews = await fetchReview(token);
+        setReviews(allReviews);
+      } catch (err) {
+        console.error('Error fetching reviews:', err);
+      }
+    };
+    getReviews();
+  }, [token]);
+  const isProductReviewed = (productId: number) => {
+    return reviews.some(
+      (r) => r.order?.toString() === orderId?.toString() && r.product === productId
+    );
+  };
   useEffect(() => {
     const getOrder = async () => {
       if (!orderId) return;
@@ -118,8 +132,42 @@ const OrderTracker = () => {
     };
     getOrder();
   }, [orderId]);
+  useEffect(() => {
+    if (!orderData || !token) return;
+
+    const latestStatus = orderData.status[orderData.status.length - 1]?.status.toLowerCase();
+
+    if (latestStatus === 'out for delivery') {
+      const fetchOtp = async () => {
+        try {
+          const response = await fetch(
+            `https://mart2door.com/customer-api/get-order-otp/${orderData.id}`,
+            {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `token ${token}`,
+              },
+            }
+          );
+          const data = await response.json();
+          console.log('OTP API response:', data);
+
+          if (data?.data?.otp) {
+          setOtpMessage(`${data.data.otp}`); // show only OTP
+          setOtpModalVisible(true);
+        };
+        } catch (err) {
+          console.error('Error fetching OTP:', err);
+        }
+      };
+
+      fetchOtp();
+    }
+  }, [orderData, token]);
 
   const handleOpenRatingModal = (item: any) => {
+    console.log('Selected item:', item);
     setRatingItem(item);
     setUserRating(0);
     setUserComment('');
@@ -164,11 +212,12 @@ const OrderTracker = () => {
   const paymentMode = orderData.payment_method ?? 'Credit Card';
   const productsTotal = parseFloat(orderData.sub_total_price ?? '0');
   const deliveryCharges = parseFloat(orderData.shipping_price ?? '0');
-  const taxAmount = 0; // You can replace with actual tax if available
+  const taxAmount = 0;
   const totalAmount = parseFloat(orderData.total_price ?? '0');
 
   const items = orderData.order_items?.map((item: any) => ({
-    id: item.id,
+    orderItemId: item.id,
+    productId: item.product.id,
     name: item.product.name,
     qty: item.quantity,
     variant: item.variation?.name,
@@ -176,7 +225,19 @@ const OrderTracker = () => {
     image: { uri: item.product.product_images[0]?.image },
     ratingLabel: 'Rate product',
   }));
-  console.log('items', orderData);
+  const handleSubmitReview = async () => {
+    const payload = {
+      order: orderId,
+      product: ratingItem.productId,
+      stars: Number(userRating),
+      comment: userComment.trim(),
+    };
+    const response = await reviewApi(token || '', payload);
+    setShowSuccess(true);
+    setMessage(response.message)
+    setRatingModalVisible(false);
+  };
+
   const handleCancelOrder = async (reason: string) => {
     try {
       if (!token) {
@@ -218,6 +279,16 @@ const OrderTracker = () => {
         dismissAfter={2000}
         showButton={false}
       />
+      <StatusModal
+        visible={otpModalVisible}
+        type="info"
+        title="Delivery OTP"
+        message={otpMessage}
+        onClose={() => setOtpModalVisible(false)}
+        showButton={true}
+        buttonText="OK"
+      />
+
       <ImageBackground source={require('../assets/images/background.png')} style={styles.background}>
         <Header title={`Order ${orderData.order_no}`} showDefaultIcons={false} />
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -278,7 +349,7 @@ const OrderTracker = () => {
               <Text style={styles.sectionMeta}>{items.length} products</Text>
             </View>
             {items.map((item: any, index: number) => (
-              <View key={item.id} style={[styles.itemRow, index !== items.length - 1 && styles.itemDivider]}>
+              <View key={item.orderItemId} style={[styles.itemRow, index !== items.length - 1 && styles.itemDivider]}>
                 <Image source={item.image} style={styles.itemImage} />
                 <View style={styles.itemDetails}>
                   <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
@@ -292,8 +363,18 @@ const OrderTracker = () => {
                     <Text style={styles.itemPrice}>
                       ${item.price.toFixed(2)} ({item.qty})
                     </Text>
-                    <TouchableOpacity onPress={() => handleOpenRatingModal(item)}>
-                      <Text style={styles.itemAction}>{item.ratingLabel}</Text>
+                    <TouchableOpacity
+                      onPress={() => handleOpenRatingModal(item)}
+                      disabled={isProductReviewed(item.productId)} // disable if already reviewed
+                    >
+                      <Text
+                        style={[
+                          styles.itemAction,
+                          isProductReviewed(item.productId) && { color: 'gray' }, // gray if disabled
+                        ]}
+                      >
+                        {isProductReviewed(item.productId) ? 'Reviewed' : item.ratingLabel}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -393,7 +474,7 @@ const OrderTracker = () => {
                     value={userComment}
                     onChangeText={setUserComment}
                   />
-                  <TouchableOpacity style={styles.submitRatingButton} activeOpacity={0.85} onPress={() => setRatingModalVisible(false)}>
+                  <TouchableOpacity style={styles.submitRatingButton} activeOpacity={0.85} onPress={handleSubmitReview}>
                     <Text style={styles.submitRatingButtonText}>Submit review</Text>
                   </TouchableOpacity>
                 </>

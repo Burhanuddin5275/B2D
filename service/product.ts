@@ -15,6 +15,8 @@ export interface Product {
   regular_price: string;
   product_images: ProductImage[];
   product_variations: ProductVariations[];
+  reviews: Review[];
+  stars: number;
   image: string | null;
   category_name: Category;
   store_name: Store; // Updated to be an object with a name property
@@ -30,6 +32,17 @@ export interface ProductVariations {
   unit_quantity:string;
   image:string;
   stock:number
+}
+export interface ReviewUser {
+  first_name: string;
+  last_name: string;
+}
+
+export interface Review {
+  product: number;
+  stars: number;
+  comment: string;
+  user: ReviewUser;
 }
 interface ProductApiResponse {
   status: boolean;
