@@ -64,63 +64,63 @@ export default function HomeScreen() {
     loadWishlist();
   }, [token]);
 
-const toggleWishlist = async (product: Product) => {
-  if (!token || !isAuthenticated) {
-    alert('Please login to use wishlist');
-    return;
-  }
-
-  const variationId = product.product_variations?.[0]?.id;
-
-  try {
-    const existingItem = wishlist.find(
-      (item: any) => item.product_id === product.id
-    );
-
-    if (existingItem) {
-      await removeFromWishlistApi(token, existingItem.wishlist_id);
-
-      setWishlist((prev: any[]) =>
-        prev.filter(item => item.product_id !== product.id)
-      );
-    } else {
-      // ✅ Build payload safely
-      const payload: any = {
-        product: product.id,
-      };
-
-      if (variationId) {
-        payload.variation = variationId; // only send if exists
-      }
-
-      const newItem = await addToWishlistApi(token, payload);
-
-      // ✅ SAFETY: backend may not return item id
-      if (newItem?.id) {
-        setWishlist((prev: any[]) => [
-          ...prev,
-          {
-            wishlist_id: newItem.id,
-            product_id: product.id,
-          },
-        ]);
-      } else {
-        // 🔥 fallback → re-fetch wishlist (SAFE & CORRECT)
-        const wishlistRes = await getFromWishlistApi(token);
-
-        setWishlist(
-          wishlistRes.data.map((item: any) => ({
-            wishlist_id: item.id,
-            product_id: item.product.id,
-          }))
-        );
-      }
+  const toggleWishlist = async (product: Product) => {
+    if (!token || !isAuthenticated) {
+      alert('Please login to use wishlist');
+      return;
     }
-  } catch (error) {
-    console.error('Wishlist error:', error);
-    alert('Failed to update wishlist');
-  }
-};
+
+    const variationId = product.product_variations?.[0]?.id;
+
+    try {
+      const existingItem = wishlist.find(
+        (item: any) => item.product_id === product.id
+      );
+
+      if (existingItem) {
+        await removeFromWishlistApi(token, existingItem.wishlist_id);
+
+        setWishlist((prev: any[]) =>
+          prev.filter(item => item.product_id !== product.id)
+        );
+      } else {
+        // ✅ Build payload safely
+        const payload: any = {
+          product: product.id,
+        };
+
+        if (variationId) {
+          payload.variation = variationId; // only send if exists
+        }
+
+        const newItem = await addToWishlistApi(token, payload);
+
+        // ✅ SAFETY: backend may not return item id
+        if (newItem?.id) {
+          setWishlist((prev: any[]) => [
+            ...prev,
+            {
+              wishlist_id: newItem.id,
+              product_id: product.id,
+            },
+          ]);
+        } else {
+          // 🔥 fallback → re-fetch wishlist (SAFE & CORRECT)
+          const wishlistRes = await getFromWishlistApi(token);
+
+          setWishlist(
+            wishlistRes.data.map((item: any) => ({
+              wishlist_id: item.id,
+              product_id: item.product.id,
+            }))
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Wishlist error:', error);
+      alert('Failed to update wishlist');
+    }
+  };
 
   useEffect(() => {
     const loadCart = async () => {
@@ -229,6 +229,7 @@ const toggleWishlist = async (product: Product) => {
     const loadProducts = async () => {
       try {
         const data = await fetchProducts();
+        console.log(data)
         setProducts(data);
       } catch (error) {
         console.error('Failed to load products:', error);
@@ -318,7 +319,7 @@ const toggleWishlist = async (product: Product) => {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Stores near you</Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={() => navigation.navigate('Stores' as never)}>
                 <Text style={styles.viewAll}>View all</Text>
               </TouchableOpacity>
             </View>
@@ -385,7 +386,7 @@ const toggleWishlist = async (product: Product) => {
           {/* Products Section */}
           <View style={ProductStyle.productsSection}>
             <View style={ProductStyle.productsGrid}>
-              {Products.slice(0,10).map((product) => {
+              {Products.slice(0, 10).map((product) => {
                 const qty = existingCartItem(product.id)?.quantity || 0;
                 return (
                   <TouchableOpacity
@@ -398,11 +399,11 @@ const toggleWishlist = async (product: Product) => {
                           product: JSON.stringify({
                             id: product.id,
                             name: product.name,
-                            description: product.description || '',
-                            price: product.regular_price,
+                            full_description: product.full_description || '',
+                            regular_price: product.regular_price,
                             // product_images: product.product_images || [],
-                            images: product.product_images?.map((img) => img.image) || [],
-                            variations: product.product_variations?.map((variation) => ({
+                            image: product.product_images?.map((img) => img.image) || [],
+                            product_variations: product.product_variations?.map((variation) => ({
                               id: variation.id,
                               name: variation.name,
                               price: variation.price,
@@ -410,7 +411,16 @@ const toggleWishlist = async (product: Product) => {
                               stock: variation.stock,
                             })) || [],
                             category: product.category_name?.name || '',
-                            seller: product.store_name?.name || 'Fresh Mart'
+                            store_name: product.store_name?.name || 'Fresh Mart',
+                             stars: product.stars || 0,
+                            reviews: product.reviews?.map((rev)=>{
+                              return {
+                                stars:rev.stars,
+                                comment:rev.comment,
+                                user:rev.user,
+                                date:rev.created_at,
+                              }
+                            }) || []
                           })
                         }
                       });

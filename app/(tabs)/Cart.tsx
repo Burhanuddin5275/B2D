@@ -2,7 +2,7 @@ import Header from '@/components/Header';
 import StatusModal from '@/components/success';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Address, fetchAddresses } from '@/service/address';
-import { addOrUpdateCart, CartItem, fetchCart, removeFromCartApi } from '@/service/cart';
+import { addOrUpdateCart, CartItem, fetchCart, overweight, removeFromCartApi, weight } from '@/service/cart';
 import { placeOrderApi } from '@/service/order';
 import { useAppSelector } from '@/store/useAuth';
 import { colors } from '@/theme/colors';
@@ -50,6 +50,21 @@ export default function Cart() {
   const [refreshing, setRefreshing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [message, setMessage] = useState('');
+  const [overweightConfig, setOverweightConfig] = useState<weight | null>(null);
+
+  useEffect(() => {
+    const loadOverweight = async () => {
+      if (!token) return;
+      try {
+        const data = await overweight(token);
+        setOverweightConfig(data);
+      } catch (error) {
+        console.error('Overweight load failed', error);
+      }
+    };
+    loadOverweight();
+  }, [token]);
+
   const reloadCartScreen = async () => {
     if (!token) return;
 
@@ -59,7 +74,6 @@ export default function Cart() {
       // Reload cart
       const cartData = await fetchCart(token);
       setCartItems(cartData);
-
       // Reload addresses
       const addressRes = await fetchAddresses(token);
       setAddresses(addressRes.data);
@@ -121,12 +135,6 @@ export default function Cart() {
       console.error('Decrement error:', e);
     }
   };
-
-
-  const cartTotalPrice = useMemo(() =>
-    cartItems.reduce((total, item) => total + (item.price * item.quantity), 0),
-    [cartItems]
-  );
   const isAuthenticated = !!auth?.token;
   const sellerGroups = useMemo<SellerGroup[]>(() => {
     const map = new Map<string, SellerGroup>();
@@ -184,7 +192,21 @@ export default function Cart() {
       ? parseFloat(customTip) || 0
       : subtotal * (parseInt(selectedTip, 10) / 100);
   const taxAmount = subtotal * 0.18;
-  const payableTotal = subtotal + deliveryFee + tipAmount + taxAmount;
+  const totalWeight = activeSeller?.items?.reduce((sum, item) => {
+    const w = item.product?.weight ?? 0;
+    return sum + (w * item.quantity);
+  }, 0) ?? 0;
+
+  // Overweight calculation
+  let overweightCharge = 0;
+  if (overweightConfig) {
+    const { weight: limit, charge_type: chargeType, flat_charges: flatValue } = overweightConfig;
+    if (totalWeight > limit) {
+      overweightCharge = chargeType === 'percent' ? subtotal * (flatValue / 100) : flatValue;
+    }
+  }
+
+  const payableTotal = subtotal + deliveryFee + tipAmount + taxAmount + overweightCharge;
   const [isAddressModalVisible, setIsAddressModalVisible] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
@@ -214,6 +236,7 @@ export default function Cart() {
       address_id: selectedAddress?.id,
       driver_tip: selectedTip === 'other' ? customTip : `${selectedTip}%`,
       delivery_instructions: deliveryInstructions,
+      flat_charge: overweightCharge,
       payment_type:
         selectedPaymentMethod === 'credit'
           ? 'Credit Card'
@@ -240,21 +263,21 @@ export default function Cart() {
   };
 
   useEffect(() => {
- const checkExpressAvailability = () => {
-  const now = new Date();
-  const currentHour = now.getHours();
-  const currentMinutes = now.getMinutes();
-  
-  // 20:00 (8:00 PM) is the cutoff time
-  const isAfterCutoff = currentHour > 18 || (currentHour === 18 && currentMinutes > 0);
-  
-  setIsExpressDisabled(isAfterCutoff);
+    const checkExpressAvailability = () => {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinutes = now.getMinutes();
 
-  if (isAfterCutoff && deliveryType === 'express') {
-    setDeliveryType('regular');
-  }
-};
- 
+      // 20:00 (8:00 PM) is the cutoff time
+      const isAfterCutoff = currentHour > 18 || (currentHour === 18 && currentMinutes > 0);
+
+      setIsExpressDisabled(isAfterCutoff);
+
+      if (isAfterCutoff && deliveryType === 'express') {
+        setDeliveryType('regular');
+      }
+    };
+
     checkExpressAvailability();
   }, []);
 
@@ -585,6 +608,12 @@ export default function Cart() {
                   <Text style={styles.summaryLabel}>Delivery Fee</Text>
                   <Text style={styles.summaryValue}>${deliveryFee.toFixed(2)}</Text>
                 </View>
+                {overweightCharge != null && (
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Flat Charges</Text>
+                    <Text style={styles.summaryValue}>${overweightCharge}</Text>
+                  </View>
+                )}
 
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Tax</Text>
@@ -1036,9 +1065,9 @@ const styles = StyleSheet.create({
     color: colors.black,
     fontFamily: 'PoppinsSemi',
   },
-    disabledChip: {
+  disabledChip: {
     opacity: 0.5,
-    backgroundColor: colors.textSecondary, 
+    backgroundColor: colors.textSecondary,
   },
   scheduleButton: {
     flexDirection: 'row',

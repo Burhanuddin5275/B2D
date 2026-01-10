@@ -12,6 +12,7 @@ export interface CartItem {
     id: number;
     name: string;
     slug: string;
+    weight: number;
     product_images: {
       id: number;
       image: string;
@@ -22,6 +23,12 @@ export interface CartItem {
     name: string;
     image: string;
   } | null;
+}
+export interface weight {
+    id: number;
+    weight: number;
+    charge_type: 'percent' | 'flat';
+    flat_charges: number;
 }
 export const fetchCart = async (token: string): Promise<CartItem[]> => {
   const res = await fetch(
@@ -39,7 +46,22 @@ export const fetchCart = async (token: string): Promise<CartItem[]> => {
   return json.data;
 };
 
+export const overweight = async (token: string)=> {
+  const res = await fetch(
+    `${API_URL}customer-api/overweight-charge`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `token ${token}`,
+        Accept: 'application/json',
+      },
+    }
+  );
 
+  const response = await res.json();
+  const data = response.data;
+  return data;
+};
 /* ================= ADD / UPDATE CART ================= */
 export const addOrUpdateCart = async (
   token: string,

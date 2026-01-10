@@ -1,5 +1,7 @@
 import { ProductStyle } from '@/assets/css/style'
 import Header from '@/components/Header'
+import { addOrUpdateCart, CartItem, fetchCart, removeFromCartApi } from '@/service/cart'
+import { addToWishlistApi, getFromWishlistApi, removeFromWishlistApi } from '@/service/wishlist'
 import { useAppSelector } from '@/store/useAuth'
 import { colors } from '@/theme/colors'
 import { Ionicons } from '@expo/vector-icons'
@@ -8,29 +10,8 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Animated, Image, ImageBackground, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { scale, verticalScale } from 'react-native-size-matters'
-import { useDispatch, useSelector } from 'react-redux'
-import { addToWishlist, removeFromWishlist, selectWishlistItems } from '../../store/wishlistSlice'
-import { addOrUpdateCart, CartItem, fetchCart, removeFromCartApi } from '@/service/cart'
-import { addToWishlistApi, getFromWishlistApi, removeFromWishlistApi } from '@/service/wishlist'
-
-interface Product {
-  id: number;
-  name: string;
-  description: string;
-  regular_price: string;
-  product_images: { id: number; image: string }[];
-  product_variations: {
-    id: number;
-    name: string;
-    price: string;
-    unit_quantity: string;
-    image: string;
-    stock: number;
-  }[];
-  image: string | null;
-  category_name: { name: string };
-  store_name: { name: string };
-}
+import { Product } from '@/service/product';
+import { useDispatch } from 'react-redux'
 
 const Category = () => {
   const [selectedOption, setSelectedOption] = useState('Relevance');
@@ -204,10 +185,10 @@ const Category = () => {
     }
   };
 
-const filteredAndSortedProducts = useMemo(() => {
-  // First filter the products
-  let result = searchQuery
-    ? productsData.filter(product => {
+  const filteredAndSortedProducts = useMemo(() => {
+    // First filter the products
+    let result = searchQuery
+      ? productsData.filter(product => {
         const searchTerm = searchQuery.toLowerCase().trim();
         const productFirstWord = product.name.split(' ')[0].toLowerCase();
         const categoryFirstWord = (product.category_name?.name || '').split(' ')[0].toLowerCase();
@@ -216,31 +197,31 @@ const filteredAndSortedProducts = useMemo(() => {
           categoryFirstWord.startsWith(searchTerm)
         );
       })
-    : [...productsData];
+      : [...productsData];
 
-  // Then sort based on selected option
-  switch (selectedOption) {
-    case 'Price (low to high)':
-      result.sort((a, b) => parseFloat(a.regular_price) - parseFloat(b.regular_price));
-      break;
-    case 'Price (high to low)':
-      result.sort((a, b) => parseFloat(b.regular_price) - parseFloat(a.regular_price));
-      break;
-    case 'Popularity':
-      // Assuming higher stock means more popular - adjust this logic based on your actual popularity data
-      result.sort((a, b) => {
-        const aStock = a.product_variations?.[0]?.stock || 0;
-        const bStock = b.product_variations?.[0]?.stock || 0;
-        return bStock - aStock;
-      });
-      break;
-    // 'Relevance' is the default case and keeps the original order
-    default:
-      break;
-  }
+    // Then sort based on selected option
+    switch (selectedOption) {
+      case 'Price (low to high)':
+        result.sort((a, b) => parseFloat(a.regular_price) - parseFloat(b.regular_price));
+        break;
+      case 'Price (high to low)':
+        result.sort((a, b) => parseFloat(b.regular_price) - parseFloat(a.regular_price));
+        break;
+      case 'Popularity':
+        // Assuming higher stock means more popular - adjust this logic based on your actual popularity data
+        result.sort((a, b) => {
+          const aStock = a.product_variations?.[0]?.stock || 0;
+          const bStock = b.product_variations?.[0]?.stock || 0;
+          return bStock - aStock;
+        });
+        break;
+      // 'Relevance' is the default case and keeps the original order
+      default:
+        break;
+    }
 
-  return result;
-}, [productsData, searchQuery, selectedOption]);
+    return result;
+  }, [productsData, searchQuery, selectedOption]);
   return (
     <SafeAreaView style={{ flex: 1, paddingBottom: Math.max(insets.bottom, verticalScale(1)) }}>
       <ImageBackground
@@ -257,7 +238,7 @@ const filteredAndSortedProducts = useMemo(() => {
               onPress: () => {
                 setIsSearchActive(!isSearchActive);
                 if (isSearchActive) {
-                  setSearchQuery(''); 
+                  setSearchQuery('');
                 }
               }
             },
@@ -284,7 +265,7 @@ const filteredAndSortedProducts = useMemo(() => {
           {/* Products Section */}
           <View style={ProductStyle.productsSection}>
             <View style={ProductStyle.productsGrid}>
-             {filteredAndSortedProducts.length > 0 ? filteredAndSortedProducts.map((product: Product) => {
+              {filteredAndSortedProducts.length > 0 ? filteredAndSortedProducts.map((product: Product) => {
                 const qty = existingCartItem(product.id)?.quantity || 0;
                 return (
                   <TouchableOpacity
@@ -297,11 +278,11 @@ const filteredAndSortedProducts = useMemo(() => {
                           product: JSON.stringify({
                             id: product.id,
                             name: product.name,
-                            description: product.description || '',
-                            price: product.regular_price,
+                            full_description: product.full_description || '',
+                            regular_price: product.regular_price,
                             // product_images: product.product_images || [],
-                            images: product.product_images?.map((img) => img.image) || [],
-                            variations: product.product_variations?.map((variation) => ({
+                            image: product.product_images?.map((img) => img.image) || [],
+                            product_variations: product.product_variations?.map((variation) => ({
                               id: variation.id,
                               name: variation.name,
                               price: variation.price,
@@ -309,7 +290,16 @@ const filteredAndSortedProducts = useMemo(() => {
                               stock: variation.stock,
                             })) || [],
                             category: product.category_name?.name || '',
-                            seller: product.store_name?.name || 'Fresh Mart'
+                            store_name: product.store_name?.name || 'Fresh Mart',
+                            stars: product.stars || 0,
+                              reviews: product.reviews?.map((rev)=>{
+                              return {
+                                stars:rev.stars,
+                                comment:rev.comment,
+                                user:rev.user,
+                                date:rev.created_at,
+                              }
+                            }) || []
                           })
                         }
                       });

@@ -168,7 +168,8 @@ const styles = StyleSheet.create({
     fontFamily:'Montserrat',
     fontSize: moderateScale(16),
     fontWeight: '600',
-    textAlign:'center'
+    textAlign:'center',
+    width:scale(200)
   },
   rightIconsContainer: {
     flexDirection: 'row',

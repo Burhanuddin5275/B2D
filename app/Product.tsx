@@ -1,6 +1,7 @@
 import Header from '@/components/Header';
-import { CartItem, fetchCart, removeFromCartApi } from '@/service/cart';
-import { removeFromCart, selectCartItems, updateQuantity } from '@/store/cartSlice';
+import { CartItem, fetchCart, overweight, removeFromCartApi, weight } from '@/service/cart';
+import { Product } from '@/service/product';
+import { removeFromCart, updateQuantity } from '@/store/cartSlice';
 import { useAppDispatch, useAppSelector } from '@/store/useAuth';
 import { colors } from '@/theme/colors';
 import { API_URL } from '@/url/Api_Url';
@@ -18,28 +19,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import RenderHTML from 'react-native-render-html';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 
-interface ProductVariant {
-  id: number;
-  name: string;
-  price: number | string;
-  unit_quantity?: string;
-  stock?: number;
-}
 
-interface Product {
-  id: number;
-  name: string;
-  subtitle: string;
-  category: string;
-  price: number;
-  image: any;
-  seller: string;
-  images?: string[];
-  variations?: ProductVariant[];
-}
 
 const HIGHLIGHTS = [
   {
@@ -65,23 +49,27 @@ const HIGHLIGHTS = [
   },
 ];
 
-const RATING_BREAKDOWN = [
-  { id: '5', count: 506 },
-  { id: '4', count: 127 },
-  { id: '3', count: 316 },
-  { id: '2', count: 190 },
-  { id: '1', count: 126 },
-];
-
-
-
-const Product = () => {
+const ProductScreen = () => {
   const { product } = useLocalSearchParams();
   const dispatch = useAppDispatch();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
   const token = useAppSelector((s) => s.auth.token);
   const [isLoading, setIsLoading] = useState(false);
+    const [overweightConfig, setOverweightConfig] = useState< weight| null>(null);
+  
+    useEffect(() => {
+      const loadOverweight = async () => {
+        if (!token) return;
+        try {
+          const data = await overweight(token);
+          setOverweightConfig(data);
+        } catch (error) {
+          console.error('Overweight load failed', error);
+        }
+      };
+      loadOverweight();
+    }, [token]);
   useEffect(() => {
     console.log('Token:', cartItems);
     const loadCart = async () => {
@@ -101,7 +89,8 @@ const Product = () => {
               id: item.product.id,
               name: item.product.name,
               slug: item.product.slug,
-              product_images: item.product.product_images
+              product_images: item.product.product_images,
+              weight: item.product.weight
             },
             variation: {
               id: item.variation?.id || 0,
@@ -140,9 +129,9 @@ const Product = () => {
   const existingCartItem = useMemo(
     () => cartItems.find((item) =>
       item.product.id === parsedProduct.id &&
-      (!item.variation || item.variation.id === (parsedProduct.variations?.[selectedVariant]?.id || 0))
+      (!item.variation || item.variation.id === (parsedProduct.product_variations?.[selectedVariant]?.id || 0))
     ),
-    [cartItems, parsedProduct.id, selectedVariant, parsedProduct.variations]
+    [cartItems, parsedProduct.id, selectedVariant, parsedProduct.product_variations]
   );
 
   useEffect(() => {
@@ -157,8 +146,8 @@ const Product = () => {
 
 
   useEffect(() => {
-    if (parsedProduct.variations && parsedProduct.variations.length > 0) {
-      const selected = parsedProduct.variations[selectedVariant];
+    if (parsedProduct.product_variations && parsedProduct.product_variations.length > 0) {
+      const selected = parsedProduct.product_variations[selectedVariant];
       console.log('Selected variant:', {
         index: selectedVariant,
         id: selected?.id,
@@ -167,8 +156,8 @@ const Product = () => {
         price: selected?.price
       });
     }
-  }, [selectedVariant, parsedProduct.variations]);
-    /* ================= ADD TO CART ================= */
+  }, [selectedVariant, parsedProduct.product_variations]);
+  /* ================= ADD TO CART ================= */
 
   const handleAddToCart = async () => {
     if (!token || !isAuthenticated) {
@@ -181,7 +170,7 @@ const Product = () => {
         product: parsedProduct.id,
         quantity,
         variation:
-          parsedProduct.variations?.[selectedVariant]?.id,
+          parsedProduct.product_variations?.[selectedVariant]?.id,
       });
 
       const updatedCart = await fetchCart(token);
@@ -191,34 +180,34 @@ const Product = () => {
       alert('Failed to add item');
     }
   };
- /* ================= UPDATE CART ================= */
- const addOrUpdateCart = async (
-  token: string,
-  payload: {
-    id?: number;
-    product: number;
-    quantity: number;
-    variation?: number;
-  }
-) => {
-  const response = await fetch(`${API_URL}customer-api/cart`, {
-    method: 'POST',
-    headers: {
-      Authorization: `token ${token}`,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
+  /* ================= UPDATE CART ================= */
+  const addOrUpdateCart = async (
+    token: string,
+    payload: {
+      id?: number;
+      product: number;
+      quantity: number;
+      variation?: number;
+    }
+  ) => {
+    const response = await fetch(`${API_URL}customer-api/cart`, {
+      method: 'POST',
+      headers: {
+        Authorization: `token ${token}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
 
-  const json = await response.json();
+    const json = await response.json();
 
-  if (!response.ok) {
-    throw json;
-  }
+    if (!response.ok) {
+      throw json;
+    }
 
-  return json;
-};
+    return json;
+  };
   const handleRemoveFromCart = async () => {
     if (!existingCartItem || !token) return;
 
@@ -253,59 +242,74 @@ const Product = () => {
     setQuantity(newQuantity);
     dispatch(updateQuantity({ id: parsedProduct.id, quantity: newQuantity }));
   };
-const updateCartQuantity = async (newQuantity: number) => {
-  // Don't allow quantity less than 1
-  if (newQuantity < 1) return;
+  const updateCartQuantity = async (newQuantity: number) => {
+    // Don't allow quantity less than 1
+    if (newQuantity < 1) return;
 
-  // Update local state immediately for better UX
-  setQuantity(newQuantity);
+    // Update local state immediately for better UX
+    setQuantity(newQuantity);
 
-  if (!isAuthenticated || !token || !existingCartItem) return;
+    if (!isAuthenticated || !token || !existingCartItem) return;
 
-  try {
-    const selectedVar = parsedProduct.variations?.[selectedVariant];
-    const payload: any = {
-      id: existingCartItem.id, // Important: Include the cart item ID
-      product: parsedProduct.id,
-      quantity: newQuantity,
-    };
+    try {
+      const selectedVar = parsedProduct.product_variations?.[selectedVariant];
+      const payload: any = {
+        id: existingCartItem.id, // Important: Include the cart item ID
+        product: parsedProduct.id,
+        quantity: newQuantity,
+      };
 
-    if (selectedVar?.id) {
-      payload.variation = selectedVar.id;
-    }
-
-    const response = await fetch(
-      `${API_URL}customer-api/cart`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `token ${token}`,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify(payload),
+      if (selectedVar?.id) {
+        payload.variation = selectedVar.id;
       }
-    );
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Update quantity failed:', error);
+      const response = await fetch(
+        `${API_URL}customer-api/cart`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `token ${token}`,
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('Update quantity failed:', error);
+        // Revert quantity on error
+        setQuantity(quantity);
+        alert('Failed to update quantity');
+        return;
+      }
+
+      // Update local cart state
+      const updatedCart = await fetchCart(token);
+      setCartItems(updatedCart);
+    } catch (err) {
+      console.error('Update quantity failed:', err);
       // Revert quantity on error
       setQuantity(quantity);
-      alert('Failed to update quantity');
-      return;
+      alert('Failed to update quantity. Please try again.');
     }
-
-    // Update local cart state
-    const updatedCart = await fetchCart(token);
-    setCartItems(updatedCart);
-  } catch (err) {
-    console.error('Update quantity failed:', err);
-    // Revert quantity on error
-    setQuantity(quantity);
-    alert('Failed to update quantity. Please try again.');
-  }
-};
+  };
+  //Total Rating Caculation
+  const overallRating = useMemo(() => {
+    if (!parsedProduct?.reviews || parsedProduct.reviews.length === 0) return 0;
+    const totalStars = parsedProduct.reviews.reduce((sum, r) => sum + r.stars, 0);
+    return (totalStars / parsedProduct.reviews.length).toFixed(1);
+  }, [parsedProduct]);
+  const ratingBreakdown = useMemo(() => {
+    if (!parsedProduct?.reviews) return [];
+    const breakdown = [5, 4, 3, 2, 1].map((star) => {
+      const count = parsedProduct.reviews.filter(r => r.stars === star).length;
+      return { id: star.toString(), count };
+    });
+    return breakdown;
+  }, [parsedProduct]);
+  const reviewCount = parsedProduct?.reviews?.length || 0;
   return (
     <SafeAreaView style={styles.safeArea}>
       <ImageBackground
@@ -320,7 +324,7 @@ const updateCartQuantity = async (newQuantity: number) => {
           <View style={styles.imageContainer}>
             <FlatList
               ref={flatListRef}
-              data={parsedProduct.images || []} // 
+              data={parsedProduct.image || []} // 
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
@@ -343,7 +347,7 @@ const updateCartQuantity = async (newQuantity: number) => {
             />
 
             <View style={styles.carouselDots}>
-              {(parsedProduct.images || []).map((_, index) => (
+              {(parsedProduct.product_images || []).map((_, index) => (
                 <TouchableOpacity
                   key={index}
                   onPress={() => {
@@ -368,29 +372,29 @@ const updateCartQuantity = async (newQuantity: number) => {
             {/* {!!product.subtitle && (
               <Text style={styles.productSubtitle}>{product.subtitle}</Text>
             )} */}
-            <Text style={styles.sellerText}>Sold by {parsedProduct.seller}</Text>
+            <Text style={styles.sellerText}>Sold by {typeof parsedProduct.store_name === 'object' ? parsedProduct.store_name.name : parsedProduct.store_name}</Text>
 
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={styles.priceText}>${parsedProduct.price}</Text>
+              <Text style={styles.priceText}>${parsedProduct.regular_price}</Text>
               <View style={styles.ratingRow}>
                 <Ionicons name="star" size={18} color={colors.primaryDark} />
-                <Text style={styles.ratingScore}>(4.4)</Text>
-                <Text style={styles.ratingCount}>1079 reviews</Text>
+                <Text style={styles.ratingScore}>({overallRating})</Text>
+                <Text style={styles.ratingCount}>{reviewCount} reviews</Text>
               </View>
             </View>
-            {parsedProduct.variations && parsedProduct.variations.length > 0 && (
+            {parsedProduct.product_variations && parsedProduct.product_variations.length > 0 && (
               <>
                 <Text style={styles.packLabel}>Available Variants</Text>
                 <FlatList
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  data={parsedProduct.variations}
+                  data={parsedProduct.product_variations}
                   keyExtractor={(_, index) => index.toString()}
                   contentContainerStyle={styles.variantsContainer}
                   renderItem={({ item: variant, index }) => {
                     const isActive = index === selectedVariant;
                     const price = typeof variant.price === 'number'
-                      ? `$${variant.price.toFixed(2)}`
+                      ? `$${variant.price}`
                       : variant.price;
 
                     return (
@@ -433,6 +437,13 @@ const updateCartQuantity = async (newQuantity: number) => {
                 />
               </>
             )}
+            <View>
+              <Text style={styles.descriptionTitle}>Description:</Text>
+              <RenderHTML
+                contentWidth={scale(80)}
+                source={{ html: parsedProduct.full_description || 'No description available' }}
+              />
+            </View>
             <View style={styles.disclaimerBadge}>
               <Text style={styles.disclaimerTitle}>
                 Disclaimer: Weight of the vegetables will vary based on their
@@ -440,7 +451,7 @@ const updateCartQuantity = async (newQuantity: number) => {
               </Text>
             </View>
             <Text style={styles.disclaimerNote}>
-              Note: Paid shipping for order weight above 25lb
+              Note: Paid shipping for order weight above {overweightConfig?.weight}lb
             </Text>
           </View>
 
@@ -469,27 +480,24 @@ const updateCartQuantity = async (newQuantity: number) => {
             <View style={styles.ratingsContent}>
               <View style={styles.ratingSummary}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={styles.ratingValue}>4.4</Text>
+                  <Text style={styles.ratingValue}>{overallRating}</Text>
                   <Ionicons name="star" size={28} color={colors.primaryDark} style={{ marginLeft: 4 }} />
                 </View>
-                <Text style={styles.ratingCustomers}>1267 customers</Text>
+                <Text style={styles.ratingCustomers}>
+                  {parsedProduct.reviews?.length || 0} customers
+                </Text>
               </View>
 
               <View style={styles.ratingBreakdown}>
-                {RATING_BREAKDOWN.map((item) => {
-                  const maxReviewCount = Math.max(...RATING_BREAKDOWN.map(r => r.count));
-                  const widthPercent = (item.count / maxReviewCount) * 100;
+                {ratingBreakdown.map((item) => {
+                  const maxCount = Math.max(...ratingBreakdown.map(r => r.count)) || 1; // avoid division by 0
+                  const widthPercent = (item.count / maxCount) * 100;
                   return (
                     <View key={item.id} style={styles.breakdownRow}>
                       <Text style={styles.breakdownLabel}>{item.id}</Text>
                       <Ionicons name="star" size={10} color={'gray'} />
                       <View style={styles.progressTrack}>
-                        <View
-                          style={[
-                            styles.progressFill,
-                            { width: `${widthPercent}%` },
-                          ]}
-                        />
+                        <View style={[styles.progressFill, { width: `${widthPercent}%` }]} />
                       </View>
                       <Text style={styles.breakdownValue}>{item.count}</Text>
                     </View>
@@ -498,47 +506,60 @@ const updateCartQuantity = async (newQuantity: number) => {
               </View>
             </View>
 
+
             <View style={styles.reviewsSection}>
               <Text style={styles.reviewsHeading}>Customer Reviews</Text>
 
-              <View style={styles.reviewItem}>
-                <View style={styles.reviewHeader}>
-                  <View style={styles.reviewRating}>
-                    <Ionicons name="star" size={16} color={colors.primaryDark} />
-                    <Text style={styles.reviewRatingText}>5.0</Text>
-                  </View>
-                  <Text style={styles.reviewerName}>John D.</Text>
-                  <Text style={styles.reviewDate}>• 2 days ago</Text>
-                </View>
-                <Text style={styles.reviewTitle}>Amazing taste and quality!</Text>
-                <Text style={styles.reviewText}>
-                  These crackers are absolutely delicious! Perfectly crispy and buttery.
-                  Will definitely buy again. The family size is perfect for sharing.
-                </Text>
-              </View>
+              {parsedProduct.reviews && parsedProduct.reviews.length > 0 ? (
+                parsedProduct.reviews.map((review: any, index: number) => (
+                  <View key={index} style={styles.reviewItem}>
+                    <View style={styles.reviewHeader}>
+                      <View style={styles.reviewRating}>
+                        {/* Show stars */}
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Ionicons
+                            key={i}
+                            name={i < review.stars ? 'star' : 'star-outline'}
+                            size={16}
+                            color={colors.primaryDark}
+                          />
+                        ))}
+                        <Text style={styles.reviewRatingText}>{review.stars.toFixed(1)}</Text>
+                      </View>
 
-              <View style={styles.reviewItem}>
-                <View style={styles.reviewHeader}>
-                  <View style={styles.reviewRating}>
-                    <Ionicons name="star" size={16} color={colors.primaryDark} />
-                    <Text style={styles.reviewRatingText}>4.0</Text>
-                  </View>
-                  <Text style={styles.reviewerName}>Sarah M.</Text>
-                  <Text style={styles.reviewDate}>• 1 week ago</Text>
-                </View>
-                <Text style={styles.reviewTitle}>Great value for money</Text>
-                <Text style={styles.reviewText}>
-                  Good quality crackers at a reasonable price. The pack arrived
-                  in perfect condition. The taste is great, though I wish they
-                  were a bit less salty.
-                </Text>
-              </View>
+                      <Text style={styles.reviewerName}>
+                        {review.user?.first_name} {review.user?.last_name}
+                      </Text>
 
-              <TouchableOpacity style={styles.seeAllReviewsButton}>
-                <Text style={styles.seeAllReviewsText}>See all 1,079 reviews</Text>
-                <Ionicons name="chevron-forward" size={16} color={colors.primaryDark} />
-              </TouchableOpacity>
+                      <Text style={styles.reviewDate}>
+                        {/* If you have a date, format it nicely */}
+                        {review.date ? `• ${new Date(review.date).toLocaleDateString()}` : ''}
+                      </Text>
+                    </View>
+
+                    <Text style={styles.reviewTitle}>
+                      {review.title || 'Comment'}
+                    </Text>
+
+                    <Text style={styles.reviewText}>{review.comment}</Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={{ fontFamily: 'MontserratMedium', marginTop: verticalScale(12) }}>
+                  No reviews yet.
+                </Text>
+              )}
+
+              {parsedProduct.reviews && parsedProduct.reviews.length > 0 && (
+                <TouchableOpacity style={styles.seeAllReviewsButton}>
+                  <Text style={styles.seeAllReviewsText}>
+                    See all {parsedProduct.reviews.length} reviews
+                  </Text>
+                  <Ionicons name="chevron-forward" size={16} color={colors.primaryDark} />
+                </TouchableOpacity>
+              )}
             </View>
+
           </View>
         </ScrollView>
 
@@ -599,7 +620,7 @@ const updateCartQuantity = async (newQuantity: number) => {
   );
 };
 
-export default Product;
+export default ProductScreen;
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -644,7 +665,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
     paddingVertical: 8,
     borderRadius: 20,
     marginHorizontal: '25%',
@@ -705,11 +725,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   disabledButton: {
-  opacity: 0.5,
-  backgroundColor: 'gray', 
-},
+    opacity: 0.5,
+    backgroundColor: 'gray',
+  },
   removeButton: {
-    backgroundColor: '#ff4444', 
+    backgroundColor: '#ff4444',
     flex: 1,
     height: verticalScale(50),
     borderRadius: 8,
@@ -749,6 +769,12 @@ const styles = StyleSheet.create({
     fontWeight: 600,
     fontSize: moderateScale(16),
     lineHeight: 22,
+  },
+  descriptionTitle: {
+    marginTop: verticalScale(6),
+    fontFamily: 'PoppinsMedium',
+    fontWeight: 400,
+    fontSize: moderateScale(15),
   },
   productSubtitle: {
     marginTop: verticalScale(6),
@@ -966,6 +992,7 @@ const styles = StyleSheet.create({
   reviewHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: verticalScale(8),
   },
   reviewRating: {
@@ -987,7 +1014,7 @@ const styles = StyleSheet.create({
   },
   reviewDate: {
     fontFamily: 'MontserratMedium',
-    fontSize: moderateScale(11),
+    fontSize: moderateScale(12),
     color: '#7C7754',
   },
   reviewTitle: {

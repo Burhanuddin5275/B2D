@@ -12,25 +12,7 @@ import { ProductStyle } from '@/assets/css/style'
 import { useAppSelector } from '@/store/useAuth'
 import { addOrUpdateCart, CartItem, fetchCart, removeFromCartApi } from '@/service/cart'
 import { addToWishlistApi, getFromWishlistApi, removeFromWishlistApi } from '@/service/wishlist'
-
-interface Product {
-  id: number;
-  name: string;
-  description: string;
-  regular_price: string;
-  product_images: { id: number; image: string }[];
-  product_variations: {
-    id: number;
-    name: string;
-    price: string;
-    unit_quantity: string;
-    image: string;
-    stock: number;
-  }[];
-  image: string | null;
-  category_name: { name: string };
-  store_name: { name: string };
-}
+import { Product } from '@/service/product'
 
 const Store = () => {
   const [selectedOption, setSelectedOption] = useState('Relevance');
@@ -285,14 +267,14 @@ const filteredAndSortedProducts = useMemo(() => {
                       router.push({
                         pathname: '/Product',
                         params: {
-                          product: JSON.stringify({
+                           product: JSON.stringify({
                             id: product.id,
                             name: product.name,
-                            description: product.description || '',
-                            price: product.regular_price,
+                            full_description: product.full_description || '',
+                            regular_price: product.regular_price,
                             // product_images: product.product_images || [],
-                            images: product.product_images?.map((img) => img.image) || [],
-                            variations: product.product_variations?.map((variation) => ({
+                            image: product.product_images?.map((img) => img.image) || [],
+                            product_variations: product.product_variations?.map((variation) => ({
                               id: variation.id,
                               name: variation.name,
                               price: variation.price,
@@ -300,7 +282,16 @@ const filteredAndSortedProducts = useMemo(() => {
                               stock: variation.stock,
                             })) || [],
                             category: product.category_name?.name || '',
-                            seller: product.store_name?.name || 'Fresh Mart'
+                            store_name: product.store_name?.name || 'Fresh Mart',
+                             stars: product.stars || 0,
+                            reviews: product.reviews?.map((rev)=>{
+                              return {
+                                stars:rev.stars,
+                                comment:rev.comment,
+                                user:rev.user,
+                                date:rev.created_at,
+                              }
+                            }) || []
                           })
                         }
                       });

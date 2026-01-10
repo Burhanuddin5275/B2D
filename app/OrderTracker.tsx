@@ -1,222 +1,120 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, ActivityIndicator, ImageBackground, ScrollView, Text } from 'react-native';
+import { useAppSelector } from '@/store/useAuth';
+import { router, useLocalSearchParams } from 'expo-router';
+import { scale, verticalScale } from 'react-native-size-matters';
+import { colors } from '@/theme/colors';
 import Header from '@/components/Header';
 import { CancelOrderModal } from '@/components/modal';
 import StatusModal from '@/components/success';
-import { cancelOrderApi, fetchOrderById } from '@/service/order';
-import { fetchReview, ProductReview, reviewApi } from '@/service/review';
-import { useAppSelector } from '@/store/useAuth';
-import { colors } from '@/theme/colors';
-import { ImageBackground } from 'expo-image';
-import { router, useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Image,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from 'react-native';
+import { fetchOrderById } from '@/service/order';
+import { fetchReview, reviewApi, ProductReview } from '@/service/review';
+import { getTimelineStatuses } from '@/components/utilities/TimelineStatuses';
+import OrderTimeline from '@/components/order/OrderTimeline';
+import OrderDeliveryInfo from '@/components/order/OrderDeliveryInfo';
+import OrderItems from '@/components/order/OrderItems';
+import OrderPricing from '@/components/order/OrderPricing';
+import RatingModal from '@/components/order/RatingModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
+import OrderOtpModal from '@/components/order/OrderOtpModal';
 
-
-const getTimelineStatuses = (statusArray: any[], timeString: string, orderData: any) => {
-  const latestStatus = statusArray.length > 0
-    ? statusArray[statusArray.length - 1].status.toLowerCase()
-    : 'placed';
-
-  const now = new Date();
-
-  const timelineSteps = [
-    { label: 'Order placed!', time: orderData.created_at },
-    { label: 'Preparing for dispatch', time: '' }, // step 1
-    { label: 'Out for delivery', time: '' },      // step 2
-    { label: 'Delivered', time: '' },             // step 3
-  ];
-
-  let activeIndex = 0;
-
-  if (latestStatus === 'placed') {
-    activeIndex = 0;
-  } else if (latestStatus === 'preparing for dispatch') {
-    activeIndex = 1;
-    const prepStep = statusArray.find((s: any) => s.status.toLowerCase() === 'preparing for dispatch');
-    timelineSteps[1].time = prepStep?.created_at || timeString;
-  } else if (latestStatus === 'out for delivery') {
-    activeIndex = 2;
-    const prepStep = statusArray.find((s: any) => s.status.toLowerCase() === 'preparing for dispatch');
-    timelineSteps[1].time = prepStep?.created_at || timeString;
-    const deliveryStep = statusArray.find((s: any) => s.status.toLowerCase() === 'out for delivery');
-    timelineSteps[2].time = deliveryStep?.created_at || timeString;
-  } else if (latestStatus === 'delivered') {
-    activeIndex = 3;
-    const prepStep = statusArray.find((s: any) => s.status.toLowerCase() === 'preparing for dispatch');
-    timelineSteps[1].time = prepStep?.created_at || timeString;
-    const deliveryStep = statusArray.find((s: any) => s.status.toLowerCase() === 'out for delivery');
-    timelineSteps[2].time = deliveryStep?.created_at || timeString;
-    const deliveredStep = statusArray.find((s: any) => s.status.toLowerCase() === 'delivered');
-    timelineSteps[3].time = deliveredStep?.created_at || timeString;
-  } else if (latestStatus === 'cancelled') {
-    const cancelledStatus = statusArray.find((s: any) => s.status.toLowerCase() === 'cancelled');
-    return {
-      steps: [
-        timelineSteps[0],
-        { label: 'Cancelled by you / store', time: cancelledStatus?.created_at || timeString, isCancelled: true }
-      ],
-      activeIndex: 1,
-      isCancelled: true,
-    };
-  }
-
-  return {
-    steps: timelineSteps,
-    activeIndex,
-    isCancelled: false,
-  };
-};
 const OrderTracker = () => {
   const params = useLocalSearchParams<{ orderId?: string }>();
   const orderId = params.orderId;
+  const token = useAppSelector(s => s.auth.token);
 
   const [orderData, setOrderData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState<ProductReview[]>([]);
 
-  // Rating modal states
+  // Modals
   const [ratingModalVisible, setRatingModalVisible] = useState(false);
   const [ratingItem, setRatingItem] = useState<any>(null);
   const [userRating, setUserRating] = useState(0);
   const [userComment, setUserComment] = useState('');
-  const token = useAppSelector((s) => s.auth.token);
   const [isCancelModalVisible, setIsCancelModalVisible] = useState(false);
-  const [reviews, setReviews] = useState<ProductReview[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [message, setMessage] = useState('');
   const [otpModalVisible, setOtpModalVisible] = useState(false);
-  const [otpMessage, setOtpMessage] = useState('');
+  const [message, setMessage] = useState('');
 
+  // Fetch Reviews
   useEffect(() => {
+    if (!token) return;
     const getReviews = async () => {
-      if (!token) return;
       try {
         const allReviews = await fetchReview(token);
         setReviews(allReviews);
-      } catch (err) {
-        console.error('Error fetching reviews:', err);
-      }
+      } catch (err) { console.error(err); }
     };
     getReviews();
   }, [token]);
-  const isProductReviewed = (productId: number) => {
-    return reviews.some(
-      (r) => r.order?.toString() === orderId?.toString() && r.product === productId
-    );
-  };
+
+  const isProductReviewed = (productId: number) =>
+    reviews.some(r => r.order?.toString() === orderId?.toString() && r.product === productId);
+
+  // Fetch Order
   useEffect(() => {
+    if (!orderId) return;
     const getOrder = async () => {
-      if (!orderId) return;
       try {
         const data = await fetchOrderById(orderId, token || '');
         setOrderData({
           ...data,
-          // Ensure status is always an array
-          status: Array.isArray(data.status) ? data.status : [{ status: 'processing', created_at: new Date().toISOString() }]
+          status: Array.isArray(data.status) ? data.status : [{ status: 'processing', created_at: new Date().toISOString() }],
         });
-      } catch (error) {
-        console.error('Error fetching order:', error);
-      } finally {
-        setLoading(false);
-      }
+      } catch (error) { console.error(error); }
+      finally { setLoading(false); }
     };
     getOrder();
-  }, [orderId]);
-  useEffect(() => {
-    if (!orderData || !token) return;
+  }, [orderId, token]);
 
-    const latestStatus = orderData.status[orderData.status.length - 1]?.status.toLowerCase();
-
-    if (latestStatus === 'out for delivery') {
-      const fetchOtp = async () => {
-        try {
-          const response = await fetch(
-            `https://mart2door.com/customer-api/get-order-otp/${orderData.id}`,
-            {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `token ${token}`,
-              },
-            }
-          );
-          const data = await response.json();
-          console.log('OTP API response:', data);
-
-          if (data?.data?.otp) {
-            setOtpMessage(`${data.data.otp}`); // show only OTP
-            setOtpModalVisible(true);
-          };
-        } catch (err) {
-          console.error('Error fetching OTP:', err);
-        }
-      };
-
-      fetchOtp();
-    }
-  }, [orderData, token]);
-
-  const handleOpenRatingModal = (item: any) => {
-    console.log('Selected item:', item);
-    setRatingItem(item);
-    setUserRating(0);
-    setUserComment('');
-    setRatingModalVisible(true);
-  };
-
-  const renderStars = useMemo(
-    () =>
-      Array.from({ length: 5 }, (_, index) => {
-        const value = index + 1;
-        const isHalfFilled = userRating > value - 0.5 && userRating < value;
-        const isFilled = value <= userRating;
-        return (
-          <TouchableOpacity key={value} onPress={() => setUserRating(value)} activeOpacity={0.8}>
-            <Text style={[styles.starIcon, isFilled && styles.starIconFilled]}>★</Text>
-          </TouchableOpacity>
-        );
-      }),
+  // Rating Modal Stars
+  const renderStars = useMemo(() =>
+    Array.from({ length: 5 }, (_, index) => {
+      const value = index + 1;
+      const isFilled = value <= userRating;
+      return (
+        <Text key={value} onPress={() => setUserRating(value)} style={{ fontSize: 26, color: isFilled ? colors.primaryDark : colors.textSecondary }}>★</Text>
+      );
+    }),
     [userRating]
   );
 
+  // Submit Product Review
+  const handleSubmitReview = async () => {
+    if (!ratingItem) return;
+    const payload = { order: orderId, product: ratingItem.productId, stars: Number(userRating), comment: userComment.trim() };
+    const response = await reviewApi(token || '', payload);
+    setMessage(response.message);
+    setShowSuccess(true);
+    setRatingModalVisible(false);
+  };
 
-  if (!orderData) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primaryDark} />
-      </View>
-    );
-  }
+  // Cancel Order
+  const handleCancelOrder = async (reason: string) => {
+    if (!token || !orderId) return;
+    try {
+      const { cancelOrderApi } = await import('@/service/order');
+      const json = await cancelOrderApi(token, orderId, reason);
+      setMessage(json.message);
+      setShowSuccess(true);
+      setIsCancelModalVisible(false);
+    } catch (err) { console.error(err); }
+  };
 
-  // Extract order info
-  const { steps, activeIndex, isCancelled } = getTimelineStatuses(
-    orderData.status || [],
-    orderData.updated_at || new Date().toISOString(),
-    orderData
+  if (loading) return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.white }}>
+      <ActivityIndicator size="large" color={colors.primaryDark} />
+    </View>
   );
-  const latestStatus =
-    orderData?.status?.[orderData.status.length - 1]?.status?.toLowerCase();
 
-  const deliveryType = orderData.delivery_type ?? 'Express Delivery';
-  const schedule_order = orderData.schedule_order
-  const deliveryAddress = `${orderData.shipping.address_line1}, ${orderData.shipping.city}, ${orderData.shipping.state}, ${orderData.shipping.country}`;
-  const comment = orderData.delivery_instructions ?? 'No comment';
-  const paymentMode = orderData.payment_method ?? 'Credit Card';
-  const productsTotal = parseFloat(orderData.sub_total_price ?? '0');
-  const deliveryCharges = parseFloat(orderData.shipping_price ?? '0');
-  const taxAmount = 0;
-  const totalAmount = parseFloat(orderData.total_price ?? '0');
+  if (!orderData) return <Text>Order not found</Text>;
 
+  // Timeline
+  const { steps, activeIndex, isCancelled } = getTimelineStatuses(orderData.status || [], orderData.updated_at || new Date().toISOString(), orderData);
+  const latestStatus = orderData.status[orderData.status.length - 1]?.status?.toLowerCase();
+
+  // Order Items
   const items = orderData.order_items?.map((item: any) => ({
     orderItemId: item.id,
     productId: item.product.id,
@@ -227,552 +125,83 @@ const OrderTracker = () => {
     image: { uri: item.product.product_images[0]?.image },
     ratingLabel: 'Rate product',
   }));
-  const handleSubmitReview = async () => {
-    const payload = {
-      order: orderId,
-      product: ratingItem.productId,
-      stars: Number(userRating),
-      comment: userComment.trim(),
-    };
-    const response = await reviewApi(token || '', payload);
-    setShowSuccess(true);
-    setMessage(response.message)
-    setRatingModalVisible(false);
-  };
 
-  const handleCancelOrder = async (reason: string) => {
-    try {
-      if (!token) {
-        throw new Error('Please login to cancel the order');
-      }
-
-      if (!orderId) {
-        throw new Error('Invalid order ID');
-      }
-
-      // Correct parameter order: token, cancel_reason, orderId
-      const json = await cancelOrderApi(token, orderId, reason);
-      setShowSuccess(true);
-      setMessage(json.message)
-
-      console.log('Cancellation response:', json.message);
-
-      setIsCancelModalVisible(false);
-
-    } catch (error: any) {
-      console.error('Error cancelling order:', error);
-      const errorMessage = error.response?.data?.message ||
-        error.message ||
-        'Failed to submit cancellation request. Please try again.';
-      throw new Error(errorMessage);
-    }
-  };
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={{ flex: 1 }}>
       <StatusModal
         visible={showSuccess}
         type="success"
         title="Success!"
         message={message}
-        onClose={() => {
-          setShowSuccess(false);
-          router.back();
-        }}
-        dismissAfter={2000}
-        showButton={false}
-      />
-      <StatusModal
-        visible={otpModalVisible}
-        type="info"
-        title="Delivery OTP"
-        message={otpMessage}
-        onClose={() => setOtpModalVisible(false)}
+        onClose={() => { setShowSuccess(false); router.back(); }}
         dismissAfter={2000}
         showButton={false}
       />
 
-      <ImageBackground source={require('../assets/images/background.png')} style={styles.background}>
+      <ImageBackground source={require('../assets/images/background.png')} style={{ flex: 1, backgroundColor: colors.white }}>
         <Header title={`Order ${orderData.order_no}`} showDefaultIcons={false} />
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          {/* Timeline */}
-          <View style={styles.card}>
-            {steps.map((entry, index) => {
-              const isLast = index === steps.length - 1;
-              const isActive = index <= activeIndex;
-              const isCancelledStep = isCancelled && index === 1;
+        <ScrollView contentContainerStyle={{ paddingHorizontal: scale(16), paddingBottom: verticalScale(24) }} showsVerticalScrollIndicator={false}>
 
-              return (
-                <View key={`${entry.label}-${index}`} style={styles.timelineRow}>
-                  <View style={styles.timelineIndicatorColumn}>
-                    <View
-                      style={[
-                        styles.dotWrapper,
-                        {
-                          backgroundColor: isCancelledStep ? 'red' : isActive ? '#23B14D' : '#D3D3D3',
-                          borderColor: isCancelledStep ? 'red' : isActive ? '#23B14D' : '#D3D3D3',
-                        },
-                      ]}
-                    >
-                      <View style={styles.timelineDot} />
-                    </View>
-                    {!isLast && <View style={[styles.timelineLine, { backgroundColor: isActive ? '#23B14D' : 'white' }]} />}
-                  </View>
-                  <View style={styles.timelineContent}>
-                    <Text style={styles.timelineLabel}>{entry.label}</Text>
-                    {entry.time && <Text style={styles.timelineTime}>{entry.time}</Text>}
-                  </View>
-                </View>
-              );
-            })}
-          </View>
+          {/* Timeline */}
+          <OrderTimeline steps={steps} activeIndex={activeIndex} isCancelled={isCancelled} />
 
           {/* Delivery Info */}
-          <View style={styles.card}>
-            <Text style={styles.infoLabel}>
-              Delivery type:<Text style={styles.infoValueHighlight}> {deliveryType}</Text>
-            </Text>
-            {deliveryType === 'regular' && (
-              <Text style={styles.infoLabel}>
-                Delivery Date:<Text style={styles.infoValueText}> {schedule_order}</Text>
-              </Text>
-            )}
-            <Text style={[styles.infoLabel, { marginTop: verticalScale(5) }]}>
-              Delivery address: <Text style={styles.infoValueText}>{deliveryAddress}</Text>
-            </Text>
-            <Text style={[styles.infoLabel, { marginTop: verticalScale(5) }]}>
-              Comment by you: <Text style={styles.infoValueText}>{`${comment}` || 'none'}</Text>
-            </Text>
-          </View>
+          <OrderDeliveryInfo
+            deliveryType={orderData.delivery_type ?? 'Express Delivery'}
+            schedule_order={orderData.schedule_order}
+            deliveryAddress={`${orderData.shipping.address_line1}, ${orderData.shipping.city}, ${orderData.shipping.state}, ${orderData.shipping.country}`}
+            comment={orderData.delivery_instructions ?? 'No comment'}
+          />
 
           {/* Order Items */}
-          <View style={styles.card}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Order items</Text>
-              <Text style={styles.sectionMeta}>{items.length} products</Text>
-            </View>
-            {items.map((item: any, index: number) => (
-              <View key={item.orderItemId} style={[styles.itemRow, index !== items.length - 1 && styles.itemDivider]}>
-                <Image source={item.image} style={styles.itemImage} />
-                <View style={styles.itemDetails}>
-                  <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
-                  {item.variant && (
-                    <Text style={[styles.itemName, { color: colors.textPrimary, fontSize: moderateScale(12) }]}
-                      numberOfLines={1}>
-                      {item.variant}
-                    </Text>
-                  )}
-                  <View style={styles.priceRatingContainer}>
-                    <Text style={styles.itemPrice}>
-                      ${item.price.toFixed(2)} ({item.qty})
-                    </Text>
-                    {latestStatus === 'delivered' && (
-                      <TouchableOpacity
-                        onPress={() => handleOpenRatingModal(item)}
-                        disabled={isProductReviewed(item.productId)}
-                      >
-                        <Text
-                          style={[
-                            styles.itemAction,
-                            isProductReviewed(item.productId) && { color: 'gray' },
-                          ]}
-                        >
-                          {isProductReviewed(item.productId) ? 'Reviewed' : item.ratingLabel}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-
-                  </View>
-                </View>
-              </View>
-            ))}
-          </View>
-
-          {/* Payment */}
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Payment mode</Text>
-            <Text style={styles.infoValueText}>{paymentMode}</Text>
-          </View>
+          <OrderItems items={items} latestStatus={latestStatus} isProductReviewed={isProductReviewed} onRateProduct={(item) => { setRatingItem(item); setUserRating(0); setUserComment(''); setRatingModalVisible(true); }} />
 
           {/* Pricing */}
-          <View style={{ paddingHorizontal: scale(16) }}>
-            <Text style={styles.sectionTitle}>Pricing Summary</Text>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Products ({items.length} items)</Text>
-              <Text style={styles.summaryValue}>${productsTotal.toFixed(2)}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Delivery charges</Text>
-              <Text style={styles.summaryValue}>${deliveryCharges.toFixed(2)}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Tax</Text>
-              <Text style={styles.summaryValue}>${taxAmount.toFixed(2)}</Text>
-            </View>
-            <View style={[styles.summaryRow, styles.summaryTotalRow]}>
-              <Text style={styles.summaryTotalLabel}>Total amount:</Text>
-              <Text style={styles.summaryTotalValue}>${totalAmount.toFixed(2)}</Text>
-            </View>
-            <CancelOrderModal
-              isVisible={isCancelModalVisible}
-              onClose={() => setIsCancelModalVisible(false)}
-              onSubmit={handleCancelOrder}
-              title="Cancel Order"
-              subtitle="We're sorry to see you go. Please let us know why you're canceling."
-              cancelButtonText="Don't Cancel"
-              submitButtonText="Confirm Cancellation"
-            />
-            {latestStatus === 'placed' && !isCancelled && (
-              <TouchableOpacity
-                style={[
-                  styles.summaryRow,
-                  { marginTop: verticalScale(20), justifyContent: 'center' },
-                ]}
-                onPress={() => setIsCancelModalVisible(true)}
-              >
-                <Text
-                  style={{
-                    color: 'red',
-                    fontFamily: 'InterRegular',
-                    fontSize: moderateScale(14),
-                  }}
-                >
-                  Cancel Order
-                </Text>
-              </TouchableOpacity>
-            )}
+          <OrderPricing
+            paymentMode={orderData.payment_method ?? 'Credit Card'}
+            productsTotal={parseFloat(orderData.sub_total_price ?? '0')}
+            deliveryCharges={parseFloat(orderData.shipping_price ?? '0')}
+            overweightCharge={orderData.flat_charge}
+            taxAmount={0}
+            totalAmount={parseFloat(orderData.total_price ?? '0')}
+            itemsCount={items.length}
+            latestStatus={latestStatus}
+            isCancelled={isCancelled}
+            onCancelPress={() => setIsCancelModalVisible(true)}
+          />
 
-          </View>
+          <CancelOrderModal
+            isVisible={isCancelModalVisible}
+            onClose={() => setIsCancelModalVisible(false)}
+            onSubmit={handleCancelOrder}
+            title="Cancel Order"
+            subtitle="We're sorry to see you go. Please let us know why you're canceling."
+            cancelButtonText="Don't Cancel"
+            submitButtonText="Confirm Cancellation"
+          />
         </ScrollView>
 
         {/* Rating Modal */}
-        <Modal visible={ratingModalVisible} transparent animationType="fade" onRequestClose={() => setRatingModalVisible(false)}>
-          <View style={styles.modalOverlay}>
-            <View style={styles.ratingModal}>
-              <View style={styles.ratingModalHeader}>
-                <Text style={styles.ratingModalTitle}>Rate product</Text>
-                <TouchableOpacity onPress={() => setRatingModalVisible(false)}>
-                  <Text style={styles.modalClose}>✕</Text>
-                </TouchableOpacity>
-              </View>
-              {ratingItem && (
-                <>
-                  <View style={styles.ratingItemRow}>
-                    <Image source={ratingItem.image} style={styles.ratingItemImage} />
-                    <View style={styles.ratingItemInfo}>
-                      <Text style={styles.ratingItemName} numberOfLines={2}>{ratingItem.name}</Text>
-                      {ratingItem.variant && (
-                        <Text style={[styles.itemName, { color: colors.textPrimary, fontSize: moderateScale(12) }]}
-                          numberOfLines={1}>
-                          {ratingItem.variant}
-                        </Text>
-                      )}
-                      <Text style={styles.ratingItemPrice}>
-                        ${ratingItem.price.toFixed(2)} ({ratingItem.qty})
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.ratingContainer}>
-                    <View style={styles.starRow}>{renderStars}</View>
-                    <Text style={styles.ratingText}>{userRating > 0 ? `${userRating}` : '0'}</Text>
-                  </View>
-                  <TextInput
-                    style={styles.commentInput}
-                    placeholder="Write your feedback..."
-                    placeholderTextColor="#A7A7A7"
-                    multiline
-                    value={userComment}
-                    onChangeText={setUserComment}
-                  />
-                  <TouchableOpacity style={styles.submitRatingButton} activeOpacity={0.85} onPress={handleSubmitReview}>
-                    <Text style={styles.submitRatingButtonText}>Submit review</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
-          </View>
-        </Modal>
+        <RatingModal
+          visible={ratingModalVisible}
+          item={ratingItem}
+          userRating={userRating}
+          userComment={userComment}
+          setUserRating={setUserRating}
+          setUserComment={setUserComment}
+          onClose={() => setRatingModalVisible(false)}
+          onSubmit={handleSubmitReview}
+          renderStars={renderStars}
+        />
+        <OrderOtpModal
+          orderId={orderData.id}
+          token={token || ''}
+          visible={latestStatus === 'out for delivery'}
+          onClose={() => { setOtpModalVisible(false) }}
+        />
       </ImageBackground>
     </SafeAreaView>
   );
 };
 
 export default OrderTracker;
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-  background: {
-    flex: 1,
-    backgroundColor: colors.white
-  },
-  scroll: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.white,
-  },
-  scrollContent: {
-    paddingHorizontal: scale(16),
-    paddingBottom: verticalScale(24),
-    paddingTop: verticalScale(12),
-    gap: verticalScale(16),
-  },
-  card: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#EDE9D9',
-    paddingHorizontal: scale(16),
-    paddingBottom: verticalScale(12),
-  },
-  priceRatingContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: verticalScale(4),
-  },
-  timelineRow: {
-    flexDirection: 'row',
-    marginBottom: verticalScale(12),
-  },
-  timelineIndicatorColumn: {
-    width: scale(24),
-    alignItems: 'center',
-  },
-  dotWrapper: {
-    width: scale(14),
-    height: scale(14),
-    borderRadius: scale(8),
-    borderWidth: 1.5,
-    backgroundColor: 'green',
-    borderColor: 'green',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  timelineDot: {
-    width: scale(7),
-    height: scale(7),
-    borderRadius: scale(8),
-    backgroundColor: colors.white,
-  },
-  timelineLine: {
-    width: 2,
-    flex: 1,
-    backgroundColor: '#c2edcfff',
-    marginTop: verticalScale(4),
-  },
-  timelineContent: {
-    flex: 1,
-    paddingLeft: scale(8),
-  },
-  timelineLabel: {
-    fontFamily: 'Montserrat',
-    fontWeight: 600,
-    fontSize: moderateScale(15),
-  },
-  timelineTime: {
-    fontFamily: 'MontserratMedium',
-    fontWeight: 600,
-    fontSize: moderateScale(12),
-    color: colors.textPrimary,
-    marginTop: verticalScale(4),
-  },
-  infoLabel: {
-    fontFamily: 'Montserrat',
-    fontWeight: 600,
-    fontSize: moderateScale(14),
-  },
-  infoValueHighlight: {
-    color: '#23B14D',
-    fontFamily: 'Montserrat',
-    fontWeight: 600,
-  },
-  infoValueText: {
-    fontFamily: 'MontserratMedium',
-    fontWeight: 600,
-    color: colors.textPrimary,
-    fontSize: moderateScale(12),
-    marginTop: verticalScale(4),
-    lineHeight: 18,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: verticalScale(12),
-  },
-  sectionTitle: {
-    fontFamily: 'Montserrat',
-    fontSize: moderateScale(15),
-  },
-  sectionMeta: {
-    fontFamily: 'Montserrat',
-    fontSize: moderateScale(12),
-  },
-  itemRow: {
-    flexDirection: 'row',
-    paddingVertical: verticalScale(12),
-  },
-  itemDivider: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EDE9D9',
-  },
-  itemImage: {
-    width: scale(56),
-    height: scale(56),
-    borderRadius: 12,
-    backgroundColor: '#FFF8EC',
-    marginRight: scale(12),
-  },
-  itemDetails: {
-    flex: 1,
-  },
-  itemName: {
-    fontFamily: 'Montserrat',
-    fontWeight: 600,
-    fontSize: moderateScale(14),
-  },
-  itemPrice: {
-    fontFamily: 'Montserrat',
-    fontWeight: 600,
-    fontSize: moderateScale(12),
-    marginTop: verticalScale(6),
-  },
-  itemAction: {
-    fontFamily: 'InterSemiBold',
-    fontSize: moderateScale(12),
-    color: '#23B14D',
-    marginTop: verticalScale(8),
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: verticalScale(10),
-  },
-  summaryLabel: {
-    fontFamily: 'Montserrat',
-    fontWeight: 600,
-    fontSize: moderateScale(13),
-    color: colors.textPrimary,
-  },
-  summaryValue: {
-    fontFamily: 'Montserrat',
-    fontWeight: 600,
-    fontSize: moderateScale(13),
-  },
-  summaryTotalRow: {
-    marginTop: verticalScale(14),
-    borderTopWidth: 1,
-    borderTopColor: '#EDE9D9',
-    paddingTop: verticalScale(10),
-  },
-  summaryTotalLabel: {
-    fontFamily: 'Montserrat',
-    fontWeight: 600,
-    fontSize: moderateScale(13),
-  },
-  summaryTotalValue: {
-    fontFamily: 'Montserrat',
-    fontWeight: 600,
-    fontSize: moderateScale(13),
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    justifyContent: 'flex-end',
-  },
-  ratingModal: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: scale(18),
-    paddingVertical: verticalScale(18),
-  },
-  ratingModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  ratingModalTitle: {
-    fontFamily: 'Montserrat',
-    fontSize: moderateScale(15),
-    color: '#1E1E1E',
-  },
-  modalClose: {
-    fontSize: moderateScale(18),
-    color: '#7C7754',
-  },
-  ratingItemRow: {
-    flexDirection: 'row',
-    marginTop: verticalScale(16),
-    marginBottom: verticalScale(12),
-  },
-  ratingItemImage: {
-    width: scale(56),
-    height: scale(56),
-    borderRadius: 12,
-    backgroundColor: '#FFF8EC',
-    marginRight: scale(12),
-  },
-  ratingItemInfo: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  ratingItemName: {
-    fontFamily: 'Montserrat',
-    fontSize: moderateScale(14),
-  },
-  ratingItemPrice: {
-    fontFamily: 'InterRegular',
-    fontSize: moderateScale(12),
-    color: colors.textPrimary,
-    marginTop: verticalScale(4),
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: verticalScale(10),
-  },
-  starRow: {
-    flexDirection: 'row',
-    gap: scale(10),
-    marginBottom: verticalScale(12),
-  },
-  ratingText: {
-    fontFamily: 'Montserrat',
-    fontSize: moderateScale(16),
-    marginLeft: scale(12),
-  },
-  commentInput: {
-    borderWidth: 1,
-    borderColor: '#E4DEC6',
-    borderRadius: 12,
-    paddingHorizontal: scale(12),
-    paddingVertical: verticalScale(10),
-    minHeight: verticalScale(90),
-    textAlignVertical: 'top',
-    fontFamily: 'Montserrat',
-    fontSize: moderateScale(13),
-  },
-  submitRatingButton: {
-    marginTop: verticalScale(14),
-    backgroundColor: colors.primaryDark,
-    borderRadius: 14,
-    paddingVertical: verticalScale(14),
-    alignItems: 'center',
-  },
-  submitRatingButtonText: {
-    fontFamily: 'PoppinsSemi',
-    fontSize: moderateScale(14),
-    color: colors.white,
-  },
-  starIcon: {
-    fontSize: moderateScale(26),
-    color: colors.textSecondary,
-  },
-  starIconFilled: {
-    color: colors.primaryDark,
-  },
-});

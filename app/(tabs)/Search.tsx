@@ -306,22 +306,32 @@ const Search = () => {
                           router.push({
                             pathname: '/Product',
                             params: {
-                              product: JSON.stringify({
-                                id: item.id,
-                                name: item.name,
-                                description: item.description || '',
-                                price: item.regular_price,
-                                images: item.product_images?.map((img) => img.image) || [],
-                                variations: item.product_variations?.map((v) => ({
-                                  id: v.id,
-                                  name: v.name,
-                                  price: v.price,
-                                  unit_quantity: v.unit_quantity,
-                                  stock: v.stock,
-                                })) || [],
-                                category: item.category_name?.name || '',
-                                seller: item.store_name?.name || 'Fresh Mart',
-                              }),
+                                product: JSON.stringify({
+                            id: item.id,
+                            name: item.name,
+                            full_description: item.full_description || '',
+                            regular_price: item.regular_price,
+                            // product_images: product.product_images || [],
+                            image: item.product_images?.map((img) => img.image) || [],
+                            product_variations: item.product_variations?.map((variation) => ({
+                              id: variation.id,
+                              name: variation.name,
+                              price: variation.price,
+                              unit_quantity: variation.unit_quantity,
+                              stock: variation.stock,
+                            })) || [],
+                            category: item.category_name?.name || '',
+                            store_name: item.store_name?.name || 'Fresh Mart',
+                             stars: item.stars || 0,
+                            reviews: item.reviews?.map((rev)=>{
+                              return {
+                                stars:rev.stars,
+                                comment:rev.comment,
+                                user:rev.user,
+                                date:rev.created_at,
+                              }
+                            }) || []
+                          })
                             },
                           });
                         }}

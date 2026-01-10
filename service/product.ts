@@ -11,7 +11,7 @@ export interface Store {
 export interface Product {
   id: number;
   name: string;
-  description: string;
+  full_description: string;
   regular_price: string;
   product_images: ProductImage[];
   product_variations: ProductVariations[];
@@ -43,6 +43,7 @@ export interface Review {
   stars: number;
   comment: string;
   user: ReviewUser;
+  created_at: string;
 }
 interface ProductApiResponse {
   status: boolean;
